@@ -1,0 +1,82 @@
+
+#include <os.h>
+
+
+#define BASE_32_LENGTH 13
+#define BASE_10_LENGTH 20
+
+static const uint8_t initial_codeword[] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static const uint8_t codeword_map[] = {3, 2, 1, 0, 7, 6, 5, 4, 13, 14, 15, 16, 12, 8, 9, 10, 11};
+static const char alphabet[] = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+static const uint8_t gexp[] = {1, 2, 4, 8, 16, 5, 10, 20, 13, 26, 17, 7, 14, 28, 29, 31, 27, 19, 3, 6, 12, 24, 21, 15, 30, 25, 23, 11, 22, 9, 18, 1};
+static const uint8_t glog[] = {0, 0, 1, 18, 2, 5, 19, 11, 3, 29, 6, 27, 20, 8, 12, 23, 4, 10, 30, 17, 7, 22, 28, 26, 21, 25, 9, 16, 13, 14, 24, 15};
+
+
+uint8_t gmult(uint8_t a, uint8_t b) {
+
+   
+    if ((0 == a) || (0 == b)) {
+        return 0;
+    }
+
+    PRINTF("\ne1 %d, %d", a, b);
+
+    uint8_t idx = ((*(uint8_t*)PIC(&glog[a])) + (*(uint8_t*)PIC(&glog[b]))) % 31;
+    PRINTF("\ne2 %d", idx);
+    return (*(uint8_t*)PIC(&gexp[idx]));
+}
+
+//output should be of length 21;
+void reedSolomonEncode(uint64_t inp, uint8_t * output) {
+
+
+
+
+    uint8_t plain_string_32[sizeof(initial_codeword)];
+    os_memset(plain_string_32, 0, sizeof(initial_codeword));
+
+    uint8_t index = 0;
+
+    while (0 != inp) {
+        uint8_t ret = inp % 32;
+        PRINTF("\nb: %d, %.*H", ret, sizeof(inp), &inp);
+        plain_string_32[index++] = ret;
+        inp -= ret;
+        inp /= 32;
+    }
+
+    PRINTF("\na %.*H", sizeof(plain_string_32), plain_string_32);
+
+    uint8_t p[] = {0, 0, 0, 0};
+    for (int8_t i = BASE_32_LENGTH - 1; i >= 0; i--) {
+        
+        uint8_t fb = plain_string_32[i] ^ p[3];
+        p[3] = p[2] ^ gmult(30, fb);
+        p[2] = p[1] ^ gmult(6, fb);
+        p[1] = p[0] ^ gmult(9, fb);
+        p[0] =        gmult(17, fb);
+    }
+
+    PRINTF("\nc");
+
+    os_memcpy(plain_string_32 + BASE_32_LENGTH, p, sizeof(initial_codeword) - BASE_32_LENGTH);
+
+    PRINTF("\nd");
+
+
+    uint8_t stringIndex = 0;
+
+    for (uint8_t i = 0; i < 17; i++) {
+        PRINTF("\ne");
+        uint8_t codework_index = (*(uint8_t*)PIC(&codeword_map[i]));
+        uint8_t alphabet_index = plain_string_32[codework_index];
+        output[stringIndex++] = (*(uint8_t*)PIC(&alphabet[alphabet_index]));
+
+        if ((i & 3) == 3 && i < 13) {
+            output[stringIndex++] = '-';
+        }
+    }
+
+    output[stringIndex++] = 0;
+}
+
