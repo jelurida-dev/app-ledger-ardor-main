@@ -30,7 +30,7 @@ void getPublicKeyHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint
 
     //todo check if the 3 is actually the shortest param
     if (0 != derivationParamLengthInBytes % 4) {
-        G_io_apdu_buffer[(*tx)++] = R_UNKNOW_CMD_PARAM_ERR;
+        G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
         return;
     }
 

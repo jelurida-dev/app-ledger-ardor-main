@@ -107,7 +107,6 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
                             uint8_t *keySeedBfrOut, uint8_t *publicKeyOut, uint8_t * chainCodeOut, uint16_t * exceptionOut) {
     
     uint8_t keySeedBfr[64]; os_memset(keySeedBfr, 0, sizeof(keySeedBfr));
-    uint8_t shaOut[64]; os_memset(shaOut, 0, sizeof(shaOut));
     uint8_t publicKeyBE[32]; os_memset(publicKeyBE, 0, sizeof(publicKeyBE));
 
     struct cx_ecfp_256_private_key_s privateKey; //Don't need to init, since the ->d is copied into from some other palce
@@ -121,14 +120,19 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
     PRINTF("\nw: %.*H", derivationPathLengthInUints32 * 4, derivationPath);
 
     for (uint8_t i = 0; i < sizeof(bipPrefix) / sizeof(bipPrefix[0]); i++) {
+        PRINTF("\n a - %d %d", i, derivationPath[i]);
         if (derivationPath[i] != bipPrefix[i])
             return R_WRONG_DERIVATION_PATH_HEADER;
     }
 
     BEGIN_TRY {
             TRY {
+                    PRINTF("\nZ1");
+
                     //todo: understand that in BLUE only has SLIP10, and document this
                     os_perso_derive_node_bip32(CX_CURVE_Ed25519, derivationPath, derivationPathLengthInUints32, keySeedBfr, chainCodeOut);
+
+                    PRINTF("\nZ2");
 
                     // weird custom initilization, code copied from Cardano's EdDSA implementaion
                     privateKey.curve = CX_CURVE_Ed25519;
@@ -143,7 +147,7 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
                     //PRINTF("\nCurvedPrivateKey = publicKey (Genereated to check against) = %.*H", 32, P);
                     
                     if (0 != publicKeyOut) { //todo check that the private keys still gets loaded if not generate_pair
-                        
+
                         PRINTF("\n keySeedBfr %.*H", 64, keySeedBfr);
 
                         cx_ecfp_init_public_key(CX_CURVE_Ed25519, 0, 0, &publicKey);
@@ -183,6 +187,7 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
                     }
 
                     if (0 != keySeedBfrOut) {
+                        PRINTF("\nZ3");
                         os_memmove(keySeedBfrOut, keySeedBfr, 32); //the first of 32 bytes are used
                     }
 
@@ -197,7 +202,6 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
 
                 os_memset(privateKey.d, 0, privateKey.d_len);
                 os_memset(keySeedBfr, 0, sizeof(keySeedBfr));
-                os_memset(shaOut, 0, sizeof(shaOut));
                 os_memset(publicKeyBE, 0, sizeof(publicKeyBE));
                 PRINTF("\nd10");
             }
@@ -206,5 +210,83 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
 
         PRINTF("\nd9");
     
+    return R_SUCCESS;
+}
+
+
+
+uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, uint8_t* targetPublicKey, 
+                                uint8_t * nonce, uint16_t * exceptionOut, cx_aes_key_t * aesKeyOut) {
+    
+    uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
+
+    uint8_t ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, exceptionOut);
+    
+    if (R_SUCCESS != ret)
+        return ret;
+
+    uint8_t sharedKey[32]; os_memset(sharedKey, 0, sizeof(sharedKey));
+
+    curve25519(sharedKey, keySeed, targetPublicKey);
+    
+    for (uint8_t i = 0; i < sizeof(sharedKey); i++)
+        sharedKey[i] ^= nonce[i];
+
+    uint8_t hashedSharedKey[32]; os_memset(hashedSharedKey, 0, sizeof(hashedSharedKey));
+
+    sha256Buffer(sharedKey, sizeof(sharedKey), hashedSharedKey);
+
+    cx_aes_init_key(hashedSharedKey, 32, aesKeyOut);
+
+    return R_SUCCESS;
+}
+
+uint8_t encryptMessage(cx_aes_key_t * aesKey, uint8_t * bufferToEncrypt, uint16_t sizeofInputBuffer, uint8_t * outBuffer, uint8_t * outTx, uint16_t * exceptionOut) {
+    
+    uint8_t IV[16]; os_memset(IV, 0, sizeof(IV));
+
+    cx_rng(IV, sizeof(IV));
+
+    os_memmove(outBuffer, IV, sizeof(IV));
+
+    uint8_t modulo = sizeofInputBuffer % 16;
+    uint16_t outputSize = sizeofInputBuffer;
+
+    if (0 == modulo) {
+        outputSize += 16;
+    } else {
+        outputSize -= modulo - 16;
+    }
+
+    PRINTF("ttestestset");
+
+    uint8_t ret = cx_aes_iv(aesKey, CX_ENCRYPT |  CX_CHAIN_CBC | CX_LAST| CX_PAD_NONE, IV, sizeof(IV), bufferToEncrypt, sizeofInputBuffer, outBuffer, outputSize); //todo this function might throw
+
+    PRINTF("\nddd");
+
+    *outTx += sizeof(IV) + ret;
+
+    PRINTF("\nd13");    
+
+    return R_SUCCESS;
+}
+
+
+uint8_t decryptMessage(cx_aes_key_t * aesKey, uint8_t * bufferToDecrypt, uint16_t sizeofInputBuffer, uint8_t * outBuffer, uint8_t * outTx, uint16_t * exceptionOut) {
+    
+    uint8_t IV[16];
+
+    os_memmove(IV, bufferToDecrypt, sizeof(IV));
+
+    PRINTF("ttestestset");
+
+    uint8_t ret = cx_aes_iv(aesKey, CX_DECRYPT |  CX_CHAIN_CBC | CX_LAST| CX_PAD_NONE, IV, sizeof(IV), bufferToDecrypt + sizeof(IV), sizeofInputBuffer - sizeof(IV), outBuffer, sizeofInputBuffer - sizeof(IV)); //todo this function might throw
+
+    PRINTF("\nddd");
+
+    *outTx += ret;
+
+    PRINTF("\nd13");    
+
     return R_SUCCESS;
 }

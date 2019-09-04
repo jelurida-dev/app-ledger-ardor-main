@@ -10,3 +10,7 @@ obj/
 src/glyphs\.c
 
 src/glyphs\.h
+
+usbtool/
+
+src/txnTypesList.c

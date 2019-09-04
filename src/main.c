@@ -83,6 +83,8 @@ void ui_idle(void) {
 #define INS_GET_VERSION    	0x01
 #define INS_GET_PUBLIC_KEYS 0x02
 #define INS_AUTH_SIGN_TXN  	0x03
+#define INS_ENCYRPT_MSG		0x04
+#define INS_DECRYPT_MSG     0x05
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
@@ -93,12 +95,16 @@ typedef void handler_fn_t(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t 
 handler_fn_t handleGetVersion;
 handler_fn_t getPublicKeyHandler;
 handler_fn_t authAndSignTxnHandler;
+handler_fn_t encryptMessageHandler;
+handler_fn_t decryptMessageHandler;
 
 static handler_fn_t* lookupHandler(uint8_t ins) {
 	switch (ins) {
 	case INS_GET_VERSION:    	return handleGetVersion;
 	case INS_GET_PUBLIC_KEYS: 	return getPublicKeyHandler;
 	case INS_AUTH_SIGN_TXN:   	return authAndSignTxnHandler;
+	case INS_ENCYRPT_MSG:		return encryptMessageHandler;
+	case INS_DECRYPT_MSG:		return decryptMessageHandler;
 	default:                 	return NULL;
 	}
 }
@@ -149,6 +155,8 @@ static void ardor_main(void) {
 				rx = tx;
 				tx = 0; // ensure no race in CATCH_OTHER if io_exchange throws an error
 				rx = io_exchange(CHANNEL_APDU | flags, rx);
+				
+				PRINTF("\nasdasd");
 				flags = 0;
 
 				// No APDU received; trigger a reset.

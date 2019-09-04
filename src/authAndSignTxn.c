@@ -76,6 +76,9 @@ unsigned int makeTextGoAround_preprocessor(const bagl_element_t *element) {
 
 void cleanState() {
 
+    state.txnSizeBytes = 0;
+    state.numBytesRead = 0;
+
     os_memset(state.functionStack, 0, sizeof(state.functionStack));
     state.functionStack[0] = 1; //Add the first parse function on the stack
     state.functionStack[1] = 2; //The appendages parse function
@@ -113,6 +116,11 @@ void cleanState() {
 
     state.screenNum = 0;
 
+    state.attachmentTempInt32Num1 = 0;
+    state.attachmentTempInt32Num2 = 0;
+    state.attachmentTempInt64Num1 = 0;
+    state.attachmentTempInt64Num2 = 0;
+    state.attachmentTempInt64Num3 = 0;
 }
 
 
@@ -131,24 +139,18 @@ void showScreen() {
 }
 
 typedef struct {
-    uint16_t id;
-    uint8_t numScreens;
-    char * name;
-} txnType;
-
-typedef struct {
+    uint32_t chainId;
     char * name;
     uint8_t numDecimalsBeforePoint;
 } chainType;
 
+
 //todo move it somewhere else
-static const chainType CHAINS[] = {{"Ardor", 8}, {"Ignis", 8}, {"AEUR", 4}, {"BITSWIFT", 8}, {"MPG", 8}};
-static const txnType TXN_TYPES[] = {{0x0000, 2, "Simple Send"}, {0x0002, 2, "Simple Send"}}; //todo rename to chain descriptor
+static const chainType CHAINS[] = {{0x00000001, "Ardor", 8}, {0x00000002, "Ignis", 8}, {0x00000003, "AEUR", 4}, {0x00000004, "BITSWIFT", 8}, {0x00000005, "MPG", 8}};
 
 
-//todo write a note here why not returning the class because of PIC
-uint16_t txnIdAtIndex(uint8_t index) {
-    return ((txnType*)PIC(&TXN_TYPES[index]))->id;
+txnType * txnTypeAtIndex(uint8_t index) {
+    return (txnType*)PIC(&TXN_TYPES[index]);
 }
 
 //todo write a note here why not returning the class because of PIC, rename to txnTypeName
@@ -156,9 +158,9 @@ char * txnNameAtIndex(uint8_t index) {
     return (char*)PIC(((txnType*)PIC(&TXN_TYPES[index]))->name);
 }
 
-uint8_t txnNumScreensAtIndex(uint8_t index) {
-    return ((txnType*)PIC(&TXN_TYPES[index]))->numScreens;
-}
+//uint8_t txnNumScreensAtIndex(uint8_t index) {
+//    return ((txnType*)PIC(&TXN_TYPES[index]))->numScreens;
+//}
 
 char * chainName(uint8_t chainId) {
     return (char*)PIC(((chainType*)PIC(&CHAINS[chainId - 1]))->name);
@@ -168,8 +170,8 @@ uint8_t chainNumDecimalsBeforePoint(uint8_t chainId) {
     return ((chainType*)PIC(&CHAINS[chainId - 1]))->numDecimalsBeforePoint;
 }
 
-
-bool formatAmount(uint8_t * outputString, uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDecimalsBeforePoint) {
+//returns 0 iff some kind of error happend, else the length of the output string including the null terminator
+uint8_t formatAmount(uint8_t * outputString, uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDecimalsBeforePoint) {
     
     uint16_t outputIndex = 0;
     bool wasANumberWritten = false;
@@ -199,7 +201,7 @@ bool formatAmount(uint8_t * outputString, uint16_t maxOutputLength, uint64_t num
             outputString[outputIndex++] = '0' + modulo;
 
         if (outputIndex >= maxOutputLength)
-            return false;
+            return 0;
 
         if ((0 == numberToFormat) && (numDecimalsBeforePoint <= numberIndex))
             break;
@@ -215,15 +217,16 @@ bool formatAmount(uint8_t * outputString, uint16_t maxOutputLength, uint64_t num
     }
 
     outputString[outputIndex] = 0;
-    return true;
+    return outputIndex + 1;
 }
 
 void reedSolomonEncode(uint64_t inp, uint8_t * output);
 
-//todo add comments
+
+//note, when adding screen's make sure to add "return R_SUCCESS;" at the end 
 uint8_t setScreenTexts() {
 
-    int8_t counter = state.screenNum;
+    int8_t counter = state.screenNum; //can't be uint cuz it has to have the ability to get negative
 
     if (-1 == counter)
         return R_REJECT;
@@ -240,7 +243,7 @@ uint8_t setScreenTexts() {
         state.displayType = 1;
         snprintf(state.displayTitle, sizeof(state.displayTitle), "Chain&TxnType");
 
-        if ((sizeof(TXN_TYPES) / sizeof(TXN_TYPES[0])) > state.txnTypeIndex) {
+        if (LEN_TXN_TYPES > state.txnTypeIndex) {
             snprintf(state.displaystate, sizeof(state.displaystate), "%s %s",
                 chainName(state.chainId), txnNameAtIndex(state.txnTypeIndex));
         } else {
@@ -251,18 +254,21 @@ uint8_t setScreenTexts() {
         return R_SUCCESS;
     }
 
-    if ((sizeof(TXN_TYPES) / sizeof(TXN_TYPES[0])) > state.txnTypeIndex) {
+    //if the txn type is unknown we skip it
+    if (LEN_TXN_TYPES > state.txnTypeIndex) {
 
         switch (state.transactionTypeAndSubType) {
 
-            case 0x0000:
+            //note: you have to write the type and subtype in reverse, because of little endian buffer representation an big endian C code representation
+
+            case 0x0000: //OrdinaryPayment
+            case 0x00fe: //FxtPayment
 
                 if (0 == counter--) {
                     state.displayType = 1;
 
                     snprintf(state.displayTitle, sizeof(state.displayTitle), "Amount");
-                    if (!formatAmount(state.displaystate, sizeof(state.displaystate), 
-                        state.amount, chainNumDecimalsBeforePoint(state.chainId)))
+                    if (0 == formatAmount(state.displaystate, sizeof(state.displaystate), state.amount, chainNumDecimalsBeforePoint(state.chainId)))
                         return R_FORMAT_AMOUNT_ERR;
 
                     return R_SUCCESS;
@@ -277,8 +283,94 @@ uint8_t setScreenTexts() {
 
                     return R_SUCCESS;
                 }
+
+                break;
+
+            case 0x00fc: //FxtCoinExchangeOrderIssue
+            case 0x000b: //CoinExchangeOrderIssue
+
+                if (0 == counter--) {
+                    state.displayType = 1;
+
+                    snprintf(state.displayTitle, sizeof(state.displayTitle), "Amount");
+                    
+                    uint8_t ret = formatAmount(state.displaystate, sizeof(state.displaystate), state.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.attachmentTempInt32Num2));
+
+                    if (0 == ret)
+                        return R_FORMAT_AMOUNT_ERR;
+
+                    //note: the existence of chainName(state.attachmentTempInt32Num2) was already checked in the parsing function
+                    snprintf(state.displaystate + ret - 1, sizeof(state.displaystate) - ret - 1, " %s", chainName(state.attachmentTempInt32Num2));
+
+                    return R_SUCCESS;
+                }
+
+                if (0 == counter--) {
+                    state.displayType = 1;
+
+                    //note: the existence of chainName(state.attachmentTempInt32Num2) was already checked in the parsing function
+                    snprintf(state.displayTitle, sizeof(state.displayTitle), "Price per %s", chainName(state.attachmentTempInt32Num2));
+                    uint8_t ret = formatAmount(state.displaystate, sizeof(state.displaystate), state.attachmentTempInt64Num2, chainNumDecimalsBeforePoint(state.attachmentTempInt32Num1));
+
+                    if (0 == ret)
+                        return R_FORMAT_AMOUNT_ERR;
+
+                    //note: the existence of chainName(state.attachmentTempInt32Num1) was already checked in the parsing function
+                    snprintf(state.displaystate + ret - 1, sizeof(state.displaystate) - ret - 1, " %s", chainName(state.attachmentTempInt32Num1));
+
+                    return R_SUCCESS;
+                }
+            
+
+            /* case 0x0202: //Ask order placement
+
+
+                if (0 == counter--) {
+
+                    PRINTF("\n dd4 %d", state.attachmentTempInt32Num1);
+
+                    state.displayType = 1;
+
+                    snprintf(state.displayTitle, sizeof(state.displayTitle), "AssetId");
+                    snprintf(state.displaystate, sizeof(state.displaystate), "%d", state.attachmentTempInt64Num1);
+                    
+                    return R_SUCCESS;
+
+                }
+
+                PRINTF("\n dd3");
+
+                if (0 == counter--) {
+                    state.displayType = 1;
+
+                    snprintf(state.displayTitle, sizeof(state.displayTitle), "Quantity");
+                    snprintf(state.displaystate, sizeof(state.displaystate), "%s", chainName(state.attachmentTempInt32Num2));
+
+                    if (!formatAmount(state.displaystate, sizeof(state.displaystate), state.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.attachmentTempInt32Num1)))
+                        return R_FORMAT_AMOUNT_ERR;
+
+                    return R_SUCCESS;
+                }
+
+                if (0 == counter--) {
+                    state.displayType = 1;
+
+                    snprintf(state.displayTitle, sizeof(state.displayTitle), "Target Amount");
+                    if (!formatAmount(state.displaystate, sizeof(state.displaystate), state.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.attachmentTempInt32Num1)))
+                        return R_FORMAT_AMOUNT_ERR;
+
+                    return R_SUCCESS;
+                }
+            */
+
+
+
+
+            default:
+                break;
         }
     }
+
 
     if (0 != state.appendagesFlags) {
         if (0 == counter--) {
@@ -291,13 +383,23 @@ uint8_t setScreenTexts() {
         }
     }
 
+    PRINTF("\nADD");
+
     if (0 == counter--) {
         state.displayType = 1;
 
         snprintf(state.displayTitle, sizeof(state.displayTitle), "Fee");
-        if (!formatAmount(state.displaystate, sizeof(state.displaystate), state.fee, chainNumDecimalsBeforePoint(state.chainId)))
+
+        PRINTF("\nADD1");
+
+        uint8_t ret = formatAmount(state.displaystate, sizeof(state.displaystate), state.fee, chainNumDecimalsBeforePoint(state.chainId));
+
+        PRINTF("\nADD2");
+
+        if (0 == ret)
             return R_FORMAT_FEE_ERR;
 
+        snprintf(state.displaystate + ret - 1, sizeof(state.displaystate) - ret - 1, " %s", chainName(state.chainId));                        
         return R_SUCCESS;
     }
             
@@ -375,6 +477,7 @@ uint8_t * readFromBuffer(uint8_t size) {
 
     uint8_t * ret = state.readBuffer + state.readBufferReadOffset;
     state.readBufferReadOffset += size;
+    state.numBytesRead += size;
 
     return ret;
 }
@@ -387,34 +490,36 @@ uint8_t parseMainTxnData() {
 
     os_memmove(&(state.chainId), ptr, sizeof(state.chainId));
 
-    if (1 != state.chainId) //todo: change this into a constant
-        addToFunctionStack(3);
-
-
-    PRINTF("\n %d %.*H", state.chainId, 108, ptr);
+    PRINTF("\n bb %d %.*H", state.chainId, 108, ptr);
 
     ptr += sizeof(state.chainId);
 
-    if (0 == state.chainId)
-        return R_BAD_CHAIN_ID_ERR;
-
-    if ((sizeof(CHAINS) / sizeof(CHAINS[0])) + 1 <= state.chainId) //note: we do +1 here because ardor start with index 1
+    if ((0 == state.chainId) || ((sizeof(CHAINS) / sizeof(CHAINS[0])) < state.chainId)) //note: we do +1 here because ardor start with index 1
         return R_BAD_CHAIN_ID_ERR;
 
 
     os_memmove(&(state.transactionTypeAndSubType), ptr, sizeof(state.transactionTypeAndSubType));
 
+    PRINTF("\n baba %.*H", 4, &state.transactionTypeAndSubType);
 
     ptr += sizeof(state.transactionTypeAndSubType);
 
-    for (state.txnTypeIndex = 0; state.txnTypeIndex < (sizeof(TXN_TYPES) / sizeof(TXN_TYPES[0])); state.txnTypeIndex++) {
-        
-        if (txnIdAtIndex(state.txnTypeIndex) == state.transactionTypeAndSubType)
+    txnType * currentTxnType = 0;
+
+    for (state.txnTypeIndex = 0; state.txnTypeIndex < LEN_TXN_TYPES; state.txnTypeIndex++) {
+
+        currentTxnType = txnTypeAtIndex(state.txnTypeIndex);
+
+        if (currentTxnType->id == state.transactionTypeAndSubType)
             break;
 
         //if ((((txnType*)PIC(TXN_TYPES) + state.txnTypeIndex)->id) == state.transactionTypeAndSubType)
         //    break;
     }
+
+
+    if (0 != currentTxnType->attachmentParsingFunctionNumber)
+        addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
 
     os_memmove(&(state.version), ptr, sizeof(state.version));
     ptr += sizeof(state.version);
@@ -439,6 +544,16 @@ uint8_t parseMainTxnData() {
     ptr += 4;   //Skip the block height
     ptr += 8;   //Skip the block Id
 
+    addToFunctionStack(6);
+
+    return R_SUCCESS;
+}
+
+uint8_t parseReferencedTxn() {
+
+    if (0 == readFromBuffer(sizeof(uint32_t) + 32))
+        return R_SEND_MORE_BYTES;
+
     return R_SUCCESS;
 }
 
@@ -457,11 +572,68 @@ uint8_t parseAppendagesFlags() {
     return R_SUCCESS;
 }
 
-uint8_t parseReferencedTxn() {
-    uint8_t * ptr = readFromBuffer(36);
+uint8_t parseIngoreBytesUntilTheEnd() {
+    while (state.numBytesRead != state.txnSizeBytes) {
+        if (0 == readFromBuffer(1))
+            return R_SEND_MORE_BYTES;
+    }
 
+    return R_SUCCESS;
+}
+
+uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
+    
+    state.attachmentTempInt32Num1 = 0; //chaidId
+    state.attachmentTempInt32Num2 = 0; //exchangeChain
+    state.attachmentTempInt64Num1 = 0; //quantity
+    state.attachmentTempInt64Num2 = 0; //price
+
+    uint8_t * ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.attachmentTempInt32Num1) * 2 + sizeof(state.attachmentTempInt64Num1) * 2);
     if (0 == ptr)
         return R_SEND_MORE_BYTES;
+
+    if (1 != *ptr)
+        return R_UNSUPPORTED_ATTACHMENT_VERSION;
+
+    ptr += 1;
+
+    os_memmove(&state.attachmentTempInt32Num1, ptr, sizeof(state.attachmentTempInt32Num1));
+    ptr += sizeof(state.attachmentTempInt32Num1);
+
+    if (state.attachmentTempInt32Num1 > (sizeof(CHAINS) / sizeof(CHAINS[0])))
+        return R_BAD_CHAIN_ID_ERR;
+
+    os_memmove(&state.attachmentTempInt32Num2, ptr, sizeof(state.attachmentTempInt32Num2));
+    ptr += sizeof(state.attachmentTempInt32Num2);
+
+    if (state.attachmentTempInt32Num2 > (sizeof(CHAINS) / sizeof(CHAINS[0])))
+        return R_BAD_CHAIN_ID_ERR;
+
+    os_memmove(&state.attachmentTempInt64Num1, ptr, sizeof(state.attachmentTempInt64Num1));
+    ptr += sizeof(state.attachmentTempInt64Num1);
+    
+    os_memmove(&state.attachmentTempInt64Num2, ptr, sizeof(state.attachmentTempInt64Num2));
+
+    return R_SUCCESS;
+}
+
+uint8_t parseAskOrderPlacementAttachment() {
+    
+    state.attachmentTempInt64Num1 = 0;
+    state.attachmentTempInt64Num2 = 0;
+    state.attachmentTempInt64Num3 = 0;
+
+    uint8_t * ptr = readFromBuffer(sizeof(state.attachmentTempInt64Num1) * 3);
+    if (0 == ptr)
+        return R_SEND_MORE_BYTES;
+
+    os_memmove(&state.attachmentTempInt64Num1, ptr, sizeof(state.attachmentTempInt64Num1));
+    ptr += sizeof(state.attachmentTempInt64Num1);
+
+    os_memmove(&state.attachmentTempInt64Num2, ptr, sizeof(state.attachmentTempInt64Num2));
+    ptr += sizeof(state.attachmentTempInt64Num2);
+
+    os_memmove(&state.attachmentTempInt64Num3, ptr, sizeof(state.attachmentTempInt64Num3));
 
     return R_SUCCESS;
 }
@@ -497,6 +669,12 @@ uint8_t callFunctionNumber(uint8_t functionNum) {
             return parseAppendagesFlags();
         case 3:
             return parseReferencedTxn();
+        case 4:
+            return parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment();
+        case 5:
+            return parseAskOrderPlacementAttachment();
+        case 6:
+            return parseIngoreBytesUntilTheEnd();
     }
 
     return R_PARSE_FUNCTION_NOT_FOUND;
@@ -559,12 +737,14 @@ uint8_t signTxn(uint8_t * data, const uint32_t derivationPath, const uint8_t der
     return R_SUCCESS;
 }
 
-#define P1_INIT 0
-#define P1_CONTINUE 1
-#define P1_SIGN 2
+#define P1_INIT 1
+#define P1_CONTINUE 2
+#define P1_SIGN 3
 
 void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength,
                 volatile unsigned int *flags, volatile unsigned int *tx) {
+
+    PRINTF("\n asd %d %d", p1, p1 & 0x03);
 
     if (dataLength < 1) {
         cleanState();
@@ -573,7 +753,7 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
     }
 
 
-    if (P1_SIGN == p1) {
+    if (P1_SIGN == p1 & 0x03) {
 
         if (dataLength < 2 * sizeof(uint32_t)) {
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
@@ -589,7 +769,7 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
         uint8_t derivationParamLengthInBytes = dataLength;
 
         if (0 != derivationParamLengthInBytes % 4) {
-            G_io_apdu_buffer[(*tx)++] = R_UNKNOW_CMD_PARAM_ERR;
+            G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
             return;
         }
 
@@ -614,9 +794,9 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
                 G_io_apdu_buffer[(*tx)++] = exception & 0xFF;
             }
         }
-    } else if ((P1_INIT == p1) || (P1_CONTINUE == p1)) {
+    } else if ((P1_INIT == p1 & 0x03) || (P1_CONTINUE == p1 & 0x03)) {
 
-        if (P1_INIT != p1) {
+        if (P1_INIT != p1 & 0x03) {
 
             if (state.txnPassedAutherization) {
                 cleanState();
@@ -631,6 +811,15 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
             }
         } else {
             cleanState();
+
+            state.txnSizeBytes = ((p1 & 0b11111100) << 6) + p2;
+
+            PRINTF("\n fasd %d", state.txnSizeBytes);
+
+            if (145 > state.txnSizeBytes) {
+                G_io_apdu_buffer[(*tx)++] = R_TXN_SIZE_TOO_SMALL;
+                return;
+            }
         }
 
         state.isClean = false;
@@ -654,7 +843,7 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
             G_io_apdu_buffer[(*tx)++] = ret;
         }
     } else {
-        G_io_apdu_buffer[(*tx)++] = R_UNKNOW_CMD_PARAM_ERR;
+        G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
     }
 }
 
