@@ -566,9 +566,6 @@ uint8_t parseAppendagesFlags() {
 
     os_memmove(&(state.appendagesFlags), ptr, sizeof(state.appendagesFlags));
 
-    if (0 != state.appendagesFlags)
-        return R_UNSUPPORTED_APPENDAGE;
-
     return R_SUCCESS;
 }
 
@@ -744,6 +741,8 @@ uint8_t signTxn(uint8_t * data, const uint32_t derivationPath, const uint8_t der
 void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength,
                 volatile unsigned int *flags, volatile unsigned int *tx) {
 
+    
+    PRINTF("\n asdijasidjaisjdasid");
     PRINTF("\n asd %d %d", p1, p1 & 0x03);
 
     if (dataLength < 1) {
@@ -753,7 +752,7 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
     }
 
 
-    if (P1_SIGN == p1 & 0x03) {
+    if (P1_SIGN == (p1 & 0x03)) {
 
         if (dataLength < 2 * sizeof(uint32_t)) {
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
@@ -794,9 +793,9 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
                 G_io_apdu_buffer[(*tx)++] = exception & 0xFF;
             }
         }
-    } else if ((P1_INIT == p1 & 0x03) || (P1_CONTINUE == p1 & 0x03)) {
+    } else if ((P1_INIT == (p1 & 0x03)) || (P1_CONTINUE == (p1 & 0x03))) {
 
-        if (P1_INIT != p1 & 0x03) {
+        if (P1_INIT != (p1 & 0x03)) {
 
             if (state.txnPassedAutherization) {
                 cleanState();
