@@ -66,13 +66,7 @@ static const bagl_element_t ui_finalScreen[] = {
         {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)state.displaystate,0,0,0,NULL,NULL,NULL}
 };
 
-unsigned int makeTextGoAround_preprocessor(const bagl_element_t *element) {
-    if (element->component.userid > 0) {
-        UX_CALLBACK_SET_INTERVAL(MAX(
-            3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
-    }
-    return 1;
-}
+unsigned int makeTextGoAround_preprocessor(const bagl_element_t *element);
 
 void cleanState() {
 

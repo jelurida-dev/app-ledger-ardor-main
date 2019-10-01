@@ -1,14 +1,38 @@
+/*******************************************************************************
+*  (c) 2019 Haim Bender
+*
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+********************************************************************************/
+
 #include <stdint.h>
 #include <stdbool.h>
 
 #include <os.h>
 #include <cx.h>
-
+#include <os_io_seproxyhal.h>
 
 #include "ardor.h"
 #include "curve25519_i64.h"
 #include "returnValues.h"
 
+unsigned int makeTextGoAround_preprocessor(const bagl_element_t *element)
+{
+    if (element->component.userid > 0)
+        UX_CALLBACK_SET_INTERVAL(MAX(3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+    
+    return 1;
+}
 
 void fillBufferWithAnswerAndEnding(uint8_t answer, uint8_t * tx) {
     if (0 == tx) {
@@ -112,7 +136,8 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
     struct cx_ecfp_256_private_key_s privateKey; //Don't need to init, since the ->d is copied into from some other palce
     cx_ecfp_public_key_t publicKey; //cx_ecfp_init_public_key is called later, don't need to init this now, 
 
-    uint32_t bipPrefix[] = {44 | 0x80000000, 29 | 0x80000000};
+    //uint32_t bipPrefix[] = {44 | 0x80000000, 29 | 0x80000000};
+    uint32_t bipPrefix[] = {44 | 0x80000000};
 
     if ((derivationPathLengthInUints32 < sizeof(bipPrefix) / sizeof(bipPrefix[0])) || (derivationPathLengthInUints32 < MIN_DERIVATION_PATH_LENGTH))
         return R_DERIVATION_PATH_TOO_SHORT;
@@ -241,52 +266,37 @@ uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t de
     return R_SUCCESS;
 }
 
-uint8_t encryptMessage(cx_aes_key_t * aesKey, uint8_t * bufferToEncrypt, uint16_t sizeofInputBuffer, uint8_t * outBuffer, uint8_t * outTx, uint16_t * exceptionOut) {
-    
-    uint8_t IV[16]; os_memset(IV, 0, sizeof(IV));
+//note: this function writes IV strait into the output buffer which is actually G_io_apdu_buffer which also holds the input
+//      data, so we have to be real carfull here not to write onto the input
 
-    cx_rng(IV, sizeof(IV));
+uint8_t encryptMessage(uint8_t * aesKey, uint8_t * bufferToEncrypt, uint16_t sizeofInputBuffer, uint8_t * outBuffer) {
 
-    os_memmove(outBuffer, IV, sizeof(IV));
+    cx_rng(outBuffer, IV_SIZE); //so outputBuffer is now the IV
 
-    uint8_t modulo = sizeofInputBuffer % 16;
-    uint16_t outputSize = sizeofInputBuffer;
+    //todo: figure out what to do if the size isn't modulu 16
+    int ret = aes_256_cbc_encrypt(aesKey, outBuffer, bufferToEncrypt, sizeofInputBuffer);
 
-    if (0 == modulo) {
-        outputSize += 16;
-    } else {
-        outputSize -= modulo - 16;
-    }
+    //copy the output to the output buffer
+    for (uint8_t i = 0; i < sizeofInputBuffer; i++)
+        outBuffer[IV_SIZE + i] = bufferToEncrypt[i];
 
-    PRINTF("ttestestset");
+    if (0 == ret)
+        return R_SUCCESS;
 
-    uint8_t ret = cx_aes_iv(aesKey, CX_ENCRYPT |  CX_CHAIN_CBC | CX_LAST| CX_PAD_NONE, IV, sizeof(IV), bufferToEncrypt, sizeofInputBuffer, outBuffer, outputSize); //todo this function might throw
-
-    PRINTF("\nddd");
-
-    *outTx += sizeof(IV) + ret;
-
-    PRINTF("\nd13");    
-
-    return R_SUCCESS;
+    return R_AES_ERROR;
 }
 
+//note: here too like the function above we need to make sure that we dont overwrite data by mistake
+uint8_t decryptMessage(uint8_t * aesKey, uint8_t * bufferToDecrypt, uint16_t sizeofInputBuffer, uint8_t * outBuffer) {
 
-uint8_t decryptMessage(cx_aes_key_t * aesKey, uint8_t * bufferToDecrypt, uint16_t sizeofInputBuffer, uint8_t * outBuffer, uint8_t * outTx, uint16_t * exceptionOut) {
-    
-    uint8_t IV[16];
+    int ret = aes_256_cbc_decrypt(aesKey, bufferToDecrypt, bufferToDecrypt + IV_SIZE, size_t sizeofInputBuffer);
 
-    os_memmove(IV, bufferToDecrypt, sizeof(IV));
+    //copy the output to the output buffer
+    for (uint8_t i = 0; i < sizeofInputBuffer; i++)
+        outBuffer[i] = bufferToDecrypt[IV_SIZE + i];
 
-    PRINTF("ttestestset");
+    if (0 == ret)
+        return R_SUCCESS;
 
-    uint8_t ret = cx_aes_iv(aesKey, CX_DECRYPT |  CX_CHAIN_CBC | CX_LAST| CX_PAD_NONE, IV, sizeof(IV), bufferToDecrypt + sizeof(IV), sizeofInputBuffer - sizeof(IV), outBuffer, sizeofInputBuffer - sizeof(IV)); //todo this function might throw
-
-    PRINTF("\nddd");
-
-    *outTx += ret;
-
-    PRINTF("\nd13");    
-
-    return R_SUCCESS;
+    return R_AES_ERROR;
 }

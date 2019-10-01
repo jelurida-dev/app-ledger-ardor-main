@@ -13,34 +13,32 @@ void decryptMessageHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t 
 
 	if (p1 < 2) {
 		G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_SHORT;
-        return; 
+        return;
 	}
 
-    if (p1 > 54) {
+    if (p1 > 43) { //47 is the spacial limit
 		G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_LONG;
         return; 
     }
 
-    if (dataLength <  p1 * sizeof(uint32_t) + 32 + 32 + 16) {
+    if (dataLength <  p1 * sizeof(uint32_t) + 32 + 32 + 16 + 16) { //derivation path, src public key, nonce, iv, buffer
         G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
         return; 
     }
 
-    uint8_t dataToDecryptLength = dataLength - p1 * sizeof(uint32_t) - 32 - 32;
+    uint8_t dataToDecryptLength = dataLength - p1 * sizeof(uint32_t) - 32 - 32 - 16;
 
     if (0 != dataToDecryptLength % 16) {
         G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;
         return;
     }
 
-    uint32_t derivationPath[54];
+    uint32_t derivationPath[47];
 
     os_memcpy(derivationPath, dataBuffer, p1 * sizeof(uint32_t));
    	
    	uint8_t exceptionOut = 0;
  	uint8_t numBytesWrittenOut = 0;
-
-    cx_aes_key_t aesKey;
 
     uint8_t ret = getSharedEncryptionKey(derivationPath, p1, dataBuffer + p1 * sizeof(uint32_t), dataBuffer + p1 * sizeof(uint32_t) + 32, &exceptionOut, &aesKey);
 
@@ -56,25 +54,15 @@ void decryptMessageHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t 
         return;
     }
 
-    uint32_t outBfr[256];
-    uint8_t outSize = 0;
-
-    ret = decryptMessage(aesKey, dataBuffer + p1 * sizeof(uint32_t) + 32 + 32, dataToDecryptLength, outBfr, &outSize, &exceptionOut);
+    ret = decryptMessage(aesKey, dataBuffer + p1 * sizeof(uint32_t) + 32 + 32, dataToDecryptLength, G_io_apdu_buffer + 1);
 
     G_io_apdu_buffer[0] = ret;
-    
-    if (R_EXCEPTION == ret) {
-        G_io_apdu_buffer[1] = exceptionOut >> 8;
-        G_io_apdu_buffer[2] = exceptionOut & 0xFF;
-        *tx = 3;
-        return;
-    } else if (R_SUCCESS != ret) {
-        *tx = 1;
-    	return;
-    }
 
-    os_memcpy(G_io_apdu_buffer + 1, outBfr, outSize);
-    *tx = outSize + 1;
+    if (R_SUCCESS == ret)
+        *tx = dataToDecryptLength + 1;
+    else
+        *tx = 1;
+
 }
 
 void decryptMessageHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength,

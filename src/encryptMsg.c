@@ -26,7 +26,7 @@ void encryptMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
 
     PRINTF("\nd1");
 
-    if (dataLength <  p1 * sizeof(uint32_t) + 32 + 1) {
+    if (dataLength <  p1 * sizeof(uint32_t) + 1) {
         G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
         return; 
     }
