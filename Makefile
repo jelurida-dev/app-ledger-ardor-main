@@ -27,7 +27,8 @@ include $(BOLOS_SDK)/Makefile.defines
 APPNAME  = Ardor
 TARGET_NAME = TARGET_NANOS
 
-DEVEL = 1 #Use when devolping #todo change this up in production
+DEVEL = 1
+#Use when devolping #todo change this up in production
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 	ICONNAME = ArdorIcon.gif
@@ -46,7 +47,7 @@ APPVERSION_P = 0
 APPVERSION   = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # The --path argument here restricts which BIP32 paths the app is allowed to derive.
-APP_LOAD_PARAMS = --appFlags 0x40 --path "44'/29'" --curve ed25519 $(COMMON_LOAD_PARAMS)
+APP_LOAD_PARAMS = --appFlags 0x40 --path "44'" --curve ed25519 $(COMMON_LOAD_PARAMS)
 APP_SOURCE_PATH = src
 SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f
 
@@ -93,7 +94,6 @@ DEFINES   += USB_SEGMENT_SIZE=64
 DEFINES   += BLE_SEGMENT_SIZE=32 #max MTU, min 20
 
 
-
 # Enabling debug PRINTF
 ifeq ($(DEVEL), 1)
 	DEFINES += DEVEL HAVE_PRINTF
@@ -103,8 +103,9 @@ ifeq ($(DEVEL), 1)
 		DEFINES += PRINTF=screen_printf
 	endif
 else
-    DEFINES += PRINTF\(...\)=
+	DEFINES += PRINTF\(...\)=
 endif
+
 
 WEBUSB_URL = https://www.ledger.com/pages/supported-crypto-assets
 DEFINES += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
