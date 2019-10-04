@@ -241,7 +241,7 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
 
 
 uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, uint8_t* targetPublicKey, 
-                                uint8_t * nonce, uint16_t * exceptionOut, cx_aes_key_t * aesKeyOut) {
+                                uint8_t * nonce, uint16_t * exceptionOut, uint8_t * aesKeyOut) {
     
     uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
 
@@ -257,46 +257,7 @@ uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t de
     for (uint8_t i = 0; i < sizeof(sharedKey); i++)
         sharedKey[i] ^= nonce[i];
 
-    uint8_t hashedSharedKey[32]; os_memset(hashedSharedKey, 0, sizeof(hashedSharedKey));
-
-    sha256Buffer(sharedKey, sizeof(sharedKey), hashedSharedKey);
-
-    cx_aes_init_key(hashedSharedKey, 32, aesKeyOut);
+    sha256Buffer(sharedKey, sizeof(sharedKey), aesKeyOut);
 
     return R_SUCCESS;
-}
-
-//note: this function writes IV strait into the output buffer which is actually G_io_apdu_buffer which also holds the input
-//      data, so we have to be real carfull here not to write onto the input
-
-uint8_t encryptMessage(uint8_t * aesKey, uint8_t * bufferToEncrypt, uint16_t sizeofInputBuffer, uint8_t * outBuffer) {
-
-    cx_rng(outBuffer, IV_SIZE); //so outputBuffer is now the IV
-
-    //todo: figure out what to do if the size isn't modulu 16
-    int ret = aes_256_cbc_encrypt(aesKey, outBuffer, bufferToEncrypt, sizeofInputBuffer);
-
-    //copy the output to the output buffer
-    for (uint8_t i = 0; i < sizeofInputBuffer; i++)
-        outBuffer[IV_SIZE + i] = bufferToEncrypt[i];
-
-    if (0 == ret)
-        return R_SUCCESS;
-
-    return R_AES_ERROR;
-}
-
-//note: here too like the function above we need to make sure that we dont overwrite data by mistake
-uint8_t decryptMessage(uint8_t * aesKey, uint8_t * bufferToDecrypt, uint16_t sizeofInputBuffer, uint8_t * outBuffer) {
-
-    int ret = aes_256_cbc_decrypt(aesKey, bufferToDecrypt, bufferToDecrypt + IV_SIZE, size_t sizeofInputBuffer);
-
-    //copy the output to the output buffer
-    for (uint8_t i = 0; i < sizeofInputBuffer; i++)
-        outBuffer[i] = bufferToDecrypt[IV_SIZE + i];
-
-    if (0 == ret)
-        return R_SUCCESS;
-
-    return R_AES_ERROR;
 }
