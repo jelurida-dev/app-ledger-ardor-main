@@ -154,7 +154,7 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
             TRY {
                     PRINTF("\nZ1");
 
-                    //todo: understand that in BLUE only has SLIP10, and document this
+                    //todo: understand that in BLUE only has SLIP10, and document this 
                     os_perso_derive_node_bip32(CX_CURVE_Ed25519, derivationPath, derivationPathLengthInUints32, keySeedBfr, chainCodeOut);
 
                     PRINTF("\nZ2");
@@ -260,4 +260,19 @@ uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t de
     sha256Buffer(sharedKey, sizeof(sharedKey), aesKeyOut);
 
     return R_SUCCESS;
+}
+
+uint64_t publicKeyToId(uint8_t * publicKey) {
+        
+    uint8_t tempSha[32];
+    sha256Buffer(publicKey, 32, tempSha);
+
+    return ((((uint64_t) tempSha[7]) << 56) |
+            (((uint64_t) tempSha[6]) << 48) |
+            (((uint64_t) tempSha[5]) << 40) |
+            (((uint64_t) tempSha[4]) << 32) |
+            (((uint64_t) tempSha[3]) << 24) |
+            (((uint64_t) tempSha[2]) << 16) |
+            (((uint64_t) tempSha[1]) << 8) |
+            (((uint64_t) tempSha[0] )));
 }

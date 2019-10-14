@@ -86,10 +86,10 @@ void showAddressHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint1
     if (R_SUCCESS == ret) {
         os_memset(screenContent, 0, sizeof(screenContent));
         snprintf(screenContent, sizeof(screenContent), "ARDOR-");
-        reedSolomonEncode(publicKey, screenContent + strlen(screenContent));
+        reedSolomonEncode(publicKeyToId(publicKey), screenContent + strlen(screenContent));
         UX_DISPLAY(ui_screen, (bagl_element_callback_t)makeTextGoAround_preprocessor);
         *flags |= IO_ASYNCH_REPLY;
-    } else if (R_KEY_DERIVATION_EX == ret) {  
+    } else if (R_KEY_DERIVATION_EX == ret) {
         G_io_apdu_buffer[0] = ret;
         G_io_apdu_buffer[1] = exception >> 8;
         G_io_apdu_buffer[2] = exception & 0xFF;
