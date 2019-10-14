@@ -749,11 +749,13 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
     if (P1_SIGN == (p1 & 0x03)) {
 
         if (dataLength < 2 * sizeof(uint32_t)) {
+            cleanState();
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
             return; 
         }
 
         if (!state.txnPassedAutherization) {
+            cleanState();
             G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
             return;
         }
@@ -762,6 +764,7 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
         uint8_t derivationParamLengthInBytes = dataLength;
 
         if (0 != derivationParamLengthInBytes % 4) {
+            cleanState();
             G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
             return;
         }
