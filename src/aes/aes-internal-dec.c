@@ -14,6 +14,8 @@
  * See README for more details.
  */
 
+#include <stdbool.h>
+
 #include "aes.h"
 #include "aes-internal.h"
 
@@ -141,6 +143,18 @@ void * aes_decrypt_init(const aes_uchar *key, size_t len)
 	}
 	rk[AES_PRIV_NR_POS] = res;
 	return rk;
+}
+
+bool aes_decrypt_init_fixed(const aes_uchar *key, size_t len, aes_uint * rk)
+{
+	int res = aes_rijndael_key_setup_dec(rk, key, len * 8);
+	
+	if (res < 0)
+		return false;
+
+	rk[AES_PRIV_NR_POS] = res;
+	
+	return true;
 }
 
 
