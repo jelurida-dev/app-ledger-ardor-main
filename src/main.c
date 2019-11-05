@@ -80,12 +80,11 @@ void ui_idle(void) {
 // The APDU protocol uses a single-byte instruction code (INS) to specify
 // which command should be executed. We'll use this code to dispatch on a
 // table of function pointers.
-#define INS_GET_VERSION    	0x01
-#define INS_GET_PUBLIC_KEYS 0x02
-#define INS_AUTH_SIGN_TXN  	0x03
-#define INS_ENCYRPT_MSG		0x04
-#define INS_DECRYPT_MSG     0x05
-#define INS_SHOW_ADDRESS 	0x06
+#define INS_GET_VERSION    			0x01
+#define INS_GET_PUBLIC_KEYS 		0x02
+#define INS_AUTH_SIGN_TXN  			0x03
+#define INS_ENCRYPT_DECRYPT_MSG		0x04
+#define INS_SHOW_ADDRESS 			0x05
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
@@ -96,19 +95,17 @@ typedef void handler_fn_t(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t 
 handler_fn_t handleGetVersion;
 handler_fn_t getPublicKeyHandler;
 handler_fn_t authAndSignTxnHandler;
-handler_fn_t encryptMessageHandler;
-handler_fn_t decryptMessageHandler;
+handler_fn_t encryptDecryptMessageHandler;
 handler_fn_t showAddressHandler;
 
 static handler_fn_t* lookupHandler(uint8_t ins) {
 	switch (ins) {
-	case INS_GET_VERSION:    	return handleGetVersion;
-	case INS_GET_PUBLIC_KEYS: 	return getPublicKeyHandler;
-	case INS_AUTH_SIGN_TXN:   	return authAndSignTxnHandler;
-	case INS_ENCYRPT_MSG:		return encryptMessageHandler;
-	case INS_DECRYPT_MSG:		return decryptMessageHandler;
-	case INS_SHOW_ADDRESS:		return showAddressHandler;
-	default:                 	return NULL;
+	case INS_GET_VERSION:    		return handleGetVersion;
+	case INS_GET_PUBLIC_KEYS: 		return getPublicKeyHandler;
+	case INS_AUTH_SIGN_TXN:   		return authAndSignTxnHandler;
+	case INS_ENCRYPT_DECRYPT_MSG:	return encryptDecryptMessageHandler;
+	case INS_SHOW_ADDRESS:			return showAddressHandler;
+	default:                 		return NULL;
 	}
 }
 
@@ -125,6 +122,22 @@ static handler_fn_t* lookupHandler(uint8_t ins) {
 
 void cleanState();
 
+states_t state;
+
+extern unsigned long _stack;
+#define STACK_CANARY (*((volatile uint32_t*) &_stack))
+
+void init_canary() {
+	STACK_CANARY = 0xDEADBEEF;
+}
+
+bool check_canary() {
+	return STACK_CANARY == 0xDEADBEEF;
+}
+
+
+//todo: make sure the state is cleaned when getting a command that is irrelevant
+
 // This is the main loop that reads and writes APDUs. It receives request
 // APDUs from the computer, looks up the corresponding command handler, and
 // calls it on the APDU payload. Then it loops around and calls io_exchange
@@ -133,6 +146,9 @@ void cleanState();
 // will be caught, converted to an error code, appended to the response APDU,
 // and sent in the next io_exchange call.
 static void ardor_main(void) {
+
+	init_canary();
+
 	// Mark the transaction context as uninitialized.
     cleanState();
 
@@ -158,7 +174,10 @@ static void ardor_main(void) {
 				rx = tx;
 				tx = 0; // ensure no race in CATCH_OTHER if io_exchange throws an error
 				rx = io_exchange(CHANNEL_APDU | flags, rx);
-				
+	
+				PRINTF("\n ttt %d", check_canary());
+
+
 				PRINTF("\nasdasd");
 				flags = 0;
 

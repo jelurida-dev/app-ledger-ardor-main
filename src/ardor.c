@@ -238,19 +238,18 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
     return R_SUCCESS;
 }
 
-
-
 uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, uint8_t* targetPublicKey, 
                                 uint8_t * nonce, uint16_t * exceptionOut, uint8_t * aesKeyOut) {
     
     uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
 
     uint8_t ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, exceptionOut);
-    
+
     if (R_SUCCESS != ret)
         return ret;
 
     uint8_t sharedKey[32]; os_memset(sharedKey, 0, sizeof(sharedKey));
+
 
     curve25519(sharedKey, keySeed, targetPublicKey);
     
@@ -258,6 +257,8 @@ uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t de
         sharedKey[i] ^= nonce[i];
 
     sha256Buffer(sharedKey, sizeof(sharedKey), aesKeyOut);
+
+    PRINTF("\n sharedkey: %.*H", 32, aesKeyOut);
 
     return R_SUCCESS;
 }

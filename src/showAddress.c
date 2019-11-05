@@ -51,8 +51,8 @@ static unsigned int ui_screen_button(unsigned int button_mask, unsigned int butt
 void reedSolomonEncode(uint64_t inp, uint8_t * output);
 unsigned int makeTextGoAround_preprocessor(const bagl_element_t *element);
 
-
-void showAddressHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength,
+//todo: running show address twice makes it stuck
+void showAddressHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
         volatile unsigned int *flags, volatile unsigned int *tx) {
 
     //should be at least the size of 2 uint32's for the key path
@@ -102,7 +102,7 @@ void showAddressHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint1
     }
 }
 
-void showAddressHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength,
+void showAddressHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
                 volatile unsigned int *flags, volatile unsigned int *tx) {
 
     showAddressHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);

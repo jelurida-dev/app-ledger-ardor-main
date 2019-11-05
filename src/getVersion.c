@@ -6,7 +6,7 @@
 #define VERSION 0x0001
 #define FLAGS   0x00
 
-void handleGetVersion(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength,
+void handleGetVersion(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
                             volatile unsigned int *flags, volatile unsigned int *tx) {
 	
 	uint8_t ardorSpecial[] = {0xba, 0xbe, 0x00};

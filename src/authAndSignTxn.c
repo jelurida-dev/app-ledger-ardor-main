@@ -26,8 +26,6 @@
 #include "returnValues.h"
 #include "ardor.h"
 
-authAndSignState_t state;
-
 static unsigned int ui_auth_button(unsigned int button_mask, unsigned int button_mask_counter);
 
 static unsigned int ui_firstScreen_button(unsigned int button_mask, unsigned int button_mask_counter) {
@@ -46,80 +44,80 @@ static const bagl_element_t ui_firstScreen[] = {
         UI_BACKGROUND(),
         {{BAGL_ICON,0x00,3,12,7,7,0,0,0,0xFFFFFF,0,0,BAGL_GLYPH_ICON_CROSS},NULL,0,0,0,NULL,NULL,NULL},
         {{BAGL_ICON,0x00,117,13,8,6,0,0,0,0xFFFFFF,0,0,BAGL_GLYPH_ICON_RIGHT},NULL,0,0,0,NULL,NULL,NULL},        
-        UI_TEXT(0x00, 0, 12, 128, state.displayTitle),
-        {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)state.displaystate,0,0,0,NULL,NULL,NULL}
+        UI_TEXT(0x00, 0, 12, 128, state.txnAuth.displayTitle),
+        {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)state.txnAuth.displaystate,0,0,0,NULL,NULL,NULL}
 };
 
 static const bagl_element_t ui_centerScreen[] = {
         UI_BACKGROUND(),
         {{BAGL_ICON,0x00,3,12,7,7,0,0,0,0xFFFFFF,0,0,BAGL_GLYPH_ICON_LEFT},NULL,0,0,0,NULL,NULL,NULL},
         {{BAGL_ICON,0x00,117,13,8,6,0,0,0,0xFFFFFF,0,0,BAGL_GLYPH_ICON_RIGHT},NULL,0,0,0,NULL,NULL,NULL},
-        UI_TEXT(0x00, 0, 12, 128, state.displayTitle),
-        {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)state.displaystate,0,0,0,NULL,NULL,NULL}
+        UI_TEXT(0x00, 0, 12, 128, state.txnAuth.displayTitle),
+        {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)state.txnAuth.displaystate,0,0,0,NULL,NULL,NULL}
 };
 
 static const bagl_element_t ui_finalScreen[] = {
         UI_BACKGROUND(),
         {{BAGL_ICON,0x00,3,12,7,7,0,0,0,0xFFFFFF,0,0,BAGL_GLYPH_ICON_LEFT},NULL,0,0,0,NULL,NULL,NULL},
         {{BAGL_ICON,0x00,117,13,8,6,0,0,0,0xFFFFFF,0,0,BAGL_GLYPH_ICON_CHECK},NULL,0,0,0,NULL,NULL,NULL},
-        UI_TEXT(0x00, 0, 12, 128, state.displayTitle),
-        {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)state.displaystate,0,0,0,NULL,NULL,NULL}
+        UI_TEXT(0x00, 0, 12, 128, state.txnAuth.displayTitle),
+        {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)state.txnAuth.displaystate,0,0,0,NULL,NULL,NULL}
 };
 
 unsigned int makeTextGoAround_preprocessor(const bagl_element_t *element);
 
 void cleanState() {
 
-    state.txnSizeBytes = 0;
-    state.numBytesRead = 0;
+    state.txnAuth.txnSizeBytes = 0;
+    state.txnAuth.numBytesRead = 0;
 
-    os_memset(state.functionStack, 0, sizeof(state.functionStack));
-    state.functionStack[0] = 1; //Add the first parse function on the stack
-    state.functionStack[1] = 2; //The appendages parse function
-    state.numFunctionsOnStack = 2;
+    os_memset(state.txnAuth.functionStack, 0, sizeof(state.txnAuth.functionStack));
+    state.txnAuth.functionStack[0] = 1; //Add the first parse function on the stack
+    state.txnAuth.functionStack[1] = 2; //The appendages parse function
+    state.txnAuth.numFunctionsOnStack = 2;
 
-    state.txnPassedAutherization = false;
-    state.isClean = true;
+    state.txnAuth.txnPassedAutherization = false;
+    state.txnAuth.isClean = true;
     
-    os_memset(state.finalHash, 0, sizeof(state.finalHash));
-    cx_sha256_init(&state.hashstate);
+    os_memset(state.txnAuth.finalHash, 0, sizeof(state.txnAuth.finalHash));
+    cx_sha256_init(&state.txnAuth.hashstate);
 
     //todo: add all constructors for new members here
 
-    os_memset(state.readBuffer, 0, sizeof(state.readBuffer));
-    state.readBufferReadOffset = 0;
-    state.readBufferEndPos = 0;
+    os_memset(state.txnAuth.readBuffer, 0, sizeof(state.txnAuth.readBuffer));
+    state.txnAuth.readBufferReadOffset = 0;
+    state.txnAuth.readBufferEndPos = 0;
 
 
-    os_memset(state.tempBuffer, 0, sizeof(state.tempBuffer));
+    os_memset(state.txnAuth.tempBuffer, 0, sizeof(state.txnAuth.tempBuffer));
 
 
-    os_memset(state.displayTitle, 0, sizeof(state.displayTitle));
-    os_memset(state.displaystate, 0, sizeof(state.displaystate));
+    os_memset(state.txnAuth.displayTitle, 0, sizeof(state.txnAuth.displayTitle));
+    os_memset(state.txnAuth.displaystate, 0, sizeof(state.txnAuth.displaystate));
 
 
-    state.chainId = 0;
-    state.transactionTypeAndSubType = 0;
-    state.txnTypeIndex = 0;
-    state.version = 0;
-    state.recipientId = 0;
-    state.amount = 0;
-    state.fee = 0;
-    state.appendagesFlags = 0;
-    state.displayType = 0;
+    state.txnAuth.chainId = 0;
+    state.txnAuth.transactionTypeAndSubType = 0;
+    state.txnAuth.txnTypeIndex = 0;
+    state.txnAuth.version = 0;
+    state.txnAuth.recipientId = 0;
+    state.txnAuth.amount = 0;
+    state.txnAuth.fee = 0;
+    state.txnAuth.appendagesFlags = 0;
+    state.txnAuth.displayType = 0;
 
-    state.screenNum = 0;
+    state.txnAuth.screenNum = 0;
 
-    state.attachmentTempInt32Num1 = 0;
-    state.attachmentTempInt32Num2 = 0;
-    state.attachmentTempInt64Num1 = 0;
-    state.attachmentTempInt64Num2 = 0;
-    state.attachmentTempInt64Num3 = 0;
+    state.txnAuth.attachmentTempInt32Num1 = 0;
+    state.txnAuth.attachmentTempInt32Num2 = 0;
+    state.txnAuth.attachmentTempInt64Num1 = 0;
+    state.txnAuth.attachmentTempInt64Num2 = 0;
+    state.txnAuth.attachmentTempInt64Num3 = 0;
 }
 
 
 void showScreen() {
-    switch (state.displayType) {
+    switch (state.txnAuth.displayType) {
         case 0:
             UX_DISPLAY(ui_firstScreen, NULL)
             return;
@@ -220,38 +218,38 @@ void reedSolomonEncode(uint64_t inp, uint8_t * output);
 //note, when adding screen's make sure to add "return R_SUCCESS;" at the end 
 uint8_t setScreenTexts() {
 
-    int8_t counter = state.screenNum; //can't be uint cuz it has to have the ability to get negative
+    int8_t counter = state.txnAuth.screenNum; //can't be uint cuz it has to have the ability to get negative
 
     if (-1 == counter)
         return R_REJECT;
 
     if (0 == counter--) {
-        state.displayType = 0; //todo: rename to display type
-        snprintf(state.displayTitle, sizeof(state.displayTitle), "Authorize");
-        snprintf(state.displaystate, sizeof(state.displaystate), "Transaction");
+        state.txnAuth.displayType = 0; //todo: rename to display type
+        snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Authorize");
+        snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "Transaction");
 
         return R_SUCCESS;
     }
 
     if (0 == counter--) {
-        state.displayType = 1;
-        snprintf(state.displayTitle, sizeof(state.displayTitle), "Chain&TxnType");
+        state.txnAuth.displayType = 1;
+        snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Chain&TxnType");
 
-        if (LEN_TXN_TYPES > state.txnTypeIndex) {
-            snprintf(state.displaystate, sizeof(state.displaystate), "%s %s",
-                chainName(state.chainId), txnNameAtIndex(state.txnTypeIndex));
+        if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
+            snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "%s %s",
+                chainName(state.txnAuth.chainId), txnNameAtIndex(state.txnAuth.txnTypeIndex));
         } else {
-            snprintf(state.displaystate, sizeof(state.displaystate), "%s UnknownTxnType", 
-                chainName(state.chainId));
+            snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "%s UnknownTxnType", 
+                chainName(state.txnAuth.chainId));
         }
 
         return R_SUCCESS;
     }
 
     //if the txn type is unknown we skip it
-    if (LEN_TXN_TYPES > state.txnTypeIndex) {
+    if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
 
-        switch (state.transactionTypeAndSubType) {
+        switch (state.txnAuth.transactionTypeAndSubType) {
 
             //note: you have to write the type and subtype in reverse, because of little endian buffer representation an big endian C code representation
 
@@ -259,21 +257,21 @@ uint8_t setScreenTexts() {
             case 0x00fe: //FxtPayment
 
                 if (0 == counter--) {
-                    state.displayType = 1;
+                    state.txnAuth.displayType = 1;
 
-                    snprintf(state.displayTitle, sizeof(state.displayTitle), "Amount");
-                    if (0 == formatAmount(state.displaystate, sizeof(state.displaystate), state.amount, chainNumDecimalsBeforePoint(state.chainId)))
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Amount");
+                    if (0 == formatAmount(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), state.txnAuth.amount, chainNumDecimalsBeforePoint(state.txnAuth.chainId)))
                         return R_FORMAT_AMOUNT_ERR;
 
                     return R_SUCCESS;
                 }
 
                 if (0 == counter--) {
-                    state.displayType = 1;
+                    state.txnAuth.displayType = 1;
 
-                    snprintf(state.displayTitle, sizeof(state.displayTitle), "Destination");
-                    snprintf(state.displaystate, sizeof(state.displaystate), "ARDOR-");
-                    reedSolomonEncode(state.recipientId, state.displaystate + strlen(state.displaystate));
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Destination");
+                    snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "ARDOR-");
+                    reedSolomonEncode(state.txnAuth.recipientId, state.txnAuth.displaystate + strlen(state.txnAuth.displaystate));
 
                     return R_SUCCESS;
                 }
@@ -284,33 +282,33 @@ uint8_t setScreenTexts() {
             case 0x000b: //CoinExchangeOrderIssue
 
                 if (0 == counter--) {
-                    state.displayType = 1;
+                    state.txnAuth.displayType = 1;
 
-                    snprintf(state.displayTitle, sizeof(state.displayTitle), "Amount");
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Amount");
                     
-                    uint8_t ret = formatAmount(state.displaystate, sizeof(state.displaystate), state.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.attachmentTempInt32Num2));
+                    uint8_t ret = formatAmount(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), state.txnAuth.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.txnAuth.attachmentTempInt32Num2));
 
                     if (0 == ret)
                         return R_FORMAT_AMOUNT_ERR;
 
-                    //note: the existence of chainName(state.attachmentTempInt32Num2) was already checked in the parsing function
-                    snprintf(state.displaystate + ret - 1, sizeof(state.displaystate) - ret - 1, " %s", chainName(state.attachmentTempInt32Num2));
+                    //note: the existence of chainName(state.txnAuth.attachmentTempInt32Num2) was already checked in the parsing function
+                    snprintf(state.txnAuth.displaystate + ret - 1, sizeof(state.txnAuth.displaystate) - ret - 1, " %s", chainName(state.txnAuth.attachmentTempInt32Num2));
 
                     return R_SUCCESS;
                 }
 
                 if (0 == counter--) {
-                    state.displayType = 1;
+                    state.txnAuth.displayType = 1;
 
-                    //note: the existence of chainName(state.attachmentTempInt32Num2) was already checked in the parsing function
-                    snprintf(state.displayTitle, sizeof(state.displayTitle), "Price per %s", chainName(state.attachmentTempInt32Num2));
-                    uint8_t ret = formatAmount(state.displaystate, sizeof(state.displaystate), state.attachmentTempInt64Num2, chainNumDecimalsBeforePoint(state.attachmentTempInt32Num1));
+                    //note: the existence of chainName(state.txnAuth.attachmentTempInt32Num2) was already checked in the parsing function
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Price per %s", chainName(state.txnAuth.attachmentTempInt32Num2));
+                    uint8_t ret = formatAmount(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), state.txnAuth.attachmentTempInt64Num2, chainNumDecimalsBeforePoint(state.txnAuth.attachmentTempInt32Num1));
 
                     if (0 == ret)
                         return R_FORMAT_AMOUNT_ERR;
 
-                    //note: the existence of chainName(state.attachmentTempInt32Num1) was already checked in the parsing function
-                    snprintf(state.displaystate + ret - 1, sizeof(state.displaystate) - ret - 1, " %s", chainName(state.attachmentTempInt32Num1));
+                    //note: the existence of chainName(state.txnAuth.attachmentTempInt32Num1) was already checked in the parsing function
+                    snprintf(state.txnAuth.displaystate + ret - 1, sizeof(state.txnAuth.displaystate) - ret - 1, " %s", chainName(state.txnAuth.attachmentTempInt32Num1));
 
                     return R_SUCCESS;
                 }
@@ -321,12 +319,12 @@ uint8_t setScreenTexts() {
 
                 if (0 == counter--) {
 
-                    PRINTF("\n dd4 %d", state.attachmentTempInt32Num1);
+                    PRINTF("\n dd4 %d", state.txnAuth.attachmentTempInt32Num1);
 
-                    state.displayType = 1;
+                    state.txnAuth.displayType = 1;
 
-                    snprintf(state.displayTitle, sizeof(state.displayTitle), "AssetId");
-                    snprintf(state.displaystate, sizeof(state.displaystate), "%d", state.attachmentTempInt64Num1);
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "AssetId");
+                    snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "%d", state.txnAuth.attachmentTempInt64Num1);
                     
                     return R_SUCCESS;
 
@@ -335,22 +333,22 @@ uint8_t setScreenTexts() {
                 PRINTF("\n dd3");
 
                 if (0 == counter--) {
-                    state.displayType = 1;
+                    state.txnAuth.displayType = 1;
 
-                    snprintf(state.displayTitle, sizeof(state.displayTitle), "Quantity");
-                    snprintf(state.displaystate, sizeof(state.displaystate), "%s", chainName(state.attachmentTempInt32Num2));
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Quantity");
+                    snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "%s", chainName(state.txnAuth.attachmentTempInt32Num2));
 
-                    if (!formatAmount(state.displaystate, sizeof(state.displaystate), state.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.attachmentTempInt32Num1)))
+                    if (!formatAmount(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), state.txnAuth.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.txnAuth.attachmentTempInt32Num1)))
                         return R_FORMAT_AMOUNT_ERR;
 
                     return R_SUCCESS;
                 }
 
                 if (0 == counter--) {
-                    state.displayType = 1;
+                    state.txnAuth.displayType = 1;
 
-                    snprintf(state.displayTitle, sizeof(state.displayTitle), "Target Amount");
-                    if (!formatAmount(state.displaystate, sizeof(state.displaystate), state.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.attachmentTempInt32Num1)))
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Target Amount");
+                    if (!formatAmount(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), state.txnAuth.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.txnAuth.attachmentTempInt32Num1)))
                         return R_FORMAT_AMOUNT_ERR;
 
                     return R_SUCCESS;
@@ -366,12 +364,12 @@ uint8_t setScreenTexts() {
     }
 
 
-    if (0 != state.appendagesFlags) {
+    if (0 != state.txnAuth.appendagesFlags) {
         if (0 == counter--) {
-            state.displayType = 1;
+            state.txnAuth.displayType = 1;
 
-            snprintf(state.displayTitle, sizeof(state.displayTitle), "Apendages");
-            snprintf(state.displaystate, sizeof(state.displaystate), "0x%08X", state.appendagesFlags);
+            snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Apendages");
+            snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "0x%08X", state.txnAuth.appendagesFlags);
 
             return R_SUCCESS;
         }
@@ -380,28 +378,28 @@ uint8_t setScreenTexts() {
     PRINTF("\nADD");
 
     if (0 == counter--) {
-        state.displayType = 1;
+        state.txnAuth.displayType = 1;
 
-        snprintf(state.displayTitle, sizeof(state.displayTitle), "Fee");
+        snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Fee");
 
         PRINTF("\nADD1");
 
-        uint8_t ret = formatAmount(state.displaystate, sizeof(state.displaystate), state.fee, chainNumDecimalsBeforePoint(state.chainId));
+        uint8_t ret = formatAmount(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), state.txnAuth.fee, chainNumDecimalsBeforePoint(state.txnAuth.chainId));
 
         PRINTF("\nADD2");
 
         if (0 == ret)
             return R_FORMAT_FEE_ERR;
 
-        snprintf(state.displaystate + ret - 1, sizeof(state.displaystate) - ret - 1, " %s", chainName(state.chainId));                        
+        snprintf(state.txnAuth.displaystate + ret - 1, sizeof(state.txnAuth.displaystate) - ret - 1, " %s", chainName(state.txnAuth.chainId));                        
         return R_SUCCESS;
     }
             
     if (0 == counter--) {
-        state.displayType = 2;
+        state.txnAuth.displayType = 2;
 
-        snprintf(state.displayTitle, sizeof(state.displayTitle), "Authorize");
-        snprintf(state.displaystate, sizeof(state.displaystate), "Transaction");
+        snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Authorize");
+        snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "Transaction");
         return R_SUCCESS;
     }
     
@@ -413,12 +411,12 @@ static unsigned int ui_auth_button(unsigned int button_mask, unsigned int button
     switch (button_mask) {
         case BUTTON_EVT_RELEASED | BUTTON_LEFT:
 
-            state.screenNum--; //todo: rename screen number and display number so it will be more obvious
+            state.txnAuth.screenNum--; //todo: rename screen number and display number so it will be more obvious
             break;
 
         case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
 
-            state.screenNum++;
+            state.txnAuth.screenNum++;
             break;
         default:
         return 0;
@@ -433,8 +431,8 @@ static unsigned int ui_auth_button(unsigned int button_mask, unsigned int button
             return 0;
 
         case R_FINISHED:
-            cx_hash(&state.hashstate.header, CX_LAST, 0, 0, state.finalHash, sizeof(state.finalHash));
-            state.txnPassedAutherization = true;
+            cx_hash(&state.txnAuth.hashstate.header, CX_LAST, 0, 0, state.txnAuth.finalHash, sizeof(state.txnAuth.finalHash));
+            state.txnAuth.txnPassedAutherization = true;
             break;
             
         case R_REJECT:
@@ -453,10 +451,10 @@ static unsigned int ui_auth_button(unsigned int button_mask, unsigned int button
 }
 
 uint8_t addToFunctionStack(uint8_t functionNum) {
-    if (sizeof(state.functionStack) == state.numFunctionsOnStack)
+    if (sizeof(state.txnAuth.functionStack) == state.txnAuth.numFunctionsOnStack)
         return R_FUNCTION_STACK_FULL;
 
-    state.functionStack[state.numFunctionsOnStack++] = functionNum;
+    state.txnAuth.functionStack[state.txnAuth.numFunctionsOnStack++] = functionNum;
 
     return R_SUCCESS;
 }
@@ -464,14 +462,14 @@ uint8_t addToFunctionStack(uint8_t functionNum) {
 
 uint8_t * readFromBuffer(uint8_t size) {
 
-    PRINTF("\n %d %d %d", state.readBufferEndPos,  state.readBufferReadOffset, size);
+    PRINTF("\n %d %d %d", state.txnAuth.readBufferEndPos,  state.txnAuth.readBufferReadOffset, size);
 
-    if (state.readBufferEndPos - state.readBufferReadOffset < size)
+    if (state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset < size)
         return 0;
 
-    uint8_t * ret = state.readBuffer + state.readBufferReadOffset;
-    state.readBufferReadOffset += size;
-    state.numBytesRead += size;
+    uint8_t * ret = state.txnAuth.readBuffer + state.txnAuth.readBufferReadOffset;
+    state.txnAuth.readBufferReadOffset += size;
+    state.txnAuth.numBytesRead += size;
 
     return ret;
 }
@@ -482,32 +480,32 @@ uint8_t parseMainTxnData() {
     if (0 == ptr)
         return R_SEND_MORE_BYTES;
 
-    os_memmove(&(state.chainId), ptr, sizeof(state.chainId));
+    os_memmove(&(state.txnAuth.chainId), ptr, sizeof(state.txnAuth.chainId));
 
-    PRINTF("\n bb %d %.*H", state.chainId, 108, ptr);
+    PRINTF("\n bb %d %.*H", state.txnAuth.chainId, 108, ptr);
 
-    ptr += sizeof(state.chainId);
+    ptr += sizeof(state.txnAuth.chainId);
 
-    if ((0 == state.chainId) || ((sizeof(CHAINS) / sizeof(CHAINS[0])) < state.chainId)) //note: we do +1 here because ardor start with index 1
+    if ((0 == state.txnAuth.chainId) || ((sizeof(CHAINS) / sizeof(CHAINS[0])) < state.txnAuth.chainId)) //note: we do +1 here because ardor start with index 1
         return R_BAD_CHAIN_ID_ERR;
 
 
-    os_memmove(&(state.transactionTypeAndSubType), ptr, sizeof(state.transactionTypeAndSubType));
+    os_memmove(&(state.txnAuth.transactionTypeAndSubType), ptr, sizeof(state.txnAuth.transactionTypeAndSubType));
 
-    PRINTF("\n baba %.*H", 4, &state.transactionTypeAndSubType);
+    PRINTF("\n baba %.*H", 4, &state.txnAuth.transactionTypeAndSubType);
 
-    ptr += sizeof(state.transactionTypeAndSubType);
+    ptr += sizeof(state.txnAuth.transactionTypeAndSubType);
 
     txnType * currentTxnType = 0;
 
-    for (state.txnTypeIndex = 0; state.txnTypeIndex < LEN_TXN_TYPES; state.txnTypeIndex++) {
+    for (state.txnAuth.txnTypeIndex = 0; state.txnAuth.txnTypeIndex < LEN_TXN_TYPES; state.txnAuth.txnTypeIndex++) {
 
-        currentTxnType = txnTypeAtIndex(state.txnTypeIndex);
+        currentTxnType = txnTypeAtIndex(state.txnAuth.txnTypeIndex);
 
-        if (currentTxnType->id == state.transactionTypeAndSubType)
+        if (currentTxnType->id == state.txnAuth.transactionTypeAndSubType)
             break;
 
-        //if ((((txnType*)PIC(TXN_TYPES) + state.txnTypeIndex)->id) == state.transactionTypeAndSubType)
+        //if ((((txnType*)PIC(TXN_TYPES) + state.txnAuth.txnTypeIndex)->id) == state.txnAuth.transactionTypeAndSubType)
         //    break;
     }
 
@@ -515,24 +513,24 @@ uint8_t parseMainTxnData() {
     if (0 != currentTxnType->attachmentParsingFunctionNumber)
         addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
 
-    os_memmove(&(state.version), ptr, sizeof(state.version));
-    ptr += sizeof(state.version);
+    os_memmove(&(state.txnAuth.version), ptr, sizeof(state.txnAuth.version));
+    ptr += sizeof(state.txnAuth.version);
 
-    if (1 != state.version) //todo: fill this in
+    if (1 != state.txnAuth.version) //todo: fill this in
         return R_WRONG_VERSION_ERR;
 
     ptr += 4;   // Skip the timestamp
     ptr += 2;   // Skip the deadline
     ptr += 32;  // Skip the sender publickey
 
-    os_memmove(&(state.recipientId), ptr, sizeof(state.recipientId));
-    ptr += sizeof(state.recipientId);
+    os_memmove(&(state.txnAuth.recipientId), ptr, sizeof(state.txnAuth.recipientId));
+    ptr += sizeof(state.txnAuth.recipientId);
 
-    os_memmove(&(state.amount), ptr, sizeof(state.amount));
-    ptr += sizeof(state.amount);
+    os_memmove(&(state.txnAuth.amount), ptr, sizeof(state.txnAuth.amount));
+    ptr += sizeof(state.txnAuth.amount);
 
-    os_memmove(&(state.fee), ptr, sizeof(state.fee));
-    ptr += sizeof(state.fee);
+    os_memmove(&(state.txnAuth.fee), ptr, sizeof(state.txnAuth.fee));
+    ptr += sizeof(state.txnAuth.fee);
 
     ptr += 64;  //Skip the sig
     ptr += 4;   //Skip the block height
@@ -553,18 +551,18 @@ uint8_t parseReferencedTxn() {
 
 uint8_t parseAppendagesFlags() {
     
-    uint8_t * ptr = readFromBuffer(sizeof(state.appendagesFlags));
+    uint8_t * ptr = readFromBuffer(sizeof(state.txnAuth.appendagesFlags));
 
     if (0 == ptr)
         return R_SEND_MORE_BYTES;
 
-    os_memmove(&(state.appendagesFlags), ptr, sizeof(state.appendagesFlags));
+    os_memmove(&(state.txnAuth.appendagesFlags), ptr, sizeof(state.txnAuth.appendagesFlags));
 
     return R_SUCCESS;
 }
 
 uint8_t parseIngoreBytesUntilTheEnd() {
-    while (state.numBytesRead != state.txnSizeBytes) {
+    while (state.txnAuth.numBytesRead != state.txnAuth.txnSizeBytes) {
         if (0 == readFromBuffer(1))
             return R_SEND_MORE_BYTES;
     }
@@ -574,12 +572,12 @@ uint8_t parseIngoreBytesUntilTheEnd() {
 
 uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
     
-    state.attachmentTempInt32Num1 = 0; //chaidId
-    state.attachmentTempInt32Num2 = 0; //exchangeChain
-    state.attachmentTempInt64Num1 = 0; //quantity
-    state.attachmentTempInt64Num2 = 0; //price
+    state.txnAuth.attachmentTempInt32Num1 = 0; //chaidId
+    state.txnAuth.attachmentTempInt32Num2 = 0; //exchangeChain
+    state.txnAuth.attachmentTempInt64Num1 = 0; //quantity
+    state.txnAuth.attachmentTempInt64Num2 = 0; //price
 
-    uint8_t * ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.attachmentTempInt32Num1) * 2 + sizeof(state.attachmentTempInt64Num1) * 2);
+    uint8_t * ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachmentTempInt32Num1) * 2 + sizeof(state.txnAuth.attachmentTempInt64Num1) * 2);
     if (0 == ptr)
         return R_SEND_MORE_BYTES;
 
@@ -588,64 +586,64 @@ uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
 
     ptr += 1;
 
-    os_memmove(&state.attachmentTempInt32Num1, ptr, sizeof(state.attachmentTempInt32Num1));
-    ptr += sizeof(state.attachmentTempInt32Num1);
+    os_memmove(&state.txnAuth.attachmentTempInt32Num1, ptr, sizeof(state.txnAuth.attachmentTempInt32Num1));
+    ptr += sizeof(state.txnAuth.attachmentTempInt32Num1);
 
-    if (state.attachmentTempInt32Num1 > (sizeof(CHAINS) / sizeof(CHAINS[0])))
+    if (state.txnAuth.attachmentTempInt32Num1 > (sizeof(CHAINS) / sizeof(CHAINS[0])))
         return R_BAD_CHAIN_ID_ERR;
 
-    os_memmove(&state.attachmentTempInt32Num2, ptr, sizeof(state.attachmentTempInt32Num2));
-    ptr += sizeof(state.attachmentTempInt32Num2);
+    os_memmove(&state.txnAuth.attachmentTempInt32Num2, ptr, sizeof(state.txnAuth.attachmentTempInt32Num2));
+    ptr += sizeof(state.txnAuth.attachmentTempInt32Num2);
 
-    if (state.attachmentTempInt32Num2 > (sizeof(CHAINS) / sizeof(CHAINS[0])))
+    if (state.txnAuth.attachmentTempInt32Num2 > (sizeof(CHAINS) / sizeof(CHAINS[0])))
         return R_BAD_CHAIN_ID_ERR;
 
-    os_memmove(&state.attachmentTempInt64Num1, ptr, sizeof(state.attachmentTempInt64Num1));
-    ptr += sizeof(state.attachmentTempInt64Num1);
+    os_memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
+    ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
     
-    os_memmove(&state.attachmentTempInt64Num2, ptr, sizeof(state.attachmentTempInt64Num2));
+    os_memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
 
     return R_SUCCESS;
 }
 
 uint8_t parseAskOrderPlacementAttachment() {
     
-    state.attachmentTempInt64Num1 = 0;
-    state.attachmentTempInt64Num2 = 0;
-    state.attachmentTempInt64Num3 = 0;
+    state.txnAuth.attachmentTempInt64Num1 = 0;
+    state.txnAuth.attachmentTempInt64Num2 = 0;
+    state.txnAuth.attachmentTempInt64Num3 = 0;
 
-    uint8_t * ptr = readFromBuffer(sizeof(state.attachmentTempInt64Num1) * 3);
+    uint8_t * ptr = readFromBuffer(sizeof(state.txnAuth.attachmentTempInt64Num1) * 3);
     if (0 == ptr)
         return R_SEND_MORE_BYTES;
 
-    os_memmove(&state.attachmentTempInt64Num1, ptr, sizeof(state.attachmentTempInt64Num1));
-    ptr += sizeof(state.attachmentTempInt64Num1);
+    os_memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
+    ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
 
-    os_memmove(&state.attachmentTempInt64Num2, ptr, sizeof(state.attachmentTempInt64Num2));
-    ptr += sizeof(state.attachmentTempInt64Num2);
+    os_memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
+    ptr += sizeof(state.txnAuth.attachmentTempInt64Num2);
 
-    os_memmove(&state.attachmentTempInt64Num3, ptr, sizeof(state.attachmentTempInt64Num3));
+    os_memmove(&state.txnAuth.attachmentTempInt64Num3, ptr, sizeof(state.txnAuth.attachmentTempInt64Num3));
 
     return R_SUCCESS;
 }
 
 uint8_t addToReadBuffer(uint8_t * newData, uint8_t numBytes) {
 
-    for (uint8_t i = 0; i < state.readBufferEndPos - state.readBufferReadOffset; i++)
-        state.readBuffer[i] = state.readBuffer[i + state.readBufferReadOffset];
+    for (uint8_t i = 0; i < state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset; i++)
+        state.txnAuth.readBuffer[i] = state.txnAuth.readBuffer[i + state.txnAuth.readBufferReadOffset];
 
-    os_memset(state.readBuffer + state.readBufferEndPos - state.readBufferReadOffset, 0, state.readBufferReadOffset); //set to 0, just for saftey
+    os_memset(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset, 0, state.txnAuth.readBufferReadOffset); //set to 0, just for saftey
 
-    state.readBufferEndPos -= state.readBufferReadOffset;
-    state.readBufferReadOffset = 0;
+    state.txnAuth.readBufferEndPos -= state.txnAuth.readBufferReadOffset;
+    state.txnAuth.readBufferReadOffset = 0;
 
-    if (state.readBufferEndPos + numBytes > sizeof(state.readBuffer))
+    if (state.txnAuth.readBufferEndPos + numBytes > sizeof(state.txnAuth.readBuffer))
         return R_NO_SPACE_BUFFER_TOO_SMALL;
 
-    cx_hash(&state.hashstate.header, 0, newData, numBytes, state.finalHash, sizeof(state.finalHash));
+    cx_hash(&state.txnAuth.hashstate.header, 0, newData, numBytes, state.txnAuth.finalHash, sizeof(state.txnAuth.finalHash));
 
-    os_memcpy(state.readBuffer + state.readBufferEndPos, newData, numBytes);
-    state.readBufferEndPos += numBytes;
+    os_memcpy(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos, newData, numBytes);
+    state.txnAuth.readBufferEndPos += numBytes;
 
     return R_SUCCESS;
 }
@@ -676,13 +674,13 @@ uint8_t parseFromStack() {
     
     while (true) {
 
-        PRINTF("\n s %.*H", sizeof(state.functionStack), state.functionStack);
+        PRINTF("\n s %.*H", sizeof(state.txnAuth.functionStack), state.txnAuth.functionStack);
 
-        if (0 == state.numFunctionsOnStack) {//todo check the state here
+        if (0 == state.txnAuth.numFunctionsOnStack) {//todo check the state here
 
-            PRINTF("\n b %d %d", state.readBufferEndPos,  state.readBufferReadOffset);
+            PRINTF("\n b %d %d", state.txnAuth.readBufferEndPos,  state.txnAuth.readBufferReadOffset);
 
-            if (state.readBufferEndPos != state.readBufferReadOffset)
+            if (state.txnAuth.readBufferEndPos != state.txnAuth.readBufferReadOffset)
                 return R_NOT_ALL_BYTES_READ;
 
             setScreenTexts();
@@ -691,16 +689,16 @@ uint8_t parseFromStack() {
             return R_SHOW_DISPLAY;
         }
 
-        uint8_t ret = callFunctionNumber(state.functionStack[0]);
+        uint8_t ret = callFunctionNumber(state.txnAuth.functionStack[0]);
 
         if (R_SEND_MORE_BYTES == ret)
             return ret;
 
         uint8_t tempBuffer[FUNCTION_STACK_SIZE - 1];
-        os_memmove(tempBuffer, state.functionStack + 1, sizeof(tempBuffer));
-        os_memmove(state.functionStack, tempBuffer, sizeof(tempBuffer));
-        state.functionStack[sizeof(state.functionStack) - 1] = 0;
-        state.numFunctionsOnStack--;
+        os_memmove(tempBuffer, state.txnAuth.functionStack + 1, sizeof(tempBuffer));
+        os_memmove(state.txnAuth.functionStack, tempBuffer, sizeof(tempBuffer));
+        state.txnAuth.functionStack[sizeof(state.txnAuth.functionStack) - 1] = 0;
+        state.txnAuth.numFunctionsOnStack--;
 
         if (R_SUCCESS == ret)
             continue;
@@ -732,7 +730,9 @@ uint8_t signTxn(uint8_t * data, const uint32_t derivationPath, const uint8_t der
 #define P1_CONTINUE 2
 #define P1_SIGN 3
 
-void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength,
+//todo check if we allow to sign the same txn with 2 different keys, if thats ok
+
+void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
                 volatile unsigned int *flags, volatile unsigned int *tx) {
 
     
@@ -754,12 +754,11 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
             return; 
         }
 
-        if (!state.txnPassedAutherization) {
+        if (!state.txnAuth.txnPassedAutherization) {
             cleanState();
             G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
             return;
         }
-
         
         uint8_t derivationParamLengthInBytes = dataLength;
 
@@ -769,7 +768,7 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
             return;
         }
 
-        uint32_t derivationPathCpy[55]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy));
+        uint32_t derivationPathCpy[62]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy));
 
         os_memmove(derivationPathCpy, dataBuffer, derivationParamLengthInBytes);
 
@@ -777,7 +776,7 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
 
         G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
-        uint8_t ret = signTxn(state.finalHash, derivationPathCpy, derivationParamLengthInBytes / 4, G_io_apdu_buffer + 1, &exception);
+        uint8_t ret = signTxn(state.txnAuth.finalHash, derivationPathCpy, derivationParamLengthInBytes / 4, G_io_apdu_buffer + 1, &exception);
 
         if (R_SUCCESS == ret) {
             *tx += 64;
@@ -787,20 +786,20 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
 
             if (R_KEY_DERIVATION_EX == ret) {
                 G_io_apdu_buffer[(*tx)++] = exception >> 8;
-                G_io_apdu_buffer[(*tx)++] = exception & 0xFF;
+                G_io_apdu_buffer[(*tx)++] = exception & 0xFF;   
             }
         }
     } else if ((P1_INIT == (p1 & 0x03)) || (P1_CONTINUE == (p1 & 0x03))) {
 
         if (P1_INIT != (p1 & 0x03)) {
 
-            if (state.txnPassedAutherization) {
+            if (state.txnAuth.txnPassedAutherization) {
                 cleanState();
                 G_io_apdu_buffer[(*tx)++] = R_NOT_ALL_BYTES_USED;
                 return;
             }
 
-            if (state.isClean) {
+            if (state.txnAuth.isClean) {
                 cleanState();
                 G_io_apdu_buffer[(*tx)++] = R_ERR_NO_INIT_CANT_CONTINUE;
                 return;
@@ -808,17 +807,17 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
         } else {
             cleanState();
 
-            state.txnSizeBytes = ((p1 & 0b11111100) << 6) + p2;
+            state.txnAuth.txnSizeBytes = ((p1 & 0b11111100) << 6) + p2;
 
-            PRINTF("\n fasd %d", state.txnSizeBytes);
+            PRINTF("\n fasd %d", state.txnAuth.txnSizeBytes);
 
-            if (145 > state.txnSizeBytes) {
+            if (145 > state.txnAuth.txnSizeBytes) {
                 G_io_apdu_buffer[(*tx)++] = R_TXN_SIZE_TOO_SMALL;
                 return;
             }
         }
 
-        state.isClean = false;
+        state.txnAuth.isClean = false;
 
         uint8_t ret = addToReadBuffer(dataBuffer, dataLength);
 
@@ -843,7 +842,7 @@ void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, ui
     }
 }
 
-void authAndSignTxnHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength,
+void authAndSignTxnHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
                 volatile unsigned int *flags, volatile unsigned int *tx) {
 
     authAndSignTxnHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);

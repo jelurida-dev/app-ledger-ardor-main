@@ -28,7 +28,7 @@
 // This is the max amount of key that can be sent back to the client
 #define MAX_KEYS 7
 
-void getPublicKeyHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength,
+void getPublicKeyHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
         volatile unsigned int *flags, volatile unsigned int *tx) {
 
     //should be at least the size of 2 uint32's for the key path
@@ -51,8 +51,9 @@ void getPublicKeyHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint
         return;
     }
 
-    //55 is the biggest derivation path paramter that can be passed on
-    uint32_t derivationPathCpy[55]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy)); 
+    //62 is the biggest derivation path paramter that can be passed on
+    //this is a potentional vonrablitiy, make sure this is the same in all of the code
+    uint32_t derivationPathCpy[62]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy)); 
     
     //datalength is checked in the main function so there should not be worry for some kind of overflow
     os_memmove(derivationPathCpy, dataBuffer, derivationParamLengthInBytes);
@@ -84,7 +85,7 @@ void getPublicKeyHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint
     }
 }
 
-void getPublicKeyHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength,
+void getPublicKeyHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
                 volatile unsigned int *flags, volatile unsigned int *tx) {
 
     getPublicKeyHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
