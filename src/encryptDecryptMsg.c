@@ -45,6 +45,8 @@ void encryptDecryptMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuf
     //todo: find a way to make sure that you can't encrypt if the state isn't set
     if ((P1_INIT_ENCRYPT == p1) || (P1_INIT_DECRYPT_HIDE_SHARED_KEY == p1) || (P1_INIT_DECRYPT_SHOW_SHARED_KEY == p1)) {
 
+        state.encryption.mode = 0; //clean the state first
+
         if (0 != dataLength % sizeof(uint32_t)) {
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
             return;
@@ -139,6 +141,13 @@ void encryptDecryptMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuf
 
         PRINTF("\n e7");
     } else if (P1_AES_ENCRYPT_DECRYPT == p1) {
+
+        if ((P1_INIT_ENCRYPT != state.encryption.mode) && (P1_INIT_DECRYPT_HIDE_SHARED_KEY != state.encryption.mode) && 
+            (P1_INIT_DECRYPT_SHOW_SHARED_KEY != state.encryption.mode))
+        {
+            G_io_apdu_buffer[(*tx)++] = R_NO_SETUP;
+            return;
+        }
 
         if (0 != dataLength % 16) {
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;

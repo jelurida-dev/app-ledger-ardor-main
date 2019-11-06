@@ -120,14 +120,13 @@ static handler_fn_t* lookupHandler(uint8_t ins) {
 #define OFFSET_LC    0x04
 #define OFFSET_CDATA 0x05
 
-void cleanState();
-
+uint8_t lastCmdNumber = 0;
 states_t state;
 
 extern unsigned long _stack;
 #define STACK_CANARY (*((volatile uint32_t*) &_stack))
 
-void init_canary() {
+void init_canary() { //todo, make a rand cannary here
 	STACK_CANARY = 0xDEADBEEF;
 }
 
@@ -135,6 +134,9 @@ bool check_canary() {
 	return STACK_CANARY == 0xDEADBEEF;
 }
 
+void cleanSharedState() {
+	os_memset(&state, 0, sizeof(state));
+}
 
 //todo: make sure the state is cleaned when getting a command that is irrelevant
 
@@ -190,6 +192,14 @@ static void ardor_main(void) {
 					fillBufferWithAnswerAndEnding(R_BAD_CLA, tx);
 					continue;
 				}
+
+				//this is a safty thing, so that one command can't fuck up some other command's state
+				//and have some RCE vulnerability
+				if (lastCmdNumber != G_io_apdu_buffer[OFFSET_INS]) {
+					cleanSharedState();
+					lastCmdNumber = G_io_apdu_buffer[OFFSET_INS];
+				}
+
 				// Lookup and call the requested command handler.
 				handler_fn_t *handlerFn = lookupHandler(G_io_apdu_buffer[OFFSET_INS]);
 				if (!handlerFn) {
@@ -206,7 +216,7 @@ static void ardor_main(void) {
 
 				//just to make sure there is no hacking going on
 				//reset all the states
-			    cleanState();
+			    cleanSharedState();
 				
 				tx = 0;
 				flags = 0;
