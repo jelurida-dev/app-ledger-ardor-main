@@ -1,12 +1,13 @@
 
-#include <os.h>
-
-
 /* Montgomery <-> Edwards isomorphism
  * Daniel Beer <dlbeer@gmail.com>, 18 Jan 2014
  *
  * This file is in the public domain.
  */
+
+
+#include <os.h>
+
 #define F25519_SIZE  32
 
 extern const uint8_t f25519_zero[F25519_SIZE];
@@ -18,8 +19,6 @@ static inline void f25519_copy(uint8_t *x, const uint8_t *a)
 {
 	memcpy(x, a, F25519_SIZE);
 }
-
-
 
 
 const uint8_t f25519_zero[F25519_SIZE] = {0};

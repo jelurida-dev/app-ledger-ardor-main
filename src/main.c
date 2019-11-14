@@ -88,11 +88,9 @@ void ui_idle(void) {
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
-// in sia_main. It's common to set *flags |= IO_ASYNC_REPLY, but tx is
-// typically unused unless the handler is immediately sending a response APDU.
 typedef void handler_fn_t(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx);
 
-handler_fn_t handleGetVersion;
+handler_fn_t getVersionHandler;
 handler_fn_t getPublicKeyHandler;
 handler_fn_t authAndSignTxnHandler;
 handler_fn_t encryptDecryptMessageHandler;
@@ -100,7 +98,7 @@ handler_fn_t showAddressHandler;
 
 static handler_fn_t* lookupHandler(uint8_t ins) {
 	switch (ins) {
-	case INS_GET_VERSION:    		return handleGetVersion;
+	case INS_GET_VERSION:    		return getVersionHandler;
 	case INS_GET_PUBLIC_KEYS: 		return getPublicKeyHandler;
 	case INS_AUTH_SIGN_TXN:   		return authAndSignTxnHandler;
 	case INS_ENCRYPT_DECRYPT_MSG:	return encryptDecryptMessageHandler;
@@ -167,7 +165,7 @@ static void ardor_main(void) {
 		// to explicit THROWs in user code, syscalls (prefixed with os_ or
 		// cx_) may also throw exceptions.
 		//
-		// In sia_main, this TRY block serves to catch any thrown exceptions
+		// This TRY block serves to catch any thrown exceptions
 		// and convert them to response codes, which are then sent in APDUs.
 		// However, EXCEPTION_IO_RESET will be re-thrown and caught by the
 		// "true" main function defined at the bottom of this file.
@@ -239,7 +237,7 @@ static void ardor_main(void) {
 // don't need to understand any of this in order to write an app.
 //
 // Next, we'll look at how the various commands are implemented. We'll start
-// with the simplest command, signHash.c.
+// with the sizeofmplest command, signHash.c.
 
 // override point, but nothing more to do
 void io_seproxyhal_display(const bagl_element_t *element) {

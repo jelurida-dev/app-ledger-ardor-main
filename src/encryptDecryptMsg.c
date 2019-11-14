@@ -1,3 +1,21 @@
+/*******************************************************************************
+*  (c) 2019 Haim Bender
+*
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+********************************************************************************/
+
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -189,65 +207,6 @@ void encryptDecryptMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuf
     } else {
         G_io_apdu_buffer[(*tx)++] = R_UNKOWN_CMD;
     }
-
-    //temp: 17:26
-	
-    /*
-
-    uint8_t nonce[32];
-    cx_rng(nonce, sizeof(nonce));
-
-    uint8_t IV[16];
-    cx_rng(IV, sizeof(IV));
-
-    uint8_t bufferToEncryptPos = p1 * sizeof(uint32_t) + 32; //derivation path and then public key
-    uint8_t bufferToEncryptLength = dataLength - bufferToEncryptPos;    
-
-    if (0 != bufferToEncryptLength % 16) {
-        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;
-        return;
-    }
-
-    if (255 < bufferToEncryptLength + 1 + sizeof(IV) + sizeof(nonce)) {
-    	G_io_apdu_buffer[(*tx)++] = R_DATA_BUFFER_TOO_BIG;
-        return;
-    }
-
-    PRINTF("\nd3");
-
-    uint32_t derivationPath[54];
-    os_memcpy(derivationPath, dataBuffer, p1 * sizeof(uint32_t));
-   	
-   	uint8_t exceptionOut = 0;
-	uint8_t aesKey[32];
-
-	uint8_t ret = getSharedEncryptionKey(derivationPath, p1, dataBuffer + p1 * sizeof(uint32_t), nonce, &exceptionOut, aesKey);
-
-	
-
- 	if (0 != aes_256_cbc_encrypt(aesKey, IV, dataBuffer + bufferToEncryptPos, bufferToEncryptLength)) {
-		G_io_apdu_buffer[0] = R_AES_ERROR;
-        *tx = 1;
-		return;
-	}
-
-    G_io_apdu_buffer[0] = R_SUCCESS;
-
-    os_memcpy(G_io_apdu_buffer + 1, nonce, sizeof(nonce));
-
-    uint8_t i2 = 255 - bufferToEncryptLength; //moving the encypted buffer to the end of the stack to make room for the IV, then moving it back
-    for (uint8_t i = 0; i <= bufferToEncryptLength; i++)
-        dataBuffer[i2++] = dataBuffer[bufferToEncryptPos + i];
-
-    os_memcpy(G_io_apdu_buffer + 1 + sizeof(nonce), IV, sizeof(IV));
-
-    for (uint8_t i = 0; i < bufferToEncryptLength; i++)
-        G_io_apdu_buffer[sizeof(IV) + sizeof(nonce) + 1 + i] = dataBuffer[255 - bufferToEncryptLength + i];
-
-    *tx = 1 + sizeof(nonce) + sizeof(IV) + bufferToEncryptLength
-
-    */
-
 }
 
 void encryptDecryptMessageHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,

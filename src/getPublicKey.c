@@ -58,6 +58,12 @@ void getPublicKeyHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint
     //datalength is checked in the main function so there should not be worry for some kind of overflow
     os_memmove(derivationPathCpy, dataBuffer, derivationParamLengthInBytes);
     
+    if ((((uint64_t)derivationPathCpy[(derivationParamLengthInBytes/4) - 1]) + p1) > 0xFFFFFFFF) {
+        G_io_apdu_buffer[(*tx)++] = R_NOT_ENOUGH_DERIVATION_INDEXES;
+        return;
+    }
+
+
     G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
     for (uint8_t i = 0; i < p1; i++) {

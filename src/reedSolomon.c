@@ -1,3 +1,19 @@
+/*******************************************************************************
+*  (c) 2019 Haim Bender
+*
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+********************************************************************************/
 
 #include <os.h>
 
@@ -29,9 +45,6 @@ uint8_t gmult(uint8_t a, uint8_t b) {
 //output should be of length 21;
 void reedSolomonEncode(uint64_t inp, uint8_t * output) {
 
-
-
-
     uint8_t plain_string_32[sizeof(initial_codeword)];
     os_memset(plain_string_32, 0, sizeof(initial_codeword));
 
@@ -39,13 +52,10 @@ void reedSolomonEncode(uint64_t inp, uint8_t * output) {
 
     while (0 != inp) {
         uint8_t ret = inp % 32;
-        PRINTF("\nb: %d, %.*H", ret, sizeof(inp), &inp);
         plain_string_32[index++] = ret;
         inp -= ret;
         inp /= 32;
     }
-
-    PRINTF("\na %.*H", sizeof(plain_string_32), plain_string_32);
 
     uint8_t p[] = {0, 0, 0, 0};
     for (int8_t i = BASE_32_LENGTH - 1; i >= 0; i--) {

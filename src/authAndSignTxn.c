@@ -138,7 +138,7 @@ typedef struct {
 
 
 //todo move it somewhere else
-static const chainType CHAINS[] = {{0x00000001, "Ardor", 8}, {0x00000002, "Ignis", 8}, {0x00000003, "AEUR", 4}, {0x00000004, "BITSWIFT", 8}, {0x00000005, "MPG", 8}};
+static const chainType CHAINS[] = {{0x00000001, "Ardor", 8}, {0x00000002, "Ignis", 8}, {0x00000003, "AEUR", 4}, {0x00000004, "BITS", 8}, {0x00000005, "MPG", 8}};
 
 
 txnType * txnTypeAtIndex(uint8_t index) {
@@ -163,7 +163,7 @@ uint8_t chainNumDecimalsBeforePoint(uint8_t chainId) {
 }
 
 //returns 0 iff some kind of error happend, else the length of the output string including the null terminator
-uint8_t formatAmount(uint8_t * outputString, uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDecimalsBeforePoint) {
+uint8_t formatAmount(uint8_t * outputString, uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDigitsBeforeDecimal) {
     
     uint16_t outputIndex = 0;
     bool wasANumberWritten = false;
@@ -177,8 +177,8 @@ uint8_t formatAmount(uint8_t * outputString, uint16_t maxOutputLength, uint64_t 
         numberToFormat -= modulo;
         numberToFormat /= 10;
 
-        if (numDecimalsBeforePoint == numberIndex) {
-            if (wasANumberWritten && (!isDotWritten) && (0 != numDecimalsBeforePoint)) {
+        if (numDigitsBeforeDecimal == numberIndex) {
+            if (wasANumberWritten && (!isDotWritten) && (0 != numDigitsBeforeDecimal)) {
                 isDotWritten = true;
                 outputString[outputIndex++] = '.';
             }
@@ -189,19 +189,21 @@ uint8_t formatAmount(uint8_t * outputString, uint16_t maxOutputLength, uint64_t 
         if (0 != modulo)
             wasANumberWritten = true;
 
-        if (wasANumberWritten || (0 == numDecimalsBeforePoint))
+        if (wasANumberWritten || (0 == numDigitsBeforeDecimal))
             outputString[outputIndex++] = '0' + modulo;
 
         if (outputIndex >= maxOutputLength)
             return 0;
 
-        if ((0 == numberToFormat) && (numDecimalsBeforePoint <= numberIndex))
+        if ((0 == numberToFormat) && (numDigitsBeforeDecimal <= numberIndex))
             break;
 
         numberIndex++;
 
     }
 
+
+    //reverse the string since we are creating it from left to right, and numbers are right to left
     for (uint16_t i = 0; i < outputIndex - 1 - i; i++) {
         uint8_t temp = outputString[i];
         outputString[i] = outputString[outputIndex - i - 1];
@@ -269,8 +271,8 @@ uint8_t setScreenTexts() {
                 if (0 == counter--) {
                     state.txnAuth.displayType = 1;
 
-                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Destination");
-                    snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "ARDOR-");
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Recipient");
+                    snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), APP_PREFIX);
                     reedSolomonEncode(state.txnAuth.recipientId, state.txnAuth.displaystate + strlen(state.txnAuth.displaystate));
 
                     return R_SUCCESS;

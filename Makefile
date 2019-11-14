@@ -31,9 +31,9 @@ DEVEL = 1
 #Use when devolping #todo change this up in production
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
-	ICONNAME = ArdorIcon.gif
+	ICONNAME = icon.gif
 else
-	ICONNAME = ArdorIcon.gif
+	ICONNAME = icon.gif
 endif
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
@@ -67,6 +67,8 @@ delete:
 ############
 # Platform #
 ############
+
+DEFINES += APP_PREFIX=\"ARDOR-\"
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
