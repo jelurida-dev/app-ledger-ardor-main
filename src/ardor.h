@@ -76,11 +76,16 @@ typedef struct {
     unsigned long ctx[4 * 4 * 15 + 4];
 } encyptionState_t;
 
+typedef struct {
+    uint8_t mode;
+    cx_sha256_t hashstate;
+} signTokenState_t;
 
 //todo make sure to add some more mode state varible, to make sure the union isn't taken advantage off
 typedef union {
     encyptionState_t encryption;
     authTxn_t txnAuth;
+    signTokenState_t tokenCreation;
 } states_t;
 
 extern states_t state;

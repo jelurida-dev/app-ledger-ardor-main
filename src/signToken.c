@@ -1,0 +1,245 @@
+/*******************************************************************************
+*  (c) 2019 Haim Bender
+*
+*
+*  Licensed under the Apache License, Version 2.0 (the "License");
+*  you may not use this file except in compliance with the License.
+*  You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS,
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*  See the License for the specific language governing permissions and
+*  limitations under the License.
+********************************************************************************/
+
+
+#include <stdint.h>
+#include <stdbool.h>
+
+#include <os.h>
+#include <os_io_seproxyhal.h>
+#include "ux.h"
+
+#include "aes/aes.h"
+
+#include "ardor.h"
+#include "returnValues.h"
+
+#define P1_INIT         1
+#define P1_MSG_BYTES    2
+#define P1_SIGN         3
+
+//todo, check out status mamangment on all commands
+
+/*
+    modes:
+        P1_INIT: this commands just clears all bytes in the state
+            dataBuffer: empty
+            returns:    1 byte status
+
+        P1_MSG_BYTES:
+            dataBuffer: message bytes
+            returns:    1 byte status
+
+        P1_SIGN:
+            dataBuffer: timestamp (4 bytes) | derivaiton path (uint32) * some length | 
+            returns:    1 byte status | sharedkey 32 bytes
+*/
+
+void signTokenMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
+        volatile unsigned int *flags, volatile unsigned int *tx) {
+
+    switch(p1) {
+
+        case P1_INIT:
+            state.tokenCreation.mode = P1_INIT;
+            cx_sha256_init(&state.tokenCreation.hashstate);
+            G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+            break;
+
+        case P1_MSG_BYTES:
+            if ((P1_INIT != state.tokenCreation.mode) && (P1_MSG_BYTES != state.tokenCreation.mode)) {
+                G_io_apdu_buffer[(*tx)++] = R_WRONG_STATE;
+                break;
+            }
+
+            cx_hash(&state.tokenCreation.hashstate.header, 0, dataBuffer, dataLength, 0, 0); //todo, calling this without a hash destination, lets see if it works
+
+            G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+            break;
+
+        case P1_SIGN:
+
+            
+
+    }
+
+
+cx_hash(&state.txnAuth.hashstate.header, CX_LAST, 0, 0, state.txnAuth.finalHash, sizeof(state.txnAuth.finalHash));
+
+
+    if (P1_INIT == p1) {
+
+        return;
+    }
+
+
+    if ((P1_INIT_ENCRYPT == p1) || (P1_INIT_DECRYPT_HIDE_SHARED_KEY == p1) || (P1_INIT_DECRYPT_SHOW_SHARED_KEY == p1)) {
+
+        state.encryption.mode = 0; //clean the state first
+
+        if (0 != dataLength % sizeof(uint32_t)) {
+            G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
+            return;
+        }
+
+        PRINTF("\n e1 %d", check_canary());
+
+        uint8_t derivationLength = 0;
+
+        if (P1_INIT_ENCRYPT == p1)
+            derivationLength = (dataLength - 32) / sizeof(uint32_t);
+        else
+            derivationLength = (dataLength - 32 * 2 - 16) / sizeof(uint32_t);
+
+        PRINTF("\n e2 derivation length %d %d", derivationLength, dataLength);
+
+        if (2 > derivationLength) {
+            G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_SHORT;
+            return;
+        }
+
+        if (32 < derivationLength) {
+            G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_LONG;
+            return;
+        }
+
+        PRINTF("\n e3");
+
+        uint32_t derivationPath[32]; //todo check if i can just point to the derivation path
+        uint8_t nonce[32];
+        os_memcpy(derivationPath, dataBuffer, derivationLength * sizeof(uint32_t));
+
+        PRINTF("\n e4 %d", check_canary());
+
+        uint8_t * noncePtr = dataBuffer + derivationLength * sizeof(uint32_t) + 32;
+
+        if (P1_INIT_ENCRYPT == p1) {
+            cx_rng(nonce, sizeof(nonce));
+            noncePtr = nonce; //if we are decrypting then we are using from the command
+        }
+
+        uint8_t exceptionOut = 0;
+        uint8_t encryptionKey[32];
+
+        uint8_t ret = getSharedEncryptionKey(derivationPath, derivationLength, dataBuffer + derivationLength * sizeof(uint32_t), noncePtr, &exceptionOut, encryptionKey);
+
+        PRINTF("\n e5 %d", check_canary());
+
+        if (R_KEY_DERIVATION_EX == ret) {
+            G_io_apdu_buffer[0] = ret;  
+            G_io_apdu_buffer[1] = exceptionOut >> 8;
+            G_io_apdu_buffer[2] = exceptionOut & 0xFF;
+            *tx = 3;
+            return;
+        } else if (R_SUCCESS != ret) {
+            G_io_apdu_buffer[0] = ret;
+            *tx = 1;
+            return;
+        }
+
+        if (P1_INIT_ENCRYPT == p1) {
+            if (!aes_encrypt_init_fixed(encryptionKey, 32, state.encryption.ctx)) {
+                G_io_apdu_buffer[0] = R_AES_ERROR;
+                *tx = 1;
+                return;
+            }
+        } else {
+            if (!aes_decrypt_init_fixed(encryptionKey, 32, state.encryption.ctx)) {
+                G_io_apdu_buffer[0] = R_AES_ERROR;
+                *tx = 1;
+                return;
+            }
+
+            os_memcpy(state.encryption.cbc, dataBuffer + dataLength - sizeof(state.encryption.cbc), sizeof(state.encryption.cbc)); //Copying the IV into the CBC
+        }
+
+        PRINTF("\n e6");
+        
+        state.encryption.mode = p1;
+        G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+
+        if (P1_INIT_ENCRYPT == p1) {
+            os_memcpy(G_io_apdu_buffer + *tx, nonce, sizeof(nonce));
+            *tx+= 32;
+            cx_rng(state.encryption.cbc, sizeof(state.encryption.cbc)); //The IV is stored in the CVC
+            os_memcpy(G_io_apdu_buffer + *tx, state.encryption.cbc, sizeof(state.encryption.cbc));
+            *tx+= sizeof(state.encryption.cbc);
+        } else if (P1_INIT_DECRYPT_SHOW_SHARED_KEY == p1) {
+            os_memcpy(G_io_apdu_buffer + *tx, encryptionKey, sizeof(encryptionKey));
+            *tx+= 32;
+        }
+
+        PRINTF("\n e7");
+    } else if (P1_AES_ENCRYPT_DECRYPT == p1) {
+
+        if ((P1_INIT_ENCRYPT != state.encryption.mode) && (P1_INIT_DECRYPT_HIDE_SHARED_KEY != state.encryption.mode) && 
+            (P1_INIT_DECRYPT_SHOW_SHARED_KEY != state.encryption.mode))
+        {
+            G_io_apdu_buffer[(*tx)++] = R_NO_SETUP;
+            return;
+        }
+
+        if (0 != dataLength % 16) {
+            G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;
+            return;
+        }
+
+        PRINTF("\n cbc %.*H", sizeof(state.encryption.cbc), state.encryption.cbc); 
+
+        uint8_t * pos = dataBuffer;
+        uint8_t tmp[AES_BLOCK_SIZE];
+
+        while (pos < dataBuffer + dataLength) {
+            if (P1_INIT_ENCRYPT == state.encryption.mode) {
+
+                for (uint8_t j = 0; j < AES_BLOCK_SIZE; j++)
+                    state.encryption.cbc[j] ^= pos[j];
+
+                aes_encrypt(state.encryption.ctx, state.encryption.cbc, state.encryption.cbc);
+                os_memcpy(pos, state.encryption.cbc, AES_BLOCK_SIZE);
+            } else {
+                os_memcpy(tmp, pos, AES_BLOCK_SIZE);
+                aes_decrypt(state.encryption.ctx, pos, pos);
+                for (uint8_t j = 0; j < AES_BLOCK_SIZE; j++)
+                    pos[j] ^= state.encryption.cbc[j];
+
+                os_memcpy(state.encryption.cbc, tmp, AES_BLOCK_SIZE);
+            }
+
+            pos += AES_BLOCK_SIZE;
+        }
+
+        *tx = 1 + dataLength;
+
+        for (uint8_t i = 0; i < dataLength; i++)
+                G_io_apdu_buffer[i+1] = dataBuffer[i];
+
+        G_io_apdu_buffer[0] = R_SUCCESS;
+
+    } else {
+        G_io_apdu_buffer[(*tx)++] = R_UNKOWN_CMD;
+    }
+}
+
+void signTokenMessageHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
+                volatile unsigned int *flags, volatile unsigned int *tx) {
+
+    signTokenMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
+    
+    G_io_apdu_buffer[(*tx)++] = 0x90;
+    G_io_apdu_buffer[(*tx)++] = 0x00;
+}
