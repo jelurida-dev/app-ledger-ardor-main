@@ -713,14 +713,15 @@ uint8_t parseFromStack() {
 uint8_t signTxn(uint8_t * data, const uint32_t derivationPath, const uint8_t derivationPathLengthInUints32, 
                  uint8_t * destBuffer, uint16_t * outException) {
 
-    uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
+    uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
     uint8_t ret = 0;
 
-    if (R_SUCCESS != (ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, outException))) {
+    if (R_SUCCESS != (ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, outException))) {
         os_memset(keySeed, 0, sizeof(keySeed));
         return ret;
     }
 
+    //sign msg should only use the first 32 bytes of keyseed
     signMsg(keySeed, data, destBuffer); //is a void function, no ret value to check against
     
     os_memset(keySeed, 0, sizeof(keySeed));

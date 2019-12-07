@@ -128,13 +128,11 @@ int ed25519_pk_to_curve25519(unsigned char *curve25519_pk, const unsigned char *
 
 //todo: make sure i clean everything out
 uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, 
-                            uint8_t *keySeedBfrOut, uint8_t *publicKeyOut, uint8_t * chainCodeOut, uint16_t * exceptionOut) {
+                            uint8_t *keySeedBfrOut, uint8_t *publicKeyCurveOut, uint8_t * publicKeyEd25519Out, uint8_t * chainCodeOut, uint16_t * exceptionOut) {
     
+    uint8_t publicKeyBE[32]; os_memset(publicKeyBE, 0, sizeof(publicKeyBE)); //declaring here although used later, so it can be acessable to the finally statement
     uint8_t keySeedBfr[64]; os_memset(keySeedBfr, 0, sizeof(keySeedBfr));
-    uint8_t publicKeyBE[32]; os_memset(publicKeyBE, 0, sizeof(publicKeyBE));
-
     struct cx_ecfp_256_private_key_s privateKey; //Don't need to init, since the ->d is copied into from some other palce
-    cx_ecfp_public_key_t publicKey; //cx_ecfp_init_public_key is called later, don't need to init this now, 
 
     //uint32_t bipPrefix[] = {44 | 0x80000000, 29 | 0x80000000};
     uint32_t bipPrefix[] = {44 | 0x80000000};
@@ -155,6 +153,7 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
                     PRINTF("\nZ1");
 
                     //todo: understand that in BLUE only has SLIP10, and document this 
+
                     os_perso_derive_node_bip32(CX_CURVE_Ed25519, derivationPath, derivationPathLengthInUints32, keySeedBfr, chainCodeOut);
 
                     PRINTF("\nZ2");
@@ -162,8 +161,13 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
                     // weird custom initilization, code copied from Cardano's EdDSA implementaion
                     privateKey.curve = CX_CURVE_Ed25519;
                     privateKey.d_len = 64;
-                    os_memmove(privateKey.d, keySeedBfr, 64);
+                    os_memmove(privateKey.d, keySeedBfr, 32);
                     
+
+                    if (0 != keySeedBfrOut) {
+                        PRINTF("\nZ3");
+                        os_memmove(keySeedBfrOut, keySeedBfr, 64); //the first of 32 bytes are used //todo, put back 64
+                    }
 
                     //uint8_t P[32], s[32]; os_memset(P, 0, 32); os_memset(s, 0, 32);
 
@@ -171,10 +175,9 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
 
                     //PRINTF("\nCurvedPrivateKey = publicKey (Genereated to check against) = %.*H", 32, P);
                     
-                    if (0 != publicKeyOut) { //todo check that the private keys still gets loaded if not generate_pair
+                    if ((0 != publicKeyCurveOut) || (0 != publicKeyEd25519Out)) { //todo check that the private keys still gets loaded if not generate_pair
 
-                        PRINTF("\n keySeedBfr %.*H", 64, keySeedBfr);
-
+                        cx_ecfp_public_key_t publicKey; 
                         cx_ecfp_init_public_key(CX_CURVE_Ed25519, 0, 0, &publicKey);
 
                         //cx_ecfp_generate_pair(CX_CURVE_Ed25519, &publicKey, &privateKey, 0);
@@ -189,6 +192,7 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
 
                         // copy public key from big endian to little endian
                         
+
                         for (uint8_t i = 0; i < sizeof(publicKeyBE); i++) {
                             publicKeyBE[i] = publicKey.W[64 - i];
                         }
@@ -206,15 +210,15 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
 
                         //todo figure out the bit signing thing?
 
-                        morph25519_e2m(publicKeyOut, publicKeyBE);
+                        if (0 != publicKeyEd25519Out)
+                                os_memmove(publicKeyEd25519Out, publicKeyBE, 32);
 
-                        PRINTF("\nd5 Morhped Using New Derivation Scheme: %.*H", 32, publicKeyOut);
+
+                        if (0 != publicKeyCurveOut)
+                            morph25519_e2m(publicKeyCurveOut, publicKeyBE);                      
                     }
 
-                    if (0 != keySeedBfrOut) {
-                        PRINTF("\nZ3");
-                        os_memmove(keySeedBfrOut, keySeedBfr, 32); //the first of 32 bytes are used
-                    }
+
 
                     PRINTF("\nd7");
             }
@@ -241,9 +245,9 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
 uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, uint8_t* targetPublicKey, 
                                 uint8_t * nonce, uint16_t * exceptionOut, uint8_t * aesKeyOut) {
     
-    uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
+    uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
 
-    uint8_t ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, exceptionOut);
+    uint8_t ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, exceptionOut);
 
     if (R_SUCCESS != ret)
         return ret;
@@ -251,7 +255,7 @@ uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t de
     uint8_t sharedKey[32]; os_memset(sharedKey, 0, sizeof(sharedKey));
 
 
-    curve25519(sharedKey, keySeed, targetPublicKey);
+    curve25519(sharedKey, keySeed, targetPublicKey); //should use only the first 32 bytes of keyseed
     
     for (uint8_t i = 0; i < sizeof(sharedKey); i++)
         sharedKey[i] ^= nonce[i];

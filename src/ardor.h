@@ -18,7 +18,7 @@
 uint64_t publicKeyToId(uint8_t * publicKey);
 void fillBufferWithAnswerAndEnding(uint8_t answer, uint8_t * tx);
 uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, 
-                            uint8_t *keySeedBfrOut, uint8_t *publicKeyOut, uint8_t * chainCodeOut, uint16_t * exceptionOut);
+                            uint8_t *keySeedBfrOut, uint8_t *publicKeyCurveOut, uint8_t * publicKeyEd25519Out, uint8_t * chainCodeOut, uint16_t * exceptionOut);
 
 bool check_canary();
 

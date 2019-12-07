@@ -80,11 +80,12 @@ void ui_idle(void) {
 // The APDU protocol uses a single-byte instruction code (INS) to specify
 // which command should be executed. We'll use this code to dispatch on a
 // table of function pointers.
-#define INS_GET_VERSION    			0x01
-#define INS_GET_PUBLIC_KEYS 		0x02
-#define INS_AUTH_SIGN_TXN  			0x03
-#define INS_ENCRYPT_DECRYPT_MSG		0x04
-#define INS_SHOW_ADDRESS 			0x05
+#define INS_GET_VERSION    					0x01
+#define INS_GET_PUBLIC_KEYS 				0x02
+#define INS_AUTH_SIGN_TXN  					0x03
+#define INS_ENCRYPT_DECRYPT_MSG				0x04
+#define INS_SHOW_ADDRESS 					0x05
+#define INS_GET_PUBLIC_KEY_AND_CHAIN_CODE 	0x06
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
@@ -95,14 +96,16 @@ handler_fn_t getPublicKeyHandler;
 handler_fn_t authAndSignTxnHandler;
 handler_fn_t encryptDecryptMessageHandler;
 handler_fn_t showAddressHandler;
+handler_fn_t getPublicKeyAndChainCodeHandler;
 
 static handler_fn_t* lookupHandler(uint8_t ins) {
 	switch (ins) {
-	case INS_GET_VERSION:    		return getVersionHandler;
-	case INS_GET_PUBLIC_KEYS: 		return getPublicKeyHandler;
-	case INS_AUTH_SIGN_TXN:   		return authAndSignTxnHandler;
-	case INS_ENCRYPT_DECRYPT_MSG:	return encryptDecryptMessageHandler;
-	case INS_SHOW_ADDRESS:			return showAddressHandler;
+	case INS_GET_VERSION:    					return getVersionHandler;
+	case INS_GET_PUBLIC_KEYS: 					return getPublicKeyHandler;
+	case INS_AUTH_SIGN_TXN:   					return authAndSignTxnHandler;
+	case INS_ENCRYPT_DECRYPT_MSG:				return encryptDecryptMessageHandler;
+	case INS_SHOW_ADDRESS:						return showAddressHandler;
+	case INS_GET_PUBLIC_KEY_AND_CHAIN_CODE: 	return getPublicKeyAndChainCodeHandler;
 	default:                 		return NULL;
 	}
 }

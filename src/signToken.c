@@ -102,7 +102,7 @@ void signTokenMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, 
 
             //gotta do some space reuse
             uint8_t publicKeyAndFinalHash[32]; os_memset(publicKeyAndFinalHash, 0, sizeof(publicKeyAndFinalHash));
-            uint8_t ret = ardorKeys(derivationPath, derivationPathLengthInUints32, 0, publicKeyAndFinalHash, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
+            uint8_t ret = ardorKeys(derivationPath, derivationPathLengthInUints32, 0, publicKeyAndFinalHash, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
             if (R_SUCCESS != ret) {
                 G_io_apdu_buffer[(*tx)++] = ret;
@@ -119,9 +119,9 @@ void signTokenMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, 
             cx_hash(&state.tokenCreation.hashstate.header, 0, dataBuffer, 4, 0, 0); //adding the timestamp to the hash
             cx_hash(&state.tokenCreation.hashstate.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
 
-            uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
+            uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
 
-            if (R_SUCCESS != (ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, &exception))) {
+            if (R_SUCCESS != (ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, &exception))) {
                 os_memset(keySeed, 0, sizeof(keySeed));
                 G_io_apdu_buffer[(*tx)++] = ret;
 
@@ -135,6 +135,7 @@ void signTokenMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, 
 
             G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
+            //should only use the first 32 bytes of keyseed
             signMsg(keySeed, publicKeyAndFinalHash, G_io_apdu_buffer + 1); //is a void function, no ret value to check against
             os_memset(keySeed, 0, sizeof(keySeed));
             break;

@@ -81,7 +81,7 @@ void showAddressHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8
     uint16_t exception = 0;
 
     uint8_t publicKey[32]; os_memset(publicKey, 0, sizeof(publicKey));
-    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / 4, 0, publicKey, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
+    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / 4, 0, publicKey, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
     if (R_SUCCESS == ret) {
         os_memset(screenContent, 0, sizeof(screenContent));
