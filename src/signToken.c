@@ -28,9 +28,9 @@
 #include "ardor.h"
 #include "returnValues.h"
 
-#define P1_INIT         1
-#define P1_MSG_BYTES    2
-#define P1_SIGN         3
+#define P1_INIT         0
+#define P1_MSG_BYTES    1
+#define P1_SIGN         2
 
 //todo, check out status mamangment on all commands
 
@@ -78,7 +78,7 @@ void signTokenMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, 
                 break;
             }
 
-            if (0 != dataLength - 4 % sizeof(uint32_t)) {
+            if (0 != (dataLength - 4) % sizeof(uint32_t)) {
                 G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;
                 break;
             }
@@ -115,14 +115,30 @@ void signTokenMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, 
                 break;
             }
 
+            uint32_t timestamp;
+            os_memcpy(&timestamp, dataBuffer, 4);
+
+            G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+
             cx_hash(&state.tokenCreation.hashstate.header, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash), 0, 0); //adding the public key to the hash
-            cx_hash(&state.tokenCreation.hashstate.header, 0, dataBuffer, 4, 0, 0); //adding the timestamp to the hash
+            
+            //also make a copy to the output buffer, because of how a token is constructed
+            os_memcpy(G_io_apdu_buffer + *tx, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
+            *tx += sizeof(publicKeyAndFinalHash);
+
+            cx_hash(&state.tokenCreation.hashstate.header, 0, &timestamp, 4, 0, 0); //adding the timestamp to the hash
+
+            os_memcpy(G_io_apdu_buffer + *tx, &timestamp, sizeof(timestamp));
+            *tx += sizeof(timestamp);
+
             cx_hash(&state.tokenCreation.hashstate.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
 
             uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
 
             if (R_SUCCESS != (ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, &exception))) {
                 os_memset(keySeed, 0, sizeof(keySeed));
+                
+                *tx = 0; //rewind all the stuff we wrote on the output buffer and just write over that
                 G_io_apdu_buffer[(*tx)++] = ret;
 
                 if (R_KEY_DERIVATION_EX == ret) {
@@ -133,11 +149,14 @@ void signTokenMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, 
                 break;
             }
 
-            G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+            
 
             //should only use the first 32 bytes of keyseed
-            signMsg(keySeed, publicKeyAndFinalHash, G_io_apdu_buffer + 1); //is a void function, no ret value to check against
+            signMsg(keySeed, publicKeyAndFinalHash, G_io_apdu_buffer + *tx); //is a void function, no ret value to check against
             os_memset(keySeed, 0, sizeof(keySeed));
+
+            *tx += 64;
+
             break;
        
        default:
