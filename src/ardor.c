@@ -142,11 +142,13 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
 
     PRINTF("\nw: %.*H", derivationPathLengthInUints32 * 4, derivationPath);
 
+    /* todo, add this back later and make 2 different apps, 1 dor ardor and 1 for nxt
     for (uint8_t i = 0; i < sizeof(bipPrefix) / sizeof(bipPrefix[0]); i++) {
         PRINTF("\n a - %d %d", i, derivationPath[i]);
         if (derivationPath[i] != bipPrefix[i])
             return R_WRONG_DERIVATION_PATH_HEADER;
     }
+    */
 
     BEGIN_TRY {
             TRY {

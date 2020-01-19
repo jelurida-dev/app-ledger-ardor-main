@@ -29,7 +29,7 @@
 #define MAX_KEYS 7
 
 #define P1_NORAMAL 0
-#define P1_ALSO_SEND_CURVE_PUBLIC_KEY 1
+#define P1_ALSO_SEND_CURVE_PUBLIC_KEY 3
 
 void getPublicKeyAndChainCodeHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
         volatile unsigned int *flags, volatile unsigned int *tx) {

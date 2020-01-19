@@ -86,6 +86,7 @@ void ui_idle(void) {
 #define INS_ENCRYPT_DECRYPT_MSG				0x04
 #define INS_SHOW_ADDRESS 					0x05
 #define INS_GET_PUBLIC_KEY_AND_CHAIN_CODE 	0x06
+#define INS_SIGN_TOKEN						0x07
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
@@ -97,6 +98,7 @@ handler_fn_t authAndSignTxnHandler;
 handler_fn_t encryptDecryptMessageHandler;
 handler_fn_t showAddressHandler;
 handler_fn_t getPublicKeyAndChainCodeHandler;
+handler_fn_t signTokenMessageHandler;
 
 static handler_fn_t* lookupHandler(uint8_t ins) {
 	switch (ins) {
@@ -106,6 +108,7 @@ static handler_fn_t* lookupHandler(uint8_t ins) {
 	case INS_ENCRYPT_DECRYPT_MSG:				return encryptDecryptMessageHandler;
 	case INS_SHOW_ADDRESS:						return showAddressHandler;
 	case INS_GET_PUBLIC_KEY_AND_CHAIN_CODE: 	return getPublicKeyAndChainCodeHandler;
+	case INS_SIGN_TOKEN:						return signTokenMessageHandler;
 	default:                 		return NULL;
 	}
 }
