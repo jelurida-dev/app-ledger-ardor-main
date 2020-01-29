@@ -1,6 +1,7 @@
 #*******************************************************************************
 #   Ledger App
 #   (c) 2017 Ledger
+#   (c) 2019 Haim Bender
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,6 +16,11 @@
 #  limitations under the License.
 #*******************************************************************************
 
+
+TARGET_NAME = TARGET_NANOS
+APPNAME = Ardor#Here you need switch between Ardor and NXT (Mind the letter casing, it matters)
+DEVEL = 1#Use when devolping #todo change this up in production
+
 ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
@@ -24,16 +30,27 @@ include $(BOLOS_SDK)/Makefile.defines
 #  App  #
 #########
 
-APPNAME  = Ardor
-TARGET_NAME = TARGET_NANOS
-
-DEVEL = 1
-#Use when devolping #todo change this up in production
+ifeq ($(APPNAME),Ardor)
+	DEFINES = "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
+	PATH_PREFIX = "44'/16754'"
+else
+	echo $(APPNAME)
+	DEFINES = "PATH_PREFIX={44|0x80000000,29|0x80000000}"
+	PATH_PREFIX = "44'/29'"
+endif
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
-	ICONNAME = icon.gif
+	ifeq ($(APPNAME),Ardor)
+		ICONNAME = ArdorIcon.gif
+	else
+		ICONNAME = NXTIcon.gif
+	endif
 else
-	ICONNAME = icon.gif
+	ifeq ($(APPNAME),Ardor)
+		ICONNAME = ArdorIcon.gif
+	else
+		ICONNAME = NXTIcon.gif
+	endif
 endif
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
@@ -47,7 +64,8 @@ APPVERSION_P = 0
 APPVERSION   = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # The --path argument here restricts which BIP32 paths the app is allowed to derive.
-APP_LOAD_PARAMS = --appFlags 0x40 --path "44'" --curve ed25519 $(COMMON_LOAD_PARAMS)
+APP_LOAD_PARAMS = --appFlags 0x40 --curve ed25519 $(COMMON_LOAD_PARAMS) --path
+APP_LOAD_PARAMS +=$(PATH_PREFIX)
 APP_SOURCE_PATH = src
 SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f
 
