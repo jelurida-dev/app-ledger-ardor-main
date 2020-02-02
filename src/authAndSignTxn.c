@@ -64,7 +64,7 @@ static const bagl_element_t ui_finalScreen[] = {
         {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)state.txnAuth.displaystate,0,0,0,NULL,NULL,NULL}
 };
 
-unsigned int makeTextGoAround_preprocessor(const bagl_element_t *element);
+unsigned int makeTextGoAround_preprocessor(const bagl_element_t * const element);
 
 void cleanState() {
 
@@ -141,12 +141,12 @@ typedef struct {
 static const chainType CHAINS[] = {{0x00000001, "Ardor", 8}, {0x00000002, "Ignis", 8}, {0x00000003, "AEUR", 4}, {0x00000004, "BITS", 8}, {0x00000005, "MPG", 8}};
 
 
-txnType * txnTypeAtIndex(uint8_t index) {
+txnType * txnTypeAtIndex(const uint8_t index) {
     return (txnType*)PIC(&TXN_TYPES[index]);
 }
 
 //todo write a note here why not returning the class because of PIC, rename to txnTypeName
-char * txnNameAtIndex(uint8_t index) {
+char * txnNameAtIndex(const uint8_t index) {
     return (char*)PIC(((txnType*)PIC(&TXN_TYPES[index]))->name);
 }
 
@@ -154,16 +154,17 @@ char * txnNameAtIndex(uint8_t index) {
 //    return ((txnType*)PIC(&TXN_TYPES[index]))->numScreens;
 //}
 
-char * chainName(uint8_t chainId) {
+char * chainName(const uint8_t chainId) {
     return (char*)PIC(((chainType*)PIC(&CHAINS[chainId - 1]))->name);
 }
 
-uint8_t chainNumDecimalsBeforePoint(uint8_t chainId) {
+uint8_t chainNumDecimalsBeforePoint(const uint8_t chainId) {
     return ((chainType*)PIC(&CHAINS[chainId - 1]))->numDecimalsBeforePoint;
 }
 
+//numberToFormat isn't const cuz we play with it in order to format the number
 //returns 0 iff some kind of error happend, else the length of the output string including the null terminator
-uint8_t formatAmount(uint8_t * outputString, uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDigitsBeforeDecimal) {
+uint8_t formatAmount(uint8_t * const outputString, const uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDigitsBeforeDecimal) {
     
     uint16_t outputIndex = 0;
     bool wasANumberWritten = false;
@@ -214,7 +215,7 @@ uint8_t formatAmount(uint8_t * outputString, uint16_t maxOutputLength, uint64_t 
     return outputIndex + 1;
 }
 
-void reedSolomonEncode(uint64_t inp, uint8_t * output);
+void reedSolomonEncode(const uint64_t inp, const uint8_t * output);
 
 
 //note, when adding screen's make sure to add "return R_SUCCESS;" at the end 
@@ -408,7 +409,7 @@ uint8_t setScreenTexts() {
     return R_FINISHED;
 }
 
-static unsigned int ui_auth_button(unsigned int button_mask, unsigned int button_mask_counter) {
+static unsigned int ui_auth_button(const unsigned int button_mask, const unsigned int button_mask_counter) {
 
     switch (button_mask) {
         case BUTTON_EVT_RELEASED | BUTTON_LEFT:
@@ -452,7 +453,7 @@ static unsigned int ui_auth_button(unsigned int button_mask, unsigned int button
     return 0;
 }
 
-uint8_t addToFunctionStack(uint8_t functionNum) {
+uint8_t addToFunctionStack(const uint8_t functionNum) {
     if (sizeof(state.txnAuth.functionStack) == state.txnAuth.numFunctionsOnStack)
         return R_FUNCTION_STACK_FULL;
 
@@ -462,9 +463,7 @@ uint8_t addToFunctionStack(uint8_t functionNum) {
 }
 
 
-uint8_t * readFromBuffer(uint8_t size) {
-
-    PRINTF("\n %d %d %d", state.txnAuth.readBufferEndPos,  state.txnAuth.readBufferReadOffset, size);
+uint8_t * readFromBuffer(const uint8_t size) {
 
     if (state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset < size)
         return 0;
@@ -629,7 +628,7 @@ uint8_t parseAskOrderPlacementAttachment() {
     return R_SUCCESS;
 }
 
-uint8_t addToReadBuffer(uint8_t * newData, uint8_t numBytes) {
+uint8_t addToReadBuffer(const uint8_t * const newData, const uint8_t numBytes) {
 
     for (uint8_t i = 0; i < state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset; i++)
         state.txnAuth.readBuffer[i] = state.txnAuth.readBuffer[i + state.txnAuth.readBufferReadOffset];
@@ -651,7 +650,7 @@ uint8_t addToReadBuffer(uint8_t * newData, uint8_t numBytes) {
 }
 
 
-uint8_t callFunctionNumber(uint8_t functionNum) {
+uint8_t callFunctionNumber(const uint8_t functionNum) {
 
     switch (functionNum) {
         case 1:
@@ -710,8 +709,8 @@ uint8_t parseFromStack() {
 
 }
 
-uint8_t signTxn(uint8_t * data, const uint32_t derivationPath, const uint8_t derivationPathLengthInUints32, 
-                 uint8_t * destBuffer, uint16_t * outException) {
+uint8_t signTxn(const uint8_t * const data, const uint32_t derivationPath, const uint8_t derivationPathLengthInUints32, 
+                 uint8_t * const destBuffer, uint16_t * const outException) {
 
     uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
     uint8_t ret = 0;
@@ -734,8 +733,8 @@ uint8_t signTxn(uint8_t * data, const uint32_t derivationPath, const uint8_t der
 #define P1_SIGN 3
 
 //todo check if we allow to sign the same txn with 2 different keys, if thats ok
-
-void authAndSignTxnHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
+//todo figure out what volotile means?
+void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
                 volatile unsigned int *flags, volatile unsigned int *tx) {
 
     

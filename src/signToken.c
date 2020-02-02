@@ -49,8 +49,9 @@
             returns:    1 byte status | sharedkey 32 bytes
 */
 
-void signTokenMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-        volatile unsigned int *flags, volatile unsigned int *tx) {
+//todo figure out why the params are volatile?
+void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+        volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
     switch(p1) {
 
@@ -167,8 +168,8 @@ void signTokenMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, 
 }
 
 
-void signTokenMessageHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-                volatile unsigned int *flags, volatile unsigned int *tx) {
+void signTokenMessageHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+                volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
     signTokenMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
     

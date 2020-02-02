@@ -26,15 +26,26 @@
 #include "curve25519_i64.h"
 #include "returnValues.h"
 
-unsigned int makeTextGoAround_preprocessor(const bagl_element_t *element)
+
+
+//pretty much does what it says, arodorKey() return an error if the path is smaller then defined
+#define MIN_DERIVATION_PATH_LENGTH 3
+
+
+
+//This is a prepocessor function for dialogs, it allows long labels to go in circles, like long crypto addresses, I have no idea how this works :)
+unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element)
 {
+    //I guess we are filtering on the UI element
     if (element->component.userid > 0)
         UX_CALLBACK_SET_INTERVAL(MAX(3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
     
     return 1;
 }
 
-void fillBufferWithAnswerAndEnding(uint8_t answer, uint8_t * tx) {
+//Does what it says, in return buffers the first byte is the return code, 0 is sucess allways
+//and all the buffer have 0x90,0x00 at the end, even on errors
+void fillBufferWithAnswerAndEnding(const uint8_t answer, uint8_t * const tx) {
     if (0 == tx) {
         G_io_apdu_buffer[0] = answer;
         G_io_apdu_buffer[1] = 0x90;
@@ -46,8 +57,8 @@ void fillBufferWithAnswerAndEnding(uint8_t answer, uint8_t * tx) {
     }
 }
 
-//note: add that output must be of size 32
-void sha256TwoBuffers(uint8_t * bufferTohash1, uint16_t sizeOfBuffer1, uint8_t * bufferTohash2, uint16_t sizeOfBuffer2, uint8_t * output) {
+//output must be of size 32 bytes
+void sha256TwoBuffers(const uint8_t * const bufferTohash1, const uint16_t sizeOfBuffer1, const uint8_t * const bufferTohash2, const uint16_t sizeOfBuffer2, uint8_t * const output) {
     cx_sha256_t shaContext;
 
     os_memset(output, 0, 32);
@@ -61,11 +72,15 @@ void sha256TwoBuffers(uint8_t * bufferTohash1, uint16_t sizeOfBuffer1, uint8_t *
     cx_hash(&shaContext.header, CX_LAST, 0, 0, output, 32);
 }
 
-void sha256Buffer(uint8_t * bufferTohash, uint16_t sizeOfBuffer, uint8_t * output) {
+//output must be of size 32 bytes
+void sha256Buffer(const uint8_t * const bufferTohash, const uint16_t sizeOfBuffer, uint8_t * const output) {
     sha256TwoBuffers(bufferTohash, sizeOfBuffer, 0, 0, output);
 }
 
-void signMsg(const uint8_t * keySeedBfr, const uint8_t msgSha256, const uint8_t * sig) {
+//This is the EKCDSA siging implementation
+//todo figure out what the output size is
+//todo figure out why msgSha is isn't a buffer, wtf?
+void signMsg(const uint8_t * const keySeedBfr, const uint8_t msgSha256, uint8_t * const sig) {
 
     uint8_t publicKeyX[32], privateKey[32]; os_memset(publicKeyX, 0, sizeof(publicKeyX)); os_memset(privateKey, 0, sizeof(privateKey));
 
@@ -73,67 +88,56 @@ void signMsg(const uint8_t * keySeedBfr, const uint8_t msgSha256, const uint8_t 
 
     uint8_t x[32]; os_memset(x, 0, sizeof(x));
 
-    PRINTF("\n m %.*H", 32, msgSha256);
-    PRINTF("\n privateKey %.*H", 32, privateKey);
-
     sha256TwoBuffers(msgSha256, 32, privateKey, sizeof(privateKey), x);
-
-    PRINTF("\n x %.*H", 32, x);
 
     uint8_t Y[32]; os_memset(Y, 0, sizeof(Y));
 
     keygen25519(Y, 0, x);
 
-    PRINTF("\n Y %.*H", 32, Y);
-
     uint8_t h[32]; os_memset(h, 0, sizeof(h));
 
     sha256TwoBuffers(msgSha256, 32, Y, sizeof(Y), h);
 
-    PRINTF("\n h: %.*H", 32, h);
-
     os_memmove(sig + 32, h, 32);
 
     sign25519(sig, h, x, privateKey); //todo: i changed s to privateKey maybe this is a problem
-
-    PRINTF("l2");
 }
 
-int ed25519_pk_to_curve25519(unsigned char *curve25519_pk, const unsigned char *ed25519_pk);
 
-#define MIN_DERIVATION_PATH_LENGTH 3
 
 //todo: make sure i clean everything out
-uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, 
-                            uint8_t *keySeedBfrOut, uint8_t *publicKeyCurveOut, uint8_t * publicKeyEd25519Out, uint8_t * chainCodeOut, uint16_t * exceptionOut) {
+//this function derives an ardor keeyseed (privatekey ^ -1), public key, ed255119 public key and chaincode
+
+//@param in: derivationPath - a BIP42 derivation path, must be at least of length MIN_DERIVATION_PATH_LENGTH
+//@param in: derivationPathLengthInUints32 - kinda what it says it is
+//@param optional out: keySeedBfrOut - 64 byte EC-KCDSA keyseed for the derivation path
+//@param optional out: publicKeyCurveOut - 32 byte EC-KCDSA public key for the derivation path
+//@param optional out: publicKeyEd25519Out - 32 byte ED255119 public key for the derivation path (used for debuging)
+//@param optional out: chainCodeOut - the 32 byte ED255119 derivation chaincode, used for external master public key derivation
+//@param out: exceptionOut - iff the return code is R_EXCEPTION => exceptionOut will be filled with the Nano exception code
+//@returns: regular return values
+
+uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
+                    uint8_t * const keySeedBfrOut, uint8_t * const publicKeyCurveOut, uint8_t * const publicKeyEd25519Out, uint8_t * const chainCodeOut, uint16_t * const exceptionOut) {
     
     uint8_t publicKeyBE[32]; os_memset(publicKeyBE, 0, sizeof(publicKeyBE)); //declaring here although used later, so it can be acessable to the finally statement
     uint8_t keySeedBfr[64]; os_memset(keySeedBfr, 0, sizeof(keySeedBfr));
     struct cx_ecfp_256_private_key_s privateKey; //Don't need to init, since the ->d is copied into from some other palce
 
-    //uint32_t bipPrefix[] = {44 | 0x80000000, 29 | 0x80000000};
     uint32_t bipPrefix[] = PATH_PREFIX; //defined in Makefile
 
     if ((derivationPathLengthInUints32 < sizeof(bipPrefix) / sizeof(bipPrefix[0])) || (derivationPathLengthInUints32 < MIN_DERIVATION_PATH_LENGTH))
         return R_DERIVATION_PATH_TOO_SHORT;
 
-    PRINTF("\nw: %.*H", derivationPathLengthInUints32 * 4, derivationPath);
-
     for (uint8_t i = 0; i < sizeof(bipPrefix) / sizeof(bipPrefix[0]); i++) {
-        PRINTF("\n a - %d %d", i, derivationPath[i]);
         if (derivationPath[i] != bipPrefix[i])
             return R_WRONG_DERIVATION_PATH_HEADER;
     }
 
     BEGIN_TRY {
             TRY {
-                    PRINTF("\nZ1");
-
                     //todo: understand that in BLUE only has SLIP10, and document this 
-
                     os_perso_derive_node_bip32(CX_CURVE_Ed25519, derivationPath, derivationPathLengthInUints32, keySeedBfr, chainCodeOut);
-
-                    PRINTF("\nZ2");
 
                     // weird custom initilization, code copied from Cardano's EdDSA implementaion
                     privateKey.curve = CX_CURVE_Ed25519;
@@ -141,10 +145,8 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
                     os_memmove(privateKey.d, keySeedBfr, 32);
                     
 
-                    if (0 != keySeedBfrOut) {
-                        PRINTF("\nZ3");
+                    if (0 != keySeedBfrOut)
                         os_memmove(keySeedBfrOut, keySeedBfr, 64); //the first of 32 bytes are used //todo, put back 64
-                    }
 
                     //uint8_t P[32], s[32]; os_memset(P, 0, 32); os_memset(s, 0, 32);
 
@@ -167,9 +169,8 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
                                 &publicKey,
                                 NULL, 0, NULL, 0);
 
-                        // copy public key from big endian to little endian
-                        
 
+                        // copy public key from big endian to little endian
                         for (uint8_t i = 0; i < sizeof(publicKeyBE); i++) {
                             publicKeyBE[i] = publicKey.W[64 - i];
                         }
@@ -188,7 +189,7 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
                         //todo figure out the bit signing thing?
 
                         if (0 != publicKeyEd25519Out)
-                                os_memmove(publicKeyEd25519Out, publicKeyBE, 32);
+                            os_memmove(publicKeyEd25519Out, publicKeyBE, 32);
 
 
                         if (0 != publicKeyCurveOut)
@@ -219,8 +220,13 @@ uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathL
     return R_SUCCESS;
 }
 
-uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, uint8_t* targetPublicKey, 
-                                uint8_t * nonce, uint16_t * exceptionOut, uint8_t * aesKeyOut) {
+//todo, figure out what the real size of the keyseed is
+//Creates a shared AES encryption key one the matches the key related to the derivation path, the target public key and the nonce
+//@param derivationPath - the derivation path
+//@param derivationPathLengthInUints32 - kinda clear what this is
+//@param targetPublicKey - the 32 byte public key
+uint8_t getSharedEncryptionKey(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, const uint8_t* const targetPublicKey, 
+                                const uint8_t * const nonce, uint16_t * const exceptionOut, uint8_t * const aesKeyOut) {
     
     uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
 
@@ -244,7 +250,7 @@ uint8_t getSharedEncryptionKey(const uint32_t * derivationPath, const uint8_t de
     return R_SUCCESS;
 }
 
-uint64_t publicKeyToId(uint8_t * publicKey) {
+uint64_t publicKeyToId(const uint8_t * const publicKey) {
         
     uint8_t tempSha[32];
     sha256Buffer(publicKey, 32, tempSha);

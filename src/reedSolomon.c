@@ -28,7 +28,7 @@ static const uint8_t gexp[] = {1, 2, 4, 8, 16, 5, 10, 20, 13, 26, 17, 7, 14, 28,
 static const uint8_t glog[] = {0, 0, 1, 18, 2, 5, 19, 11, 3, 29, 6, 27, 20, 8, 12, 23, 4, 10, 30, 17, 7, 22, 28, 26, 21, 25, 9, 16, 13, 14, 24, 15};
 
 
-uint8_t gmult(uint8_t a, uint8_t b) {
+uint8_t gmult(const uint8_t a, const uint8_t b) {
 
    
     if ((0 == a) || (0 == b)) {
@@ -43,7 +43,8 @@ uint8_t gmult(uint8_t a, uint8_t b) {
 }
 
 //output should be of length 21;
-void reedSolomonEncode(uint64_t inp, uint8_t * output) {
+//inp is not const because we play with it in order to calc the edit it, we don't need to hold a ref to the original version
+void reedSolomonEncode(uint64_t inp, uint8_t * const output) {
 
     uint8_t plain_string_32[sizeof(initial_codeword)];
     os_memset(plain_string_32, 0, sizeof(initial_codeword));

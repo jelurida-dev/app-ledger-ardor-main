@@ -48,12 +48,12 @@ static unsigned int ui_screen_button(unsigned int button_mask, unsigned int butt
     return 0;
 }
 
-void reedSolomonEncode(uint64_t inp, uint8_t * output);
+void reedSolomonEncode(const uint64_t inp, uint8_t * const output);
 unsigned int makeTextGoAround_preprocessor(const bagl_element_t *element);
 
 //todo: running show address twice makes it stuck
-void showAddressHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-        volatile unsigned int *flags, volatile unsigned int *tx) {
+void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+        volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
     //should be at least the size of 2 uint32's for the key path
     //the +2 * sizeof(uint32_t) is done for saftey, it is second checked in deriveArdorKeypair
@@ -102,8 +102,8 @@ void showAddressHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8
     }
 }
 
-void showAddressHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-                volatile unsigned int *flags, volatile unsigned int *tx) {
+void showAddressHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+        volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
     showAddressHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
     
