@@ -43,20 +43,7 @@ unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element)
     return 1;
 }
 
-//Does what it says, in return buffers the first byte is the return code, 0 is sucess allways
-//and all the buffer have 0x90,0x00 at the end, even on errors
-void fillBufferWithAnswerAndEnding(const uint8_t answer, uint8_t * const tx) {
-    if (0 == tx) {
-        G_io_apdu_buffer[0] = answer;
-        G_io_apdu_buffer[1] = 0x90;
-        G_io_apdu_buffer[2] = 0x00;
-    } else {
-        G_io_apdu_buffer[(*tx)++] = answer;
-        G_io_apdu_buffer[(*tx)++] = 0x90;
-        G_io_apdu_buffer[(*tx)++] = 0x00;
-    }
-}
-
+//self explanatory
 //output must point to buffer of 32 bytes in size
 void sha256TwoBuffers(const uint8_t * const bufferTohash1, const uint16_t sizeOfBuffer1, const uint8_t * const bufferTohash2, const uint16_t sizeOfBuffer2, uint8_t * const output) {
     cx_sha256_t shaContext;
@@ -72,14 +59,16 @@ void sha256TwoBuffers(const uint8_t * const bufferTohash1, const uint16_t sizeOf
     cx_hash(&shaContext.header, CX_LAST, 0, 0, output, 32);
 }
 
+//self explanatory
 //output must point to buffer of 32 bytes in size
 void sha256Buffer(const uint8_t * const bufferTohash, const uint16_t sizeOfBuffer, uint8_t * const output) {
     sha256TwoBuffers(bufferTohash, sizeOfBuffer, 0, 0, output);
 }
 
-//This is the EKCDSA siging implementation
-//todo figure out what the output size is
-//todo figure out why msgSha is isn't a buffer, wtf?
+//This is the EC-KCDSA siging implementation
+//@param in: keySeedBfr should point to a 32 byte keyseed (privateKey ^ -1)
+//@parma in: msgSha256 should point to a 32 byte sha256 of the message we are signing
+//@param out: sig should point to 64 bytes allocated to hold the signiture of the message
 void signMsg(const uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_t * const sig) {
 
     uint8_t publicKeyX[32], privateKey[32]; os_memset(publicKeyX, 0, sizeof(publicKeyX)); os_memset(privateKey, 0, sizeof(privateKey));
@@ -250,6 +239,8 @@ uint8_t getSharedEncryptionKey(const uint32_t * const derivationPath, const uint
     return R_SUCCESS;
 }
 
+//param: publicKey should point to a 32 byte public key buffer
+//returns: a 64bit public key id, used later with reedsolomon to create Ardor/NXT addresses
 uint64_t publicKeyToId(const uint8_t * const publicKey) {
         
     uint8_t tempSha[32];

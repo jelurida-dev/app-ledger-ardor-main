@@ -16,7 +16,6 @@
 ********************************************************************************/
 
 uint64_t publicKeyToId(const uint8_t * const publicKey);
-void fillBufferWithAnswerAndEnding(uint8_t answer, uint8_t * tx);
 uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, 
                             uint8_t *keySeedBfrOut, uint8_t *publicKeyCurveOut, uint8_t * publicKeyEd25519Out, uint8_t * chainCodeOut, uint16_t * exceptionOut);
 

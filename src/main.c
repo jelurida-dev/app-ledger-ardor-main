@@ -142,6 +142,20 @@ void cleanSharedState() {
 	os_memset(&state, 0, sizeof(state));
 }
 
+//Does what it says, in return buffers the first byte is the return code, 0 is sucess allways
+//and all the buffer have 0x90,0x00 at the end, even on errors
+void fillBufferWithAnswerAndEnding(const uint8_t answer, uint8_t * const tx) {
+    if (0 == tx) {
+        G_io_apdu_buffer[0] = answer;
+        G_io_apdu_buffer[1] = 0x90;
+        G_io_apdu_buffer[2] = 0x00;
+    } else {
+        G_io_apdu_buffer[(*tx)++] = answer;
+        G_io_apdu_buffer[(*tx)++] = 0x90;
+        G_io_apdu_buffer[(*tx)++] = 0x00;
+    }
+}
+
 //todo: make sure the state is cleaned when getting a command that is irrelevant
 
 // This is the main loop that reads and writes APDUs. It receives request
