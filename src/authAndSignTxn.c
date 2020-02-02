@@ -709,7 +709,7 @@ uint8_t parseFromStack() {
 
 }
 
-uint8_t signTxn(const uint8_t * const data, const uint32_t derivationPath, const uint8_t derivationPathLengthInUints32, 
+uint8_t signTxn(const uint8_t * const txnSha256, const uint32_t derivationPath, const uint8_t derivationPathLengthInUints32, 
                  uint8_t * const destBuffer, uint16_t * const outException) {
 
     uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
@@ -721,7 +721,7 @@ uint8_t signTxn(const uint8_t * const data, const uint32_t derivationPath, const
     }
 
     //sign msg should only use the first 32 bytes of keyseed
-    signMsg(keySeed, data, destBuffer); //is a void function, no ret value to check against
+    signMsg(keySeed, txnSha256, destBuffer); //is a void function, no ret value to check against
     
     os_memset(keySeed, 0, sizeof(keySeed));
 

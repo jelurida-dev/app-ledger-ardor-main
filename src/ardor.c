@@ -57,7 +57,7 @@ void fillBufferWithAnswerAndEnding(const uint8_t answer, uint8_t * const tx) {
     }
 }
 
-//output must be of size 32 bytes
+//output must point to buffer of 32 bytes in size
 void sha256TwoBuffers(const uint8_t * const bufferTohash1, const uint16_t sizeOfBuffer1, const uint8_t * const bufferTohash2, const uint16_t sizeOfBuffer2, uint8_t * const output) {
     cx_sha256_t shaContext;
 
@@ -72,7 +72,7 @@ void sha256TwoBuffers(const uint8_t * const bufferTohash1, const uint16_t sizeOf
     cx_hash(&shaContext.header, CX_LAST, 0, 0, output, 32);
 }
 
-//output must be of size 32 bytes
+//output must point to buffer of 32 bytes in size
 void sha256Buffer(const uint8_t * const bufferTohash, const uint16_t sizeOfBuffer, uint8_t * const output) {
     sha256TwoBuffers(bufferTohash, sizeOfBuffer, 0, 0, output);
 }
@@ -80,7 +80,7 @@ void sha256Buffer(const uint8_t * const bufferTohash, const uint16_t sizeOfBuffe
 //This is the EKCDSA siging implementation
 //todo figure out what the output size is
 //todo figure out why msgSha is isn't a buffer, wtf?
-void signMsg(const uint8_t * const keySeedBfr, const uint8_t msgSha256, uint8_t * const sig) {
+void signMsg(const uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_t * const sig) {
 
     uint8_t publicKeyX[32], privateKey[32]; os_memset(publicKeyX, 0, sizeof(publicKeyX)); os_memset(privateKey, 0, sizeof(privateKey));
 
