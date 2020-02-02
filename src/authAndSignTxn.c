@@ -735,7 +735,7 @@ uint8_t signTxn(const uint8_t * const data, const uint32_t derivationPath, const
 //todo check if we allow to sign the same txn with 2 different keys, if thats ok
 //todo figure out what volotile means?
 void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int *flags, volatile unsigned int *tx) {
+                volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
     
     PRINTF("\n asdijasidjaisjdasid");
@@ -844,8 +844,8 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
     }
 }
 
-void authAndSignTxnHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-                volatile unsigned int *flags, volatile unsigned int *tx) {
+void authAndSignTxnHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+                volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
     authAndSignTxnHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
 

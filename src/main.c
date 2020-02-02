@@ -90,7 +90,7 @@ void ui_idle(void) {
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
-typedef void handler_fn_t(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint16_t dataLength, volatile unsigned int *flags, volatile unsigned int *tx);
+typedef void handler_fn_t(const uint8_t p1, const uint8_t p2, const uint8_t *dataBuffer, const uint16_t dataLength, volatile unsigned int * const flags, volatile unsigned int * const tx);
 
 handler_fn_t getVersionHandler;
 handler_fn_t getPublicKeyHandler;
