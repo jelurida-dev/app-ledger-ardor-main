@@ -53,8 +53,8 @@
             returns:    IV (16 bytes) iif this is the first message for encryption mode | encrypted / decrypted buffer (same size as input)
 */
 
-void encryptDecryptMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-        volatile unsigned int *flags, volatile unsigned int *tx) {
+void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+                volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
 
     PRINTF("\n e0 %d", sizeof(unsigned long));
@@ -209,8 +209,8 @@ void encryptDecryptMessageHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuf
     }
 }
 
-void encryptDecryptMessageHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-                volatile unsigned int *flags, volatile unsigned int *tx) {
+void encryptDecryptMessageHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+                volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
 
 	PRINTF("\n d0 %d", check_canary());

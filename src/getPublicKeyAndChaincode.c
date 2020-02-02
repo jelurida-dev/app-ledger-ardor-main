@@ -31,8 +31,8 @@
 #define P1_NORAMAL 0
 #define P1_ALSO_SEND_CURVE_PUBLIC_KEY 3
 
-void getPublicKeyAndChainCodeHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-        volatile unsigned int *flags, volatile unsigned int *tx) {
+void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+                volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
     if ((P1_NORAMAL != p1) && (P1_ALSO_SEND_CURVE_PUBLIC_KEY != p1)) {
         G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
@@ -94,8 +94,8 @@ void getPublicKeyAndChainCodeHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *data
     }
 }
 
-void getPublicKeyAndChainCodeHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-                volatile unsigned int *flags, volatile unsigned int *tx) {
+void getPublicKeyAndChainCodeHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+                volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
     getPublicKeyAndChainCodeHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
     

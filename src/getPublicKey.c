@@ -28,8 +28,8 @@
 // This is the max amount of key that can be sent back to the client
 #define MAX_KEYS 7
 
-void getPublicKeyHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-        volatile unsigned int *flags, volatile unsigned int *tx) {
+void getPublicKeyHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+                volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
     //should be at least the size of 2 uint32's for the key path
     //the +2 * sizeof(uint32_t) is done for saftey, it is second checked in deriveArdorKeypair
@@ -91,8 +91,8 @@ void getPublicKeyHandlerHelper(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint
     }
 }
 
-void getPublicKeyHandler(uint8_t p1, uint8_t p2, uint8_t *dataBuffer, uint8_t dataLength,
-                volatile unsigned int *flags, volatile unsigned int *tx) {
+void getPublicKeyHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+                volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
     getPublicKeyHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
     
