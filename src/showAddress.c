@@ -49,7 +49,6 @@ static unsigned int ui_screen_button(unsigned int button_mask, unsigned int butt
 }
 
 void reedSolomonEncode(const uint64_t inp, uint8_t * const output);
-unsigned int makeTextGoAround_preprocessor(const bagl_element_t *element);
 
 //todo: running show address twice makes it stuck
 void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
