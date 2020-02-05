@@ -449,6 +449,7 @@ uint8_t setScreenTexts() {
 }
 
 //This is the button handler for this handler function
+//More info can be found in the first paragraph
 static unsigned int ui_auth_button(const unsigned int button_mask, const unsigned int button_mask_counter) {
 
     switch (button_mask) {
@@ -545,19 +546,16 @@ uint8_t parseMainTxnData() {
 
         if (currentTxnType->id == state.txnAuth.transactionTypeAndSubType)
             break;
-
-        //if ((((txnType*)PIC(TXN_TYPES) + state.txnAuth.txnTypeIndex)->id) == state.txnAuth.transactionTypeAndSubType)
-        //    break;
     }
 
-
+    //todo: i think there is a bug here, cuz what happends if we don't find a txn type in our list above, we still check against the last one in the line below?
     if (0 != currentTxnType->attachmentParsingFunctionNumber)
         addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
 
     os_memmove(&(state.txnAuth.version), ptr, sizeof(state.txnAuth.version));
     ptr += sizeof(state.txnAuth.version);
 
-    if (1 != state.txnAuth.version) //todo: fill this in
+    if (SUPPORTED_TXN_VERSION != state.txnAuth.version) //todo: fill this in
         return R_WRONG_VERSION_ERR;
 
     ptr += 4;   // Skip the timestamp

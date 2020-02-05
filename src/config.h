@@ -11,3 +11,5 @@ typedef struct {
 
 static const chainType CHAINS[];
 static const uint8_t NUM_CHAINS;
+static const uint8_t SUPPORTED_TXN_VERSION;
+
