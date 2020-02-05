@@ -25,6 +25,37 @@
 
 #include "returnValues.h"
 #include "ardor.h"
+#include "config.h"
+
+
+// This is the code that parses the txn for signing, it parses streamed txn bytes into the state object while hashing the bytes to be signed later,
+// displays a dialog of screens which contain the parsed txn bytes from the state, 
+// It solves 2 no trivial problems
+// 1 - Allowing txn bytes to be parsed from a stream of bytes (this is very hard, since we don't have a lot memory, so we need to parse bytes and forget about them)
+// 2 - txn's very in length depending on type, so the same bytes are sometimes not parsed into the same place, so it has to be dynamic about parsing
+//
+//
+// The way these problems are solved is by the following flow:
+//
+// The function stack is initiated with an index reference to parseMainTxnData
+// 
+//
+// authAndSignTxnHandlerHelper is called with some of the txn bytes
+// => addToReadBuffer is called adds these bytes to the read buffer
+// => parseFromStack is called, which calls the first parse function on the stack which is parseMainTxnData
+// => parseMainTxnData trys to pull 142 bytes from the buffer
+//      if there is are 142 bytes there:
+//          parseMainTxnData parses the main txn bytes and then adds more functions to parse stack depending on the appendages
+//      else
+//          R_SEND_MORE_BYTES is trickled down by the function to be sent to back to the client
+//      
+// and so on the process goes until the stack of functions is empty and there are no more bytes in the read buffer
+// if the parsing goes well without errors => setScreenTexts(); is called which sets up the labels and first screen of the autherization dialog
+// => showScreen(); make the first screen apeare setting and sets ui_auth_button() to be the button callback for the dialog =>
+// pressing on the right does state.txnAuth.screenNum++; if it reaches the end number then the txn is autherized for signing and state.txnAuth.txnPassedAutherization is set to true
+// pressing left does state.txnAuth.screenNum--; and if it gets to a negative number it will be interpretate as a txn rejection => cleanState() 
+// will be called and R_REJECT will be returned to client
+
 
 static unsigned int ui_auth_button(unsigned int button_mask, unsigned int button_mask_counter);
 
@@ -64,8 +95,9 @@ static const bagl_element_t ui_finalScreen[] = {
         {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)state.txnAuth.displaystate,0,0,0,NULL,NULL,NULL}
 };
 
-unsigned int makeTextGoAround_preprocessor(const bagl_element_t * const element);
-
+//This function cleans the txnAuth part of the state, its important to call it before starting to load a txn
+//also whenever there is an error you should call it so that no one can exploit an error state for some sort of attack,
+//the cleaner the state is, the better, allways clean when you can
 void cleanState() {
 
     state.txnAuth.txnSizeBytes = 0;
@@ -115,7 +147,9 @@ void cleanState() {
     state.txnAuth.attachmentTempInt64Num3 = 0;
 }
 
-
+//Show the appropriate screen, there are 3 types, 0 - one with the a cancel button on the left, this is the first screen of the dialog
+//1 - center screen with a left button on the left and right button on the right, 2 - final screen with a left button on the left and V
+//button on the right signaling the end of the dialog
 void showScreen() {
     switch (state.txnAuth.displayType) {
         case 0:
@@ -130,40 +164,41 @@ void showScreen() {
     }
 }
 
-typedef struct {
-    uint32_t chainId;
-    char * name;
-    uint8_t numDecimalsBeforePoint;
-} chainType;
-
-
-//todo move it somewhere else
-static const chainType CHAINS[] = {{0x00000001, "Ardor", 8}, {0x00000002, "Ignis", 8}, {0x00000003, "AEUR", 4}, {0x00000004, "BITS", 8}, {0x00000005, "MPG", 8}};
-
-
+//Does what it says
 txnType * txnTypeAtIndex(const uint8_t index) {
+    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
     return (txnType*)PIC(&TXN_TYPES[index]);
 }
 
-//todo write a note here why not returning the class because of PIC, rename to txnTypeName
-char * txnNameAtIndex(const uint8_t index) {
+//does what it says
+char * txnTypeNameAtIndex(const uint8_t index) {
+    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
     return (char*)PIC(((txnType*)PIC(&TXN_TYPES[index]))->name);
 }
 
-//uint8_t txnNumScreensAtIndex(uint8_t index) {
-//    return ((txnType*)PIC(&TXN_TYPES[index]))->numScreens;
-//}
-
+//does what is says
 char * chainName(const uint8_t chainId) {
+    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
     return (char*)PIC(((chainType*)PIC(&CHAINS[chainId - 1]))->name);
 }
 
+//the amount of digits on the right of the decimal dot for each chain
 uint8_t chainNumDecimalsBeforePoint(const uint8_t chainId) {
+    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
     return ((chainType*)PIC(&CHAINS[chainId - 1]))->numDecimalsBeforePoint;
 }
 
-//numberToFormat isn't const cuz we play with it in order to format the number
-//returns 0 iff some kind of error happend, else the length of the output string including the null terminator
+
+//this function formats amounts into string and most importantly add the dot where it's supposed to be
+//the way this is works is that amounts ints and then the dot is added after chainNumDecimalsBeforePoint() digits from right to left
+//for example, if the amount is 4200000000 and we are in the Ardor chain in which chainNumDecimalsBeforePoint() is 8 then the formated amount will be "42"
+//for 4210100000 it will be 42.101
+
+//@param outputString - does what it says
+//@param maxOutputLength - does what it says
+//@param numberToFormat - the input number to format, isn't const cuz we play with it in order to format the number
+//@param numDigitsBeforeDecimal - read first paragraph for info
+//@returns 0 iff some kind of error happend, else the length of the output string including the null terminator
 uint8_t formatAmount(uint8_t * const outputString, const uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDigitsBeforeDecimal) {
     
     uint16_t outputIndex = 0;
@@ -215,10 +250,20 @@ uint8_t formatAmount(uint8_t * const outputString, const uint16_t maxOutputLengt
     return outputIndex + 1;
 }
 
+//defined in readSolomon.c
 void reedSolomonEncode(const uint64_t inp, const uint8_t * output);
 
 
-//note, when adding screen's make sure to add "return R_SUCCESS;" at the end 
+
+//todo figure out if we are doing all txn types
+
+//This function manages the UI for Authenticating and Signing Txn's
+//First it filters on state.txnAuth.screenNum to understand what screen we are in
+//And then shows the correct info depending on the txn type and subtype
+
+//@note: when adding screen's make sure to add "return R_SUCCESS;" at the end, in order for the tricle down filter on counter to work
+//@returns R_REJECT if we got to the -1 screen, meaning the txn was rejected, R_SUCCESS, R_FINSHED if we passed the last screen, and apropriate errors
+//todo figure out how errors are propigated and make sure we clean the state
 uint8_t setScreenTexts() {
 
     int8_t counter = state.txnAuth.screenNum; //can't be uint cuz it has to have the ability to get negative
@@ -240,7 +285,7 @@ uint8_t setScreenTexts() {
 
         if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
             snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "%s %s",
-                chainName(state.txnAuth.chainId), txnNameAtIndex(state.txnAuth.txnTypeIndex));
+                chainName(state.txnAuth.chainId), txnTypeNameAtIndex(state.txnAuth.txnTypeIndex));
         } else {
             snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "%s UnknownTxnType", 
                 chainName(state.txnAuth.chainId));
@@ -378,18 +423,12 @@ uint8_t setScreenTexts() {
         }
     }
 
-    PRINTF("\nADD");
-
     if (0 == counter--) {
         state.txnAuth.displayType = 1;
 
         snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Fee");
 
-        PRINTF("\nADD1");
-
         uint8_t ret = formatAmount(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), state.txnAuth.fee, chainNumDecimalsBeforePoint(state.txnAuth.chainId));
-
-        PRINTF("\nADD2");
 
         if (0 == ret)
             return R_FORMAT_FEE_ERR;
@@ -409,6 +448,7 @@ uint8_t setScreenTexts() {
     return R_FINISHED;
 }
 
+//This is the button handler for this handler function
 static unsigned int ui_auth_button(const unsigned int button_mask, const unsigned int button_mask_counter) {
 
     switch (button_mask) {
@@ -439,8 +479,10 @@ static unsigned int ui_auth_button(const unsigned int button_mask, const unsigne
             break;
             
         case R_REJECT:
+        default:
             cleanState();
             break;
+
     }
 
     G_io_apdu_buffer[0] = R_SUCCESS;
@@ -453,6 +495,7 @@ static unsigned int ui_auth_button(const unsigned int button_mask, const unsigne
     return 0;
 }
 
+//Does what is says
 uint8_t addToFunctionStack(const uint8_t functionNum) {
     if (sizeof(state.txnAuth.functionStack) == state.txnAuth.numFunctionsOnStack)
         return R_FUNCTION_STACK_FULL;
@@ -462,7 +505,7 @@ uint8_t addToFunctionStack(const uint8_t functionNum) {
     return R_SUCCESS;
 }
 
-
+//Takes bytes away from the buffer, returns 0 if there aren't enough bytes
 uint8_t * readFromBuffer(const uint8_t size) {
 
     if (state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset < size)
@@ -475,6 +518,7 @@ uint8_t * readFromBuffer(const uint8_t size) {
     return ret;
 }
 
+//This is the main parse function, it parses the main txn body and adds more function to the parse stack if needed
 uint8_t parseMainTxnData() {
      uint8_t * ptr = readFromBuffer(145);
 
@@ -483,17 +527,13 @@ uint8_t parseMainTxnData() {
 
     os_memmove(&(state.txnAuth.chainId), ptr, sizeof(state.txnAuth.chainId));
 
-    PRINTF("\n bb %d %.*H", state.txnAuth.chainId, 108, ptr);
-
     ptr += sizeof(state.txnAuth.chainId);
 
-    if ((0 == state.txnAuth.chainId) || ((sizeof(CHAINS) / sizeof(CHAINS[0])) < state.txnAuth.chainId)) //note: we do +1 here because ardor start with index 1
+    if ((0 == state.txnAuth.chainId) || (NUM_CHAINS < state.txnAuth.chainId)) //note: we do +1 here because ardor start with index 1
         return R_BAD_CHAIN_ID_ERR;
 
 
     os_memmove(&(state.txnAuth.transactionTypeAndSubType), ptr, sizeof(state.txnAuth.transactionTypeAndSubType));
-
-    PRINTF("\n baba %.*H", 4, &state.txnAuth.transactionTypeAndSubType);
 
     ptr += sizeof(state.txnAuth.transactionTypeAndSubType);
 
@@ -542,6 +582,7 @@ uint8_t parseMainTxnData() {
     return R_SUCCESS;
 }
 
+//Just skips a txn reference
 uint8_t parseReferencedTxn() {
 
     if (0 == readFromBuffer(sizeof(uint32_t) + 32))
@@ -590,13 +631,13 @@ uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
     os_memmove(&state.txnAuth.attachmentTempInt32Num1, ptr, sizeof(state.txnAuth.attachmentTempInt32Num1));
     ptr += sizeof(state.txnAuth.attachmentTempInt32Num1);
 
-    if (state.txnAuth.attachmentTempInt32Num1 > (sizeof(CHAINS) / sizeof(CHAINS[0])))
+    if (state.txnAuth.attachmentTempInt32Num1 > NUM_CHAINS)
         return R_BAD_CHAIN_ID_ERR;
 
     os_memmove(&state.txnAuth.attachmentTempInt32Num2, ptr, sizeof(state.txnAuth.attachmentTempInt32Num2));
     ptr += sizeof(state.txnAuth.attachmentTempInt32Num2);
 
-    if (state.txnAuth.attachmentTempInt32Num2 > (sizeof(CHAINS) / sizeof(CHAINS[0])))
+    if (state.txnAuth.attachmentTempInt32Num2 > NUM_CHAINS)
         return R_BAD_CHAIN_ID_ERR;
 
     os_memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
@@ -736,10 +777,6 @@ uint8_t signTxn(const uint8_t * const txnSha256, const uint32_t derivationPath, 
 //todo figure out what volotile means?
 void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
                 volatile unsigned int * const flags, volatile unsigned int * const tx) {
-
-    
-    PRINTF("\n asdijasidjaisjdasid");
-    PRINTF("\n asd %d %d", p1, p1 & 0x03);
 
     if (dataLength < 1) {
         cleanState();
