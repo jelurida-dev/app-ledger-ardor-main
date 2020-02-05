@@ -59,7 +59,7 @@ typedef struct {
     uint32_t appendagesFlags;
     
     uint8_t displayType;
-    int8_t screenNum;
+    int8_t dialogScreenIndex;
 
 
    	int32_t attachmentTempInt32Num1, attachmentTempInt32Num2;

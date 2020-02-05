@@ -52,8 +52,8 @@
 // and so on the process goes until the stack of functions is empty and there are no more bytes in the read buffer
 // if the parsing goes well without errors => setScreenTexts(); is called which sets up the labels and first screen of the autherization dialog
 // => showScreen(); make the first screen apeare setting and sets ui_auth_button() to be the button callback for the dialog =>
-// pressing on the right does state.txnAuth.screenNum++; if it reaches the end number then the txn is autherized for signing and state.txnAuth.txnPassedAutherization is set to true
-// pressing left does state.txnAuth.screenNum--; and if it gets to a negative number it will be interpretate as a txn rejection => cleanState() 
+// pressing on the right does state.txnAuth.dialogScreenIndex++; if it reaches the end number then the txn is autherized for signing and state.txnAuth.txnPassedAutherization is set to true
+// pressing left does state.txnAuth.dialogScreenIndex--; and if it gets to a negative number it will be interpretate as a txn rejection => cleanState() 
 // will be called and R_REJECT will be returned to client
 
 
@@ -138,7 +138,7 @@ void cleanState() {
     state.txnAuth.appendagesFlags = 0;
     state.txnAuth.displayType = 0;
 
-    state.txnAuth.screenNum = 0;
+    state.txnAuth.dialogScreenIndex = 0;
 
     state.txnAuth.attachmentTempInt32Num1 = 0;
     state.txnAuth.attachmentTempInt32Num2 = 0;
@@ -258,7 +258,7 @@ void reedSolomonEncode(const uint64_t inp, const uint8_t * output);
 //todo figure out if we are doing all txn types
 
 //This function manages the UI for Authenticating and Signing Txn's
-//First it filters on state.txnAuth.screenNum to understand what screen we are in
+//First it filters on state.txnAuth.dialogScreenIndex to understand what screen we are in
 //And then shows the correct info depending on the txn type and subtype
 
 //@note: when adding screen's make sure to add "return R_SUCCESS;" at the end, in order for the tricle down filter on counter to work
@@ -266,7 +266,7 @@ void reedSolomonEncode(const uint64_t inp, const uint8_t * output);
 //todo figure out how errors are propigated and make sure we clean the state
 uint8_t setScreenTexts() {
 
-    int8_t counter = state.txnAuth.screenNum; //can't be uint cuz it has to have the ability to get negative
+    int8_t counter = state.txnAuth.dialogScreenIndex; //can't be uint cuz it has to have the ability to get negative
 
     if (-1 == counter)
         return R_REJECT;
@@ -454,12 +454,12 @@ static unsigned int ui_auth_button(const unsigned int button_mask, const unsigne
     switch (button_mask) {
         case BUTTON_EVT_RELEASED | BUTTON_LEFT:
 
-            state.txnAuth.screenNum--; //todo: rename screen number and display number so it will be more obvious
+            state.txnAuth.dialogScreenIndex--;
             break;
 
         case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
 
-            state.txnAuth.screenNum++;
+            state.txnAuth.dialogScreenIndex++;
             break;
         default:
         return 0;
