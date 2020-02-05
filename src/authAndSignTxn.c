@@ -580,7 +580,7 @@ uint8_t parseMainTxnData() {
     return R_SUCCESS;
 }
 
-//Just skips a txn reference
+//Parses a txn reference, by just skiping over the bytes :)
 uint8_t parseReferencedTxn() {
 
     if (0 == readFromBuffer(sizeof(uint32_t) + 32))
@@ -589,6 +589,7 @@ uint8_t parseReferencedTxn() {
     return R_SUCCESS;
 }
 
+//Does what it says
 uint8_t parseAppendagesFlags() {
     
     uint8_t * ptr = readFromBuffer(sizeof(state.txnAuth.appendagesFlags));
@@ -601,6 +602,7 @@ uint8_t parseAppendagesFlags() {
     return R_SUCCESS;
 }
 
+//Parses all the bytes until the endof the txn, since we don't parse the specifics of all the types, sometimes this is needed
 uint8_t parseIngoreBytesUntilTheEnd() {
     while (state.txnAuth.numBytesRead != state.txnAuth.txnSizeBytes) {
         if (0 == readFromBuffer(1))
@@ -610,6 +612,7 @@ uint8_t parseIngoreBytesUntilTheEnd() {
     return R_SUCCESS;
 }
 
+//Parses a specific type of attachment
 uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
     
     state.txnAuth.attachmentTempInt32Num1 = 0; //chaidId
@@ -646,6 +649,7 @@ uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
     return R_SUCCESS;
 }
 
+//Parses a specific type of attachment
 uint8_t parseAskOrderPlacementAttachment() {
     
     state.txnAuth.attachmentTempInt64Num1 = 0;
@@ -667,6 +671,10 @@ uint8_t parseAskOrderPlacementAttachment() {
     return R_SUCCESS;
 }
 
+//Addes bytes to the read buffer
+//@param newData: ptr to the data
+//@param numBytes: number of bytes in the data
+//return R_SUCCESS on success, R_NO_SPACE_BUFFER_TOO_SMALL othereize
 uint8_t addToReadBuffer(const uint8_t * const newData, const uint8_t numBytes) {
 
     for (uint8_t i = 0; i < state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset; i++)
@@ -688,7 +696,8 @@ uint8_t addToReadBuffer(const uint8_t * const newData, const uint8_t numBytes) {
     return R_SUCCESS;
 }
 
-
+//Since we can't store function pointers in the functionstack, we store number and then call the following function
+//to make a call to the corresponding function
 uint8_t callFunctionNumber(const uint8_t functionNum) {
 
     switch (functionNum) {
@@ -714,11 +723,7 @@ uint8_t parseFromStack() {
     
     while (true) {
 
-        PRINTF("\n s %.*H", sizeof(state.txnAuth.functionStack), state.txnAuth.functionStack);
-
         if (0 == state.txnAuth.numFunctionsOnStack) {//todo check the state here
-
-            PRINTF("\n b %d %d", state.txnAuth.readBufferEndPos,  state.txnAuth.readBufferReadOffset);
 
             if (state.txnAuth.readBufferEndPos != state.txnAuth.readBufferReadOffset)
                 return R_NOT_ALL_BYTES_READ;
@@ -745,7 +750,6 @@ uint8_t parseFromStack() {
 
         return ret;
     }
-
 }
 
 uint8_t signTxn(const uint8_t * const txnSha256, const uint32_t derivationPath, const uint8_t derivationPathLengthInUints32, 
