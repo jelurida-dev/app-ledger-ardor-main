@@ -7,7 +7,7 @@ def main():
 
 	with open("txtypes.txt", "r") as f:
 
-		out = '//This is an auto generated file by createTxnTypes.py\n\n\n\n#include <string.h>\n#include <stdbool.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include <os.h>\n#include <cx.h>\n#include "ardor.h"\n\nconst txnType TXN_TYPES[] = {'
+		out = '//This is an auto generated file by createTxnTypes.py\n\n\n\n#include <string.h>\n#include <stdbool.h>\n#include <stdint.h>\n#include <stdbool.h>\n#include <os.h>\n#include <cx.h>\n#include <os_io_seproxyhal.h>\n#include <ux.h>\n#include "ardor.h"\n\nconst txnType TXN_TYPES[] = {'
 
 		lines = f.readlines()
 
