@@ -27,6 +27,10 @@
 #include "ardor.h"
 #include "config.h"
 
+#define P1_INIT 1
+#define P1_CONTINUE 2
+#define P1_SIGN 3
+
 
 // This is the code that parses the txn for signing, it parses streamed txn bytes into the state object while hashing the bytes to be signed later,
 // displays a dialog of screens which contain the parsed txn bytes from the state, 
@@ -56,6 +60,23 @@
 // pressing left does state.txnAuth.dialogScreenIndex--; and if it gets to a negative number it will be interpretate as a txn rejection => cleanState() 
 // will be called and R_REJECT will be returned to client
 
+
+//  API:
+//
+//
+//      The mode is encoded in the first 2 bits of the p1 parameter and the size of the txn should be ((p1 & 0b11111100) << 6) + p2
+//      you only need to pass the size when calling P1_INIT
+//
+//      P1: P1_INIT:
+//      dataBuffer: txn bytes //you can send all of your bytes here if you want
+//      returns:    1 byte status
+//
+//      P1: P1_CONTINUE:    more txn bytes
+//      returns:    1 byte status
+//
+//      P1: P1_SIGN:
+//      dataBuffer: derivaiton path (uint32) * some length
+//      returns:    1 bytes status | 64 byte signiture
 
 static unsigned int ui_auth_button(unsigned int button_mask, unsigned int button_mask_counter);
 
@@ -719,7 +740,7 @@ uint8_t callFunctionNumber(const uint8_t functionNum) {
 }
 
 //This function manages the parsing of the readBuffer with functionStack functions
-//If there aren't enough bytes in the read buffer it returnes R_SEND_MORE_BYTES
+//If there aren't enough bytes in the read buffer it returns R_SEND_MORE_BYTES
 //which will be sent back to the user
 uint8_t parseFromStack() {
     
@@ -754,7 +775,16 @@ uint8_t parseFromStack() {
     }
 }
 
-uint8_t signTxn(const uint8_t * const txnSha256, const uint32_t derivationPath, const uint8_t derivationPathLengthInUints32, 
+
+//This is the function used to sign the hash of the txn
+//@param txnSha256 -                     ptr to 32 byte sha256 of the txn
+//@param derivationPath -                ptr to the derivation path buffer
+//@param derivationPathLengthInUints32 - length of the derivation path buffer
+//@param destBuffer -                    ptr to 64 bytes of memory of where to write the buffer
+//@param outException out -              ptr to where to write the exception if it happends
+//@returns R_SUCCESS iff success else the appropriate error code is returned
+
+uint8_t signTxn(const uint8_t * const txnSha256, const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
                  uint8_t * const destBuffer, uint16_t * const outException) {
 
     uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
@@ -773,12 +803,9 @@ uint8_t signTxn(const uint8_t * const txnSha256, const uint32_t derivationPath, 
     return R_SUCCESS;
 }
 
-#define P1_INIT 1
-#define P1_CONTINUE 2
-#define P1_SIGN 3
-
-//todo check if we allow to sign the same txn with 2 different keys, if thats ok
 //todo figure out what volotile means?
+//This is the main command handler, it checks that params are in the right size,
+//and manages calls to cleanState(), signTxn(), addToReadBuffer(), parseFromStack()
 void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
                 volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
@@ -821,6 +848,8 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
 
         uint8_t ret = signTxn(state.txnAuth.finalHash, derivationPathCpy, derivationParamLengthInBytes / 4, G_io_apdu_buffer + 1, &exception);
 
+        cleanState();
+
         if (R_SUCCESS == ret) {
             *tx += 64;
         } else {
@@ -851,8 +880,6 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
             cleanState();
 
             state.txnAuth.txnSizeBytes = ((p1 & 0b11111100) << 6) + p2;
-
-            PRINTF("\n fasd %d", state.txnAuth.txnSizeBytes);
 
             if (145 > state.txnAuth.txnSizeBytes) {
                 G_io_apdu_buffer[(*tx)++] = R_TXN_SIZE_TOO_SMALL;
