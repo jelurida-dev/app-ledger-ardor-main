@@ -718,7 +718,9 @@ uint8_t callFunctionNumber(const uint8_t functionNum) {
     return R_PARSE_FUNCTION_NOT_FOUND;
 }
 
-
+//This function manages the parsing of the readBuffer with functionStack functions
+//If there aren't enough bytes in the read buffer it returnes R_SEND_MORE_BYTES
+//which will be sent back to the user
 uint8_t parseFromStack() {
     
     while (true) {
