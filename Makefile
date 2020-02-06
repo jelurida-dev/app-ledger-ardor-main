@@ -16,27 +16,28 @@
 #  limitations under the License.
 #*******************************************************************************
 
+#Defines
 
 TARGET_NAME = TARGET_NANOS
 APPNAME = Ardor#Here you need switch between Ardor and NXT (Mind the letter casing, it matters)
 DEVEL = 1#Use when devolping #todo change this up in production
+
+#####################################3
 
 ifeq ($(BOLOS_SDK),)
 $(error Environment variable BOLOS_SDK is not set)
 endif
 include $(BOLOS_SDK)/Makefile.defines
 
-#########
-#  App  #
-#########
-
 ifeq ($(APPNAME),Ardor)
 	DEFINES = "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
 	PATH_PREFIX = "44'/16754'"
+	DEFINES += APP_PREFIX=\"ARDOR-\"
 else
 	echo $(APPNAME)
 	DEFINES = "PATH_PREFIX={44|0x80000000,29|0x80000000}"
 	PATH_PREFIX = "44'/29'"
+	DEFINES += APP_PREFIX=\"NXT-\"
 endif
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
@@ -85,8 +86,6 @@ delete:
 ############
 # Platform #
 ############
-
-DEFINES += APP_PREFIX=\"ARDOR-\"
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
