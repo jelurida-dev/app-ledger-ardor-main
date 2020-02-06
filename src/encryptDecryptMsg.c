@@ -35,30 +35,30 @@
 
 /*
 
-    modes:
-        P1_INIT_ENCRYPT:
-            dataBuffer: derivation path (uint32) * some length | second party public key
-            returns:    1 byte status | nonce (on success) | IV
+    This command allows the client to encrypt and decrypt messages that are assigned to some foreign public key and nonce
+    First you need to call the right INIT function, you have 3 choices. After that you call P1_AES_ENCRYPT_DECRYPT as many times as you need
 
-        P1_INIT_DECRYPT_HIDE_SHARED_KEY:
-            dataBuffer: derivaiton path (uint32) * some length | second party public key | nonce | IV
-            returns:    1 byte status
+    API:
 
-        P1_INIT_DECRYPT_SHOW_SHARED_KEY:
-            dataBuffer: derivaiton path (uint32) * some length | second party public key | nonce | IV
-            returns:    1 byte status | sharedkey 32 bytes
+        P1: P1_INIT_ENCRYPT:
+        dataBuffer: derivation path (uint32) * some length | second party public key
+        returns:    1 byte status | nonce (on success) | IV
+
+        P1: P1_INIT_DECRYPT_HIDE_SHARED_KEY:
+        dataBuffer: derivaiton path (uint32) * some length | second party public key | nonce | IV
+        returns:    1 byte status
+
+        P1: P1_INIT_DECRYPT_SHOW_SHARED_KEY:
+        dataBuffer: derivaiton path (uint32) * some length | second party public key | nonce | IV
+        returns:    1 byte status | sharedkey 32 bytes
 
         P1_AES_ENCRYPT_DECRYPT:
-            dataBuffer: IV (if we are in decryption mode and this is the first message) | buffer (224 max size) should be in modulu of 16 
-            returns:    IV (16 bytes) iif this is the first message for encryption mode | encrypted / decrypted buffer (same size as input)
+        dataBuffer: buffer (224 max size) should be in modulu of 16 
+        returns:    encrypted / decrypted buffer (same size as input)
 */
 
 void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
                 volatile unsigned int * const flags, volatile unsigned int * const tx) {
-
-
-    PRINTF("\n e0 %d", sizeof(unsigned long));
-
 
     //todo: find a way to make sure that you can't encrypt if the state isn't set
     if ((P1_INIT_ENCRYPT == p1) || (P1_INIT_DECRYPT_HIDE_SHARED_KEY == p1) || (P1_INIT_DECRYPT_SHOW_SHARED_KEY == p1)) {
@@ -70,16 +70,12 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
             return;
         }
 
-        PRINTF("\n e1 %d", check_canary());
-
         uint8_t derivationLength = 0;
 
         if (P1_INIT_ENCRYPT == p1)
             derivationLength = (dataLength - 32) / sizeof(uint32_t);
         else
             derivationLength = (dataLength - 32 * 2 - 16) / sizeof(uint32_t);
-
-        PRINTF("\n e2 derivation length %d %d", derivationLength, dataLength);
 
         if (2 > derivationLength) {
             G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_SHORT;
@@ -91,13 +87,9 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
             return;
         }
 
-        PRINTF("\n e3");
-
         uint32_t derivationPath[32]; //todo check if i can just point to the derivation path
         uint8_t nonce[32];
         os_memcpy(derivationPath, dataBuffer, derivationLength * sizeof(uint32_t));
-
-        PRINTF("\n e4 %d", check_canary());
 
         uint8_t * noncePtr = dataBuffer + derivationLength * sizeof(uint32_t) + 32;
 
@@ -110,8 +102,6 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
         uint8_t encryptionKey[32];
 
         uint8_t ret = getSharedEncryptionKey(derivationPath, derivationLength, dataBuffer + derivationLength * sizeof(uint32_t), noncePtr, &exceptionOut, encryptionKey);
-
-        PRINTF("\n e5 %d", check_canary());
 
         if (R_KEY_DERIVATION_EX == ret) {
             G_io_apdu_buffer[0] = ret;  
@@ -140,8 +130,6 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
 
             os_memcpy(state.encryption.cbc, dataBuffer + dataLength - sizeof(state.encryption.cbc), sizeof(state.encryption.cbc)); //Copying the IV into the CBC
         }
-
-        PRINTF("\n e6");
         
         state.encryption.mode = p1;
         G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
@@ -157,7 +145,6 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
             *tx+= 32;
         }
 
-        PRINTF("\n e7");
     } else if (P1_AES_ENCRYPT_DECRYPT == p1) {
 
         if ((P1_INIT_ENCRYPT != state.encryption.mode) && (P1_INIT_DECRYPT_HIDE_SHARED_KEY != state.encryption.mode) && 
@@ -172,13 +159,11 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
             return;
         }
 
-        PRINTF("\n cbc %.*H", sizeof(state.encryption.cbc), state.encryption.cbc); 
-
         uint8_t * pos = dataBuffer;
         uint8_t tmp[AES_BLOCK_SIZE];
 
         while (pos < dataBuffer + dataLength) {
-            if (P1_INIT_ENCRYPT == state.encryption.mode) {
+            if (P1_INIT_ENCRYPT == state.encryption.mode) { //if we are doing encryption:
 
                 for (uint8_t j = 0; j < AES_BLOCK_SIZE; j++)
                     state.encryption.cbc[j] ^= pos[j];
@@ -211,9 +196,6 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
 
 void encryptDecryptMessageHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
                 volatile unsigned int * const flags, volatile unsigned int * const tx) {
-
-
-	PRINTF("\n d0 %d", check_canary());
 
     encryptDecryptMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
     
