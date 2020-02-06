@@ -25,16 +25,30 @@
 #include "ardor.h"
 #include "returnValues.h"
 
-// This is the max amount of key that can be sent back to the client
-#define MAX_KEYS 7
+#define P1_GET_PUBLIC_KEY                                   1
+#define P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY      2
 
-#define P1_NORAMAL 0
-#define P1_ALSO_SEND_CURVE_PUBLIC_KEY 3
+
+/*
+    This command allows the client to the EC-KCDSA public key, chain code and ED25519 public key for a requested derivation path
+
+    API:
+
+        P1: P1_GET_PUBLIC_KEY:
+        dataBuffer: derivation path (uint32) * some length
+        returns:    32 byte EC-KCDSA public key
+
+        P1: P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY:
+        dataBuffer: derivaiton path (uint32) * some length
+        returns:    32 byte EC-KCDSA public key | 32 byte chain code | 32 byte ED25516 public key
+
+*/
+
 
 void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
                 volatile unsigned int * const flags, volatile unsigned int * const tx) {
 
-    if ((P1_NORAMAL != p1) && (P1_ALSO_SEND_CURVE_PUBLIC_KEY != p1)) {
+    if ((P1_GET_PUBLIC_KEY != p1) && (P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY != p1)) {
         G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
         return;
     }
@@ -65,26 +79,24 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
     uint8_t publicKeyEd25519[32];
     uint8_t publicKeyCurve[32];
     uint8_t chainCode[32];
-    uint8_t K[64];
     uint16_t exception = 0;
 
-    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / 4, K, publicKeyCurve, publicKeyEd25519, chainCode, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
+    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / 4, 0, publicKeyCurve, publicKeyEd25519, chainCode, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
     G_io_apdu_buffer[(*tx)++] = ret;
 
     if (R_SUCCESS == ret) {
-        os_memmove(G_io_apdu_buffer + *tx, chainCode, sizeof(chainCode));
-        *tx += sizeof(chainCode);
+        
         os_memmove(G_io_apdu_buffer + *tx, publicKeyEd25519, sizeof(publicKeyEd25519));
         *tx += sizeof(publicKeyEd25519);
 
-        if (P1_ALSO_SEND_CURVE_PUBLIC_KEY == p1) {
+        if (P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY == p1) {
+            os_memmove(G_io_apdu_buffer + *tx, chainCode, sizeof(chainCode));
+            *tx += sizeof(chainCode);    
+
             os_memmove(G_io_apdu_buffer + *tx, publicKeyCurve, sizeof(publicKeyCurve));
             *tx += sizeof(publicKeyCurve);
         }
-
-        os_memmove(G_io_apdu_buffer + *tx, K, sizeof(K));
-        *tx += sizeof(K);
 
     } else if (R_KEY_DERIVATION_EX == ret) {  
         G_io_apdu_buffer[(*tx)++] = exception >> 8;

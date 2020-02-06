@@ -81,7 +81,6 @@ void ui_idle(void) {
 // which command should be executed. We'll use this code to dispatch on a
 // table of function pointers.
 #define INS_GET_VERSION    					0x01
-#define INS_GET_PUBLIC_KEYS 				0x02
 #define INS_AUTH_SIGN_TXN  					0x03
 #define INS_ENCRYPT_DECRYPT_MSG				0x04
 #define INS_SHOW_ADDRESS 					0x05
@@ -93,7 +92,6 @@ void ui_idle(void) {
 typedef void handler_fn_t(const uint8_t p1, const uint8_t p2, const uint8_t *dataBuffer, const uint16_t dataLength, volatile unsigned int * const flags, volatile unsigned int * const tx);
 
 handler_fn_t getVersionHandler;
-handler_fn_t getPublicKeyHandler;
 handler_fn_t authAndSignTxnHandler;
 handler_fn_t encryptDecryptMessageHandler;
 handler_fn_t showAddressHandler;
@@ -103,7 +101,6 @@ handler_fn_t signTokenMessageHandler;
 static handler_fn_t* lookupHandler(uint8_t ins) {
 	switch (ins) {
 	case INS_GET_VERSION:    					return getVersionHandler;
-	case INS_GET_PUBLIC_KEYS: 					return getPublicKeyHandler;
 	case INS_AUTH_SIGN_TXN:   					return authAndSignTxnHandler;
 	case INS_ENCRYPT_DECRYPT_MSG:				return encryptDecryptMessageHandler;
 	case INS_SHOW_ADDRESS:						return showAddressHandler;
@@ -194,11 +191,6 @@ static void ardor_main(void) {
 				rx = tx;
 				tx = 0; // ensure no race in CATCH_OTHER if io_exchange throws an error
 				rx = io_exchange(CHANNEL_APDU | flags, rx);
-	
-				PRINTF("\n ttt %d", check_canary());
-
-
-				PRINTF("\nasdasd");
 				flags = 0;
 
 				// No APDU received; trigger a reset.
