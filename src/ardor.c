@@ -31,7 +31,8 @@
 //pretty much does what it says, arodorKey() return an error if the path is smaller then defined
 #define MIN_DERIVATION_PATH_LENGTH 3
 
-
+//the global state
+states_t state;
 
 //This is a prepocessor function for dialogs, it allows long labels to go in circles, like long crypto addresses, I have no idea how this works :)
 unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element)
@@ -184,13 +185,8 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
                         if (0 != publicKeyCurveOut)
                             morph25519_e2m(publicKeyCurveOut, publicKeyBE);                      
                     }
-
-
-
-                    PRINTF("\nd7");
             }
             CATCH_OTHER(exception) {
-                PRINTF("\nd8");
                 *exceptionOut = exception;
                 return R_KEY_DERIVATION_EX;
             }
@@ -199,12 +195,9 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
                 os_memset(privateKey.d, 0, privateKey.d_len);
                 os_memset(keySeedBfr, 0, sizeof(keySeedBfr));
                 os_memset(publicKeyBE, 0, sizeof(publicKeyBE));
-                PRINTF("\nd10");
             }
         }
         END_TRY;
-
-        PRINTF("\nd9");
     
     return R_SUCCESS;
 }
@@ -233,8 +226,6 @@ uint8_t getSharedEncryptionKey(const uint32_t * const derivationPath, const uint
         sharedKey[i] ^= nonce[i];
 
     sha256Buffer(sharedKey, sizeof(sharedKey), aesKeyOut);
-
-    PRINTF("\n sharedkey: %.*H", 32, aesKeyOut);
 
     return R_SUCCESS;
 }

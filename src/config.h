@@ -13,8 +13,10 @@ static const chainType CHAINS[];
 static const uint8_t NUM_CHAINS;
 static const uint8_t SUPPORTED_TXN_VERSION;
 
-#define VERSION 		0x0001
-#define VERSION_FLAGS   0x00
-
 static const uint8_t ARDOR_SPECIAL_IDENTIFIER[];
 static const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN;
+
+
+static const uint16_t VERSION;
+static const uint8_t VERSION_FLAGS;
+static const char UI_APP_VERSION_TXT[];

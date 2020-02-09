@@ -30,20 +30,16 @@ static const uint8_t glog[] = {0, 0, 1, 18, 2, 5, 19, 11, 3, 29, 6, 27, 20, 8, 1
 
 uint8_t gmult(const uint8_t a, const uint8_t b) {
 
-   
     if ((0 == a) || (0 == b)) {
         return 0;
     }
 
-    PRINTF("\ne1 %d, %d", a, b);
-
     uint8_t idx = ((*(uint8_t*)PIC(&glog[a])) + (*(uint8_t*)PIC(&glog[b]))) % 31;
-    PRINTF("\ne2 %d", idx);
     return (*(uint8_t*)PIC(&gexp[idx]));
 }
 
-//output should be of length 21;
-//inp is not const because we play with it in order to calc the edit it, we don't need to hold a ref to the original version
+//@inp in - the buffer to encode, it's not const, cuz it's edited while converting
+//@output out - output should be of length 21;
 void reedSolomonEncode(uint64_t inp, uint8_t * const output) {
 
     uint8_t plain_string_32[sizeof(initial_codeword)];
@@ -68,17 +64,11 @@ void reedSolomonEncode(uint64_t inp, uint8_t * const output) {
         p[0] =        gmult(17, fb);
     }
 
-    PRINTF("\nc");
-
     os_memcpy(plain_string_32 + BASE_32_LENGTH, p, sizeof(initial_codeword) - BASE_32_LENGTH);
-
-    PRINTF("\nd");
-
 
     uint8_t stringIndex = 0;
 
     for (uint8_t i = 0; i < 17; i++) {
-        PRINTF("\ne");
         uint8_t codework_index = (*(uint8_t*)PIC(&codeword_map[i]));
         uint8_t alphabet_index = plain_string_32[codework_index];
         output[stringIndex++] = (*(uint8_t*)PIC(&alphabet[alphabet_index]));

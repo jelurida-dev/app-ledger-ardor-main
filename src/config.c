@@ -14,4 +14,8 @@ static const uint8_t NUM_CHAINS = sizeof(CHAINS);
 static const uint8_t SUPPORTED_TXN_VERSION = 1;
 
 static const uint8_t ARDOR_SPECIAL_IDENTIFIER[] = {0xba, 0xbe, 0x00};
-static const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN = 3;
+static const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN = sizeof(ARDOR_SPECIAL_IDENTIFIER);
+
+static const char UI_APP_VERSION_TXT[] = "1.0";
+static const uint16_t VERSION = 0x0001;
+static const uint8_t VERSION_FLAGS = 0x00;
