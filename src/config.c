@@ -13,3 +13,5 @@ static const uint8_t NUM_CHAINS = sizeof(CHAINS);
 
 static const uint8_t SUPPORTED_TXN_VERSION = 1;
 
+static const uint8_t ARDOR_SPECIAL_IDENTIFIER[] = {0xba, 0xbe, 0x00};
+static const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN = 3;
