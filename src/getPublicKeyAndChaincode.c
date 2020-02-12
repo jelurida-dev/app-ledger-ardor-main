@@ -44,6 +44,8 @@
 
 */
 
+//todo add auth button for chaincode requests
+
 
 void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
                 volatile unsigned int * const flags, volatile unsigned int * const tx) {
@@ -107,7 +109,7 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
 }
 
 void getPublicKeyAndChainCodeHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx) {
+                volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
 
     getPublicKeyAndChainCodeHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
     

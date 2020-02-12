@@ -102,7 +102,7 @@ void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t 
 }
 
 void showAddressHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        volatile unsigned int * const flags, volatile unsigned int * const tx) {
+        volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
 
     showAddressHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
     

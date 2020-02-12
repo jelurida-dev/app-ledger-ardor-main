@@ -57,15 +57,20 @@
         returns:    encrypted / decrypted buffer (same size as input)
 */
 
-void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx) {
+void cleanEncryptionState() {
+    state.encryption.mode = 0;
+}
 
-    //todo: find a way to make sure that you can't encrypt if the state isn't set
+void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
+                volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
+
+    if (isLastCommandDifferent)
+        cleanEncryptionState();
+
     if ((P1_INIT_ENCRYPT == p1) || (P1_INIT_DECRYPT_HIDE_SHARED_KEY == p1) || (P1_INIT_DECRYPT_SHOW_SHARED_KEY == p1)) {
 
-        state.encryption.mode = 0; //clean the state first
-
         if (0 != dataLength % sizeof(uint32_t)) {
+            cleanEncryptionState();
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
             return;
         }
@@ -78,11 +83,13 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
             derivationLength = (dataLength - 32 * 2 - 16) / sizeof(uint32_t);
 
         if (2 > derivationLength) {
+            cleanEncryptionState();
             G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_SHORT;
             return;
         }
 
         if (32 < derivationLength) {
+            cleanEncryptionState();
             G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_LONG;
             return;
         }
@@ -104,12 +111,14 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
         uint8_t ret = getSharedEncryptionKey(derivationPath, derivationLength, dataBuffer + derivationLength * sizeof(uint32_t), noncePtr, &exceptionOut, encryptionKey);
 
         if (R_KEY_DERIVATION_EX == ret) {
+            cleanEncryptionState();
             G_io_apdu_buffer[0] = ret;  
             G_io_apdu_buffer[1] = exceptionOut >> 8;
             G_io_apdu_buffer[2] = exceptionOut & 0xFF;
             *tx = 3;
             return;
         } else if (R_SUCCESS != ret) {
+            cleanEncryptionState();
             G_io_apdu_buffer[0] = ret;
             *tx = 1;
             return;
@@ -117,12 +126,14 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
 
         if (P1_INIT_ENCRYPT == p1) {
             if (!aes_encrypt_init_fixed(encryptionKey, 32, state.encryption.ctx)) {
+                cleanEncryptionState();
                 G_io_apdu_buffer[0] = R_AES_ERROR;
                 *tx = 1;
                 return;
             }
         } else {
             if (!aes_decrypt_init_fixed(encryptionKey, 32, state.encryption.ctx)) {
+                cleanEncryptionState();
                 G_io_apdu_buffer[0] = R_AES_ERROR;
                 *tx = 1;
                 return;
@@ -147,14 +158,22 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
 
     } else if (P1_AES_ENCRYPT_DECRYPT == p1) {
 
+        if (isLastCommandDifferent) {
+            cleanEncryptionState();
+            G_io_apdu_buffer[(*tx)++] = R_NO_SETUP;
+            return;
+        }
+
         if ((P1_INIT_ENCRYPT != state.encryption.mode) && (P1_INIT_DECRYPT_HIDE_SHARED_KEY != state.encryption.mode) && 
             (P1_INIT_DECRYPT_SHOW_SHARED_KEY != state.encryption.mode))
         {
+            cleanEncryptionState();
             G_io_apdu_buffer[(*tx)++] = R_NO_SETUP;
             return;
         }
 
         if (0 != dataLength % 16) {
+            cleanEncryptionState();
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;
             return;
         }
@@ -190,14 +209,15 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
         G_io_apdu_buffer[0] = R_SUCCESS;
 
     } else {
+        cleanEncryptionState();
         G_io_apdu_buffer[(*tx)++] = R_UNKOWN_CMD;
     }
 }
 
 void encryptDecryptMessageHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx) {
+                volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
 
-    encryptDecryptMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
+    encryptDecryptMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
     
     G_io_apdu_buffer[(*tx)++] = 0x90;
     G_io_apdu_buffer[(*tx)++] = 0x00;

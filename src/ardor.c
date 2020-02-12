@@ -167,7 +167,7 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
 
                         //PRINTF("\nd4");
 
-                        
+                        //todo figure out if we need this
                         /*
                         // set sign bit
                         if ((publicKey.W[32] & 1) != 0) {

@@ -57,7 +57,7 @@
 // if the parsing goes well without errors => setScreenTexts(); is called which sets up the labels and first screen of the autherization dialog
 // => showScreen(); make the first screen apeare setting and sets ui_auth_button() to be the button callback for the dialog =>
 // pressing on the right does state.txnAuth.dialogScreenIndex++; if it reaches the end number then the txn is autherized for signing and state.txnAuth.txnPassedAutherization is set to true
-// pressing left does state.txnAuth.dialogScreenIndex--; and if it gets to a negative number it will be interpretate as a txn rejection => cleanState() 
+// pressing left does state.txnAuth.dialogScreenIndex--; and if it gets to a negative number it will be interpretate as a txn rejection => initTxnAuthState() 
 // will be called and R_REJECT will be returned to client
 
 
@@ -119,7 +119,7 @@ static const bagl_element_t ui_finalScreen[] = {
 //This function cleans the txnAuth part of the state, its important to call it before starting to load a txn
 //also whenever there is an error you should call it so that no one can exploit an error state for some sort of attack,
 //the cleaner the state is, the better, allways clean when you can
-void cleanState() {
+void initTxnAuthState() {
 
     state.txnAuth.txnSizeBytes = 0;
     state.txnAuth.numBytesRead = 0;
@@ -502,7 +502,7 @@ static unsigned int ui_auth_button(const unsigned int button_mask, const unsigne
             
         case R_REJECT:
         default:
-            cleanState();
+            initTxnAuthState();
             break;
 
     }
@@ -805,12 +805,12 @@ uint8_t signTxn(const uint8_t * const txnSha256, const uint32_t * const derivati
 
 //todo figure out what volotile means?
 //This is the main command handler, it checks that params are in the right size,
-//and manages calls to cleanState(), signTxn(), addToReadBuffer(), parseFromStack()
+//and manages calls to initTxnAuthState(), signTxn(), addToReadBuffer(), parseFromStack()
 void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx) {
+                volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
 
     if (dataLength < 1) {
-        cleanState();
+        initTxnAuthState();
         G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;    
         return;
     }
@@ -818,14 +818,20 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
 
     if (P1_SIGN == (p1 & 0x03)) {
 
+        if (isLastCommandDifferent) {
+            initTxnAuthState();
+            G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
+            return;
+        }
+
         if (dataLength < 2 * sizeof(uint32_t)) {
-            cleanState();
+            initTxnAuthState();
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
             return; 
         }
 
         if (!state.txnAuth.txnPassedAutherization) {
-            cleanState();
+            initTxnAuthState();
             G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
             return;
         }
@@ -833,7 +839,7 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
         uint8_t derivationParamLengthInBytes = dataLength;
 
         if (0 != derivationParamLengthInBytes % 4) {
-            cleanState();
+            initTxnAuthState();
             G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
             return;
         }
@@ -848,7 +854,7 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
 
         uint8_t ret = signTxn(state.txnAuth.finalHash, derivationPathCpy, derivationParamLengthInBytes / 4, G_io_apdu_buffer + 1, &exception);
 
-        cleanState();
+        initTxnAuthState();
 
         if (R_SUCCESS == ret) {
             *tx += 64;
@@ -865,19 +871,25 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
 
         if (P1_INIT != (p1 & 0x03)) {
 
+            if (isLastCommandDifferent) {
+                initTxnAuthState();
+                G_io_apdu_buffer[(*tx)++] = R_ERR_NO_INIT_CANT_CONTINUE;
+                return;
+            }
+
             if (state.txnAuth.txnPassedAutherization) {
-                cleanState();
+                initTxnAuthState();
                 G_io_apdu_buffer[(*tx)++] = R_NOT_ALL_BYTES_USED;
                 return;
             }
 
             if (state.txnAuth.isClean) {
-                cleanState();
+                initTxnAuthState();
                 G_io_apdu_buffer[(*tx)++] = R_ERR_NO_INIT_CANT_CONTINUE;
                 return;
             }
         } else {
-            cleanState();
+            initTxnAuthState();
 
             state.txnAuth.txnSizeBytes = ((p1 & 0b11111100) << 6) + p2;
 
@@ -899,7 +911,7 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
         ret = parseFromStack();
 
         if (!((R_SEND_MORE_BYTES == ret) || (R_FINISHED == ret) || (R_SHOW_DISPLAY == ret)))
-            cleanState();
+            initTxnAuthState();
 
         if (R_SHOW_DISPLAY == ret) {
             *flags |= IO_ASYNCH_REPLY;
@@ -913,9 +925,9 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
 }
 
 void authAndSignTxnHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx) {
+                volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
 
-    authAndSignTxnHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
+    authAndSignTxnHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
 
     if (0 == ((*flags) & IO_ASYNCH_REPLY)) {
         G_io_apdu_buffer[(*tx)++] = 0x90;
