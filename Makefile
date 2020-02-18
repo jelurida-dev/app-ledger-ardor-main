@@ -40,6 +40,8 @@ else
 	DEFINES += APP_PREFIX=\"NXT-\"
 endif
 
+DEFINES += HAVE_BOLOS_APP_STACK_CANARY
+
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 	ifeq ($(APPNAME),Ardor)
 		ICONNAME = ArdorIcon.gif

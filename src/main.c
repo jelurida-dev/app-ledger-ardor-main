@@ -138,6 +138,9 @@ void fillBufferWithAnswerAndEnding(const uint8_t answer, uint8_t * const tx) {
     }
 }
 
+
+
+
 // This is the main loop that reads and writes APDUs. It receives request
 // APDUs from the computer, looks up the corresponding command handler, and
 // calls it on the APDU payload. Then it loops around and calls io_exchange
@@ -148,8 +151,6 @@ void fillBufferWithAnswerAndEnding(const uint8_t answer, uint8_t * const tx) {
 static void ardor_main(void) {
 
 	lastCmdNumber = 0;
-
-	init_canary();
 
 	volatile unsigned int rx = 0;
 	volatile unsigned int tx = 0;

@@ -244,16 +244,14 @@ uint64_t publicKeyToId(const uint8_t * const publicKey) {
 }
 
 
-//In the link script here: https://github.com/LedgerHQ/nanos-secure-sdk/blob/master/script.ld#L116
-//It's defined that _stack should be places 512 of the start of the stack, so if our stack size grows longer
-//We will somehow overwrite the canary. Note that if we're no using a lot of Global Variables or taking up lots of mem
-//then 
-extern uint32_t _stack;
+//app_stack_canary is defined by the link script to be at the start of the user data or end of the stack, something like that
+//so if there is a stack overflow then it will be overwriten, this is how check_canary() works.
+//make sure HAVE_BOLOS_APP_STACK_CANARY is defined in the makefile, so that the OS code will init it and check against it every io_exchange call
+//if the canary is not the same, and if not, it will throw
 
-void init_canary() {
-    _stack = 0xDEADBEEF;
-}
+//todo: add documentation in the readme
+extern unsigned int app_stack_canary;
 
 bool check_canary() {
-    return _stack == 0xDEADBEEF;
+    return 0xDEAD0031 == app_stack_canary;
 }
