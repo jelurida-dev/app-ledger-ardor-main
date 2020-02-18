@@ -57,3 +57,12 @@ In order to compile an upload onto ledger call
 ## Javascript lib
 
 You use lib found [here]: https://gitlab.com/haimbender/ardor-ledger-js in order to comunicate with the app, some test examples can be found there too
+
+
+## Stackoverflow canary
+
+The app uses the SDK's built in app_stack_canary, it's activated in the makefile by the define HAVE_BOLOS_APP_STACK_CANARY
+I advise to keep this flag always on, it just gives extra security and doesn't take up much CPU.
+The way this works is it defines an int at the end of the stack, inits it at startup and then check's against it every call to io_exchange,
+if it changes it throws an EXCEPTION_IO_RESET, which should reset the app.
+In order to debug a stack overflow call check_canary() add different parts of the code to check if you have overflowed the stack

@@ -249,7 +249,6 @@ uint64_t publicKeyToId(const uint8_t * const publicKey) {
 //make sure HAVE_BOLOS_APP_STACK_CANARY is defined in the makefile, so that the OS code will init it and check against it every io_exchange call
 //if the canary is not the same, and if not, it will throw
 
-//todo: add documentation in the readme
 extern unsigned int app_stack_canary;
 
 bool check_canary() {
