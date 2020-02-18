@@ -135,8 +135,6 @@ void initTxnAuthState() {
     
     cx_sha256_init(&state.txnAuth.hashstate);
 
-    //todo: add all constructors for new members here
-
     os_memset(state.txnAuth.readBuffer, 0, sizeof(state.txnAuth.readBuffer));
     state.txnAuth.readBufferReadOffset = 0;
     state.txnAuth.readBufferEndPos = 0;
