@@ -25,11 +25,7 @@
 #include "ardor.h"
 #include "curve25519_i64.h"
 #include "returnValues.h"
-
-
-
-//pretty much does what it says, arodorKey() return an error if the path is smaller then defined
-#define MIN_DERIVATION_PATH_LENGTH 3
+#include "config.h"
 
 //the global state
 states_t state;
@@ -116,8 +112,8 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
 
     uint32_t bipPrefix[] = PATH_PREFIX; //defined in Makefile
 
-    if ((derivationPathLengthInUints32 < sizeof(bipPrefix) / sizeof(bipPrefix[0])) || (derivationPathLengthInUints32 < MIN_DERIVATION_PATH_LENGTH))
-        return R_DERIVATION_PATH_TOO_SHORT;
+    if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32))
+        return R_WRONG_SIZE_ERR;
 
     for (uint8_t i = 0; i < sizeof(bipPrefix) / sizeof(bipPrefix[0]); i++) {
         if (derivationPath[i] != bipPrefix[i])
@@ -245,4 +241,19 @@ uint64_t publicKeyToId(const uint8_t * const publicKey) {
             (((uint64_t) tempSha[2]) << 16) |
             (((uint64_t) tempSha[1]) << 8) |
             (((uint64_t) tempSha[0] )));
+}
+
+
+//In the link script here: https://github.com/LedgerHQ/nanos-secure-sdk/blob/master/script.ld#L116
+//It's defined that _stack should be places 512 of the start of the stack, so if our stack size grows longer
+//We will somehow overwrite the canary. Note that if we're no using a lot of Global Variables or taking up lots of mem
+//then 
+extern uint32_t _stack;
+
+void init_canary() {
+    _stack = 0xDEADBEEF;
+}
+
+bool check_canary() {
+    return _stack == 0xDEADBEEF;
 }

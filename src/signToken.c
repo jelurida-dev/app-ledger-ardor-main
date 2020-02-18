@@ -27,9 +27,8 @@
 
 #include "ardor.h"
 #include "returnValues.h"
+#include "config.h"
 
-
-//todo change this
 #define P1_INIT         0
 #define P1_MSG_BYTES    1
 #define P1_SIGN         2
@@ -37,8 +36,6 @@
 #define STATE_INVAILD           0
 #define STATE_MODE_INITED       1
 #define STATE_BYTES_RECIEVED    2
-
-//todo, check out status mamangment on all commands
 
 /*
     modes:
@@ -82,7 +79,7 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
 
         case P1_MSG_BYTES:
 
-            if (isLastCommandDifferent || ((STATE_MODE_INITED != state.tokenCreation.mode) && (STATE_BYTES_RECIEVED != state.tokenCreation.mode))) {
+            if (isLastCommandDifferent || (STATE_INVAILD == state.tokenCreation.mode)) {
                 cleanTokenCreationState();
                 G_io_apdu_buffer[(*tx)++] = R_WRONG_STATE;
                 break;
@@ -118,19 +115,13 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
             uint8_t derivationPathLengthInUints32 = (dataLength - 4) / sizeof(uint32_t);
 
             //todo move derivation path length max to constant
-            if (derivationPathLengthInUints32 < 2) {
+            if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32)) {
                 cleanTokenCreationState();
-                G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_SHORT;
+                G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
                 break;
             }
 
-            if (derivationPathLengthInUints32 > 32) {
-                cleanTokenCreationState();
-                G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_LONG;
-                break;
-            }
-
-            uint32_t derivationPath[32];
+            uint32_t derivationPath[MAX_DERIVATION_LENGTH];
             os_memcpy(derivationPath, dataBuffer + 4, derivationPathLengthInUints32 * sizeof(uint32_t));
 
             uint16_t exception = 0;

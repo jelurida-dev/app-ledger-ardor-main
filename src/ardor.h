@@ -102,3 +102,7 @@ void cleanSharedState();
 extern const txnType TXN_TYPES[];
 extern const uint8_t LEN_TXN_TYPES;
 unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element);
+
+
+void init_canary();
+bool check_canary();

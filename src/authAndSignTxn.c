@@ -824,7 +824,9 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
             return;
         }
 
-        if (dataLength < 2 * sizeof(uint32_t)) {
+        uint8_t derivationParamLengthInBytes = dataLength;
+    
+        if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > dataLength) || (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < dataLength) || (0 != derivationParamLengthInBytes % sizeof(uint32_t))) {
             initTxnAuthState();
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
             return; 
@@ -836,15 +838,9 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
             return;
         }
         
-        uint8_t derivationParamLengthInBytes = dataLength;
+        
 
-        if (0 != derivationParamLengthInBytes % 4) {
-            initTxnAuthState();
-            G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
-            return;
-        }
-
-        uint32_t derivationPathCpy[62]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy));
+        uint32_t derivationPathCpy[MAX_DERIVATION_LENGTH]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy));
 
         os_memmove(derivationPathCpy, dataBuffer, derivationParamLengthInBytes);
 

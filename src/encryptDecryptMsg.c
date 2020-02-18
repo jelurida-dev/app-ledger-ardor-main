@@ -27,6 +27,7 @@
 
 #include "ardor.h"
 #include "returnValues.h"
+#include "config.h"
 
 #define P1_INIT_ENCRYPT                     1
 #define P1_INIT_DECRYPT_HIDE_SHARED_KEY     2
@@ -77,24 +78,19 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
 
         uint8_t derivationLength = 0;
 
+        //todo if data length is smaller the 0, we might underflow here, what happens then?
         if (P1_INIT_ENCRYPT == p1)
             derivationLength = (dataLength - 32) / sizeof(uint32_t);
         else
             derivationLength = (dataLength - 32 * 2 - 16) / sizeof(uint32_t);
 
-        if (2 > derivationLength) {
+        if ((MIN_DERIVATION_LENGTH > derivationLength) || (MAX_DERIVATION_LENGTH < derivationLength)) {
             cleanEncryptionState();
-            G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_SHORT;
+            G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
             return;
         }
 
-        if (32 < derivationLength) {
-            cleanEncryptionState();
-            G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_LONG;
-            return;
-        }
-
-        uint32_t derivationPath[32]; //todo check if i can just point to the derivation path
+        uint32_t derivationPath[MAX_DERIVATION_LENGTH]; //todo check if i can just point to the derivation path
         uint8_t nonce[32];
         os_memcpy(derivationPath, dataBuffer, derivationLength * sizeof(uint32_t));
 

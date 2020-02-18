@@ -20,3 +20,8 @@ static const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN;
 static const uint16_t VERSION;
 static const uint8_t VERSION_FLAGS;
 static const char UI_APP_VERSION_TXT[];
+
+
+//must make this a define instead of static const, because some array declirations are dependant on this size
+#define MIN_DERIVATION_LENGTH 3
+#define MAX_DERIVATION_LENGTH 20
