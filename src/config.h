@@ -25,3 +25,6 @@ static const char UI_APP_VERSION_TXT[];
 //must make this a define instead of static const, because some array declirations are dependant on this size
 #define MIN_DERIVATION_LENGTH 3
 #define MAX_DERIVATION_LENGTH 20
+
+#define FUNCTION_STACK_SIZE 30
+#define IV_SIZE 16

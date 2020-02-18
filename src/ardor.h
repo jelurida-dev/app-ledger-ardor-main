@@ -19,65 +19,60 @@ uint64_t publicKeyToId(const uint8_t * const publicKey);
 uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, 
                             uint8_t *keySeedBfrOut, uint8_t *publicKeyCurveOut, uint8_t * publicKeyEd25519Out, uint8_t * chainCodeOut, uint16_t * exceptionOut);
 
-bool check_canary();
 
-#define FUNCTION_STACK_SIZE 30
-#define IV_SIZE 16
-
+//This is the state object that authAndSignTxn uses
 typedef struct {
 
-	bool txnPassedAutherization;
+	bool txnPassedAutherization;                           //This most important bool, means the user confirmed the txn content via the dialog and we can sign the current TXN
 
-    uint8_t readBuffer[512];
-    uint16_t readBufferEndPos;
-    uint16_t readBufferReadOffset;
-    uint16_t numBytesRead;
+    uint8_t readBuffer[512];                               //This is where unparsed temp buffer data is kept, since we do streamed parsing we have to have it here
+    uint16_t readBufferEndPos;                             //Index of the last byte in readBuffer
+    uint16_t readBufferReadOffset;                         //Index of the first byte in readBuffer
+    uint16_t numBytesRead;                                 //The total number of bytes parsed up until now
 
-    uint8_t functionStack[FUNCTION_STACK_SIZE];
-    uint8_t numFunctionsOnStack;
+    uint8_t functionStack[FUNCTION_STACK_SIZE];            //This is stack of all the function that have yet to parse the TXN, the C handler file explains this process in more detail
+    uint8_t numFunctionsOnStack;                           //Is what it says
 
-    bool isClean;
+    bool isClean;                                          //If the state was just initilized
 
 
-    uint8_t displayTitle[64];
-    uint8_t displaystate[130]; //todo dont know if this is the best, maybe we can make it shorter?
-
+    uint8_t displayTitle[64];                              //The title in the autherization dialog
+    uint8_t displaystate[130];                             //The content line in the autherization dialog
     
-    uint8_t tempBuffer[32];
+    cx_sha256_t hashstate;                                 //The state of the hash for the txn buffer
+
+    uint32_t chainId;                                      //What it says it is
+    uint16_t txnTypeAndSubType;                            //What it says it is
+    uint8_t txnTypeIndex;                                  //txnTypeAndSubType's index in TXN_TYPES
+
+    uint8_t version;                                       //the txn version
+    uint64_t recipientId;                                  //the recipient address ID
+    uint64_t amount;                                       //the amount to be sent in the txn, note that every chain parses this number differently, it dives this number by some 10^X
+    uint64_t fee;                                          //What it says it is
+    uint32_t appendagesFlags;                              //What it says it is
     
-    cx_sha256_t hashstate;
-    uint8_t finalHash[32];
-
-    uint32_t chainId;
-    uint16_t transactionTypeAndSubType; //todo rename all of these to txn
-    uint8_t txnTypeIndex;
-
-    uint8_t version;
-    uint64_t recipientId;
-    uint64_t amount;
-    uint64_t fee;
-    uint32_t appendagesFlags;
-    
-    uint8_t displayType;
-    int8_t dialogScreenIndex;
+    uint8_t displayType;                                   //If this is a first, middle or last display in the dialog sequence
+    int8_t dialogScreenIndex;                              //The window index in the currently showing dialog
 
 
-   	int32_t attachmentTempInt32Num1, attachmentTempInt32Num2;
-   	int64_t attachmentTempInt64Num1, attachmentTempInt64Num2, attachmentTempInt64Num3;
+   	int32_t attachmentTempInt32Num1, attachmentTempInt32Num2;    //Different attachments parse in different ways, they all need space in state, so this is how it's defined
+   	int64_t attachmentTempInt64Num1, attachmentTempInt64Num2, attachmentTempInt64Num3; 
 
-   	uint16_t txnSizeBytes;
+   	uint16_t txnSizeBytes;                                 //The decalred Txn size
 
 } authTxn_t;
 
+//State for the encryptDecrypt handler
 typedef struct {
-    uint8_t mode;
-    uint8_t cbc[16];
-    unsigned long ctx[4 * 4 * 15 + 4];
+    uint8_t mode;                           //Modes are described in the .C file
+    uint8_t cbc[16];                        //Something to do with AES state
+    unsigned long ctx[4 * 4 * 15 + 4];      //Something to do with AES state
 } encyptionState_t;
 
+//State of the sign token handler
 typedef struct {
-    uint8_t mode;
-    cx_sha256_t hashstate;
+    uint8_t mode;                           //Modes descrived in the .C file
+    cx_sha256_t sha256;                  //The state of the token hash
 } signTokenState_t;
 
 //todo make sure to add some more mode state varible, to make sure the union isn't taken advantage off
@@ -104,5 +99,4 @@ extern const uint8_t LEN_TXN_TYPES;
 unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element);
 
 
-void init_canary();
 bool check_canary();

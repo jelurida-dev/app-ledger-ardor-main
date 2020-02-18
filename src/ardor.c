@@ -22,10 +22,16 @@
 #include <cx.h>
 #include <os_io_seproxyhal.h>
 
-#include "ardor.h"
 #include "curve25519_i64.h"
 #include "returnValues.h"
 #include "config.h"
+
+#include "ardor.h"
+
+
+
+
+
 
 //the global state
 states_t state;

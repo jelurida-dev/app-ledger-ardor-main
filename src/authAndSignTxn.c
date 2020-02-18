@@ -24,8 +24,9 @@
 #include "ux.h"
 
 #include "returnValues.h"
-#include "ardor.h"
 #include "config.h"
+#include "ardor.h"
+
 
 #define P1_INIT 1
 #define P1_CONTINUE 2
@@ -132,7 +133,6 @@ void initTxnAuthState() {
     state.txnAuth.txnPassedAutherization = false;
     state.txnAuth.isClean = true;
     
-    os_memset(state.txnAuth.finalHash, 0, sizeof(state.txnAuth.finalHash));
     cx_sha256_init(&state.txnAuth.hashstate);
 
     //todo: add all constructors for new members here
@@ -142,15 +142,12 @@ void initTxnAuthState() {
     state.txnAuth.readBufferEndPos = 0;
 
 
-    os_memset(state.txnAuth.tempBuffer, 0, sizeof(state.txnAuth.tempBuffer));
-
-
     os_memset(state.txnAuth.displayTitle, 0, sizeof(state.txnAuth.displayTitle));
     os_memset(state.txnAuth.displaystate, 0, sizeof(state.txnAuth.displaystate));
 
 
     state.txnAuth.chainId = 0;
-    state.txnAuth.transactionTypeAndSubType = 0;
+    state.txnAuth.txnTypeAndSubType = 0;
     state.txnAuth.txnTypeIndex = 0;
     state.txnAuth.version = 0;
     state.txnAuth.recipientId = 0;
@@ -318,7 +315,7 @@ uint8_t setScreenTexts() {
     //if the txn type is unknown we skip it
     if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
 
-        switch (state.txnAuth.transactionTypeAndSubType) {
+        switch (state.txnAuth.txnTypeAndSubType) {
 
             //note: you have to write the type and subtype in reverse, because of little endian buffer representation an big endian C code representation
 
@@ -496,7 +493,6 @@ static unsigned int ui_auth_button(const unsigned int button_mask, const unsigne
             return 0;
 
         case R_FINISHED:
-            cx_hash(&state.txnAuth.hashstate.header, CX_LAST, 0, 0, state.txnAuth.finalHash, sizeof(state.txnAuth.finalHash));
             state.txnAuth.txnPassedAutherization = true;
             break;
             
@@ -555,9 +551,9 @@ uint8_t parseMainTxnData() {
         return R_BAD_CHAIN_ID_ERR;
 
 
-    os_memmove(&(state.txnAuth.transactionTypeAndSubType), ptr, sizeof(state.txnAuth.transactionTypeAndSubType));
+    os_memmove(&(state.txnAuth.txnTypeAndSubType), ptr, sizeof(state.txnAuth.txnTypeAndSubType));
 
-    ptr += sizeof(state.txnAuth.transactionTypeAndSubType);
+    ptr += sizeof(state.txnAuth.txnTypeAndSubType);
 
     txnType * currentTxnType = 0;
 
@@ -565,7 +561,7 @@ uint8_t parseMainTxnData() {
 
         currentTxnType = txnTypeAtIndex(state.txnAuth.txnTypeIndex);
 
-        if (currentTxnType->id == state.txnAuth.transactionTypeAndSubType)
+        if (currentTxnType->id == state.txnAuth.txnTypeAndSubType)
             break;
     }
 
@@ -709,7 +705,7 @@ uint8_t addToReadBuffer(const uint8_t * const newData, const uint8_t numBytes) {
     if (state.txnAuth.readBufferEndPos + numBytes > sizeof(state.txnAuth.readBuffer))
         return R_NO_SPACE_BUFFER_TOO_SMALL;
 
-    cx_hash(&state.txnAuth.hashstate.header, 0, newData, numBytes, state.txnAuth.finalHash, sizeof(state.txnAuth.finalHash));
+    cx_hash(&state.txnAuth.hashstate.header, 0, newData, numBytes, 0, 0);
 
     os_memcpy(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos, newData, numBytes);
     state.txnAuth.readBufferEndPos += numBytes;
@@ -784,7 +780,7 @@ uint8_t parseFromStack() {
 //@param outException out -              ptr to where to write the exception if it happends
 //@returns R_SUCCESS iff success else the appropriate error code is returned
 
-uint8_t signTxn(const uint8_t * const txnSha256, const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
+uint8_t signTxn(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
                  uint8_t * const destBuffer, uint16_t * const outException) {
 
     uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
@@ -795,9 +791,13 @@ uint8_t signTxn(const uint8_t * const txnSha256, const uint32_t * const derivati
         return ret;
     }
 
+    uint8_t finalTxnSha256[32];
+    cx_hash(&state.txnAuth.hashstate.header, CX_LAST, 0, 0, finalTxnSha256, sizeof(finalTxnSha256));
+
     //sign msg should only use the first 32 bytes of keyseed
-    signMsg(keySeed, txnSha256, destBuffer); //is a void function, no ret value to check against
+    signMsg(keySeed, finalTxnSha256, destBuffer); //is a void function, no ret value to check against
     
+    os_memset(finalTxnSha256, 0, sizeof(finalTxnSha256)); //for security
     os_memset(keySeed, 0, sizeof(keySeed));
 
     return R_SUCCESS;
@@ -848,7 +848,7 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
 
         G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
-        uint8_t ret = signTxn(state.txnAuth.finalHash, derivationPathCpy, derivationParamLengthInBytes / 4, G_io_apdu_buffer + 1, &exception);
+        uint8_t ret = signTxn(derivationPathCpy, derivationParamLengthInBytes / 4, G_io_apdu_buffer + 1, &exception);
 
         initTxnAuthState();
 

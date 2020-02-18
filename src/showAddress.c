@@ -23,9 +23,9 @@
 #include <os_io_seproxyhal.h>
 #include "ux.h"
 
-#include "ardor.h"
 #include "returnValues.h"
 #include "config.h"
+#include "ardor.h"
 
 uint8_t screenContent[27];
 

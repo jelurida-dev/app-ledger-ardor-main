@@ -25,9 +25,9 @@
 
 #include "aes/aes.h"
 
-#include "ardor.h"
 #include "returnValues.h"
 #include "config.h"
+#include "ardor.h"
 
 #define P1_INIT         0
 #define P1_MSG_BYTES    1
@@ -73,7 +73,7 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
         case P1_INIT:
             cleanTokenCreationState();
             state.tokenCreation.mode = STATE_MODE_INITED;
-            cx_sha256_init(&state.tokenCreation.hashstate);
+            cx_sha256_init(&state.tokenCreation.sha256);
             G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
             break;
 
@@ -87,7 +87,7 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
 
             state.tokenCreation.mode = STATE_BYTES_RECIEVED;
 
-            cx_hash(&state.tokenCreation.hashstate.header, 0, dataBuffer, dataLength, 0, 0); //todo, calling this without a hash destination, lets see if it works
+            cx_hash(&state.tokenCreation.sha256.header, 0, dataBuffer, dataLength, 0, 0); //todo, calling this without a hash destination, lets see if it works
 
             G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
             break;
@@ -148,18 +148,18 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
 
             G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
-            cx_hash(&state.tokenCreation.hashstate.header, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash), 0, 0); //adding the public key to the hash
+            cx_hash(&state.tokenCreation.sha256.header, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash), 0, 0); //adding the public key to the hash
             
             //also make a copy to the output buffer, because of how a token is constructed
             os_memcpy(G_io_apdu_buffer + *tx, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
             *tx += sizeof(publicKeyAndFinalHash);
 
-            cx_hash(&state.tokenCreation.hashstate.header, 0, &timestamp, 4, 0, 0); //adding the timestamp to the hash
+            cx_hash(&state.tokenCreation.sha256.header, 0, &timestamp, 4, 0, 0); //adding the timestamp to the hash
 
             os_memcpy(G_io_apdu_buffer + *tx, &timestamp, sizeof(timestamp));
             *tx += sizeof(timestamp);
 
-            cx_hash(&state.tokenCreation.hashstate.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
+            cx_hash(&state.tokenCreation.sha256.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
 
             uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
 

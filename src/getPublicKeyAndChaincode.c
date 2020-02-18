@@ -22,9 +22,9 @@
 #include <os_io_seproxyhal.h>
 #include "ux.h"
 
-#include "ardor.h"
 #include "returnValues.h"
 #include "config.h"
+#include "ardor.h"
 
 #define P1_GET_PUBLIC_KEY                                   1
 #define P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY      2

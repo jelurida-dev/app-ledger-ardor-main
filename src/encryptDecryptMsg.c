@@ -25,9 +25,10 @@
 
 #include "aes/aes.h"
 
-#include "ardor.h"
 #include "returnValues.h"
 #include "config.h"
+#include "ardor.h"
+
 
 #define P1_INIT_ENCRYPT                     1
 #define P1_INIT_DECRYPT_HIDE_SHARED_KEY     2
