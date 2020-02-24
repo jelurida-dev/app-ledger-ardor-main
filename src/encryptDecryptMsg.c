@@ -64,7 +64,7 @@ void cleanEncryptionState() {
 }
 
 void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
+        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
 
     if (isLastCommandDifferent)
         cleanEncryptionState();
@@ -79,7 +79,7 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
 
         uint8_t derivationLength = 0;
 
-        //todo if data length is smaller the 0, we might underflow here, what happens then?
+        //todo if data length is smaller the 0, we might underflow here, what happens then?, we need to find all places like this, check if this gives out a warning
         if (P1_INIT_ENCRYPT == p1)
             derivationLength = (dataLength - 32) / sizeof(uint32_t);
         else
@@ -212,7 +212,7 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
 }
 
 void encryptDecryptMessageHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
+        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
 
     encryptDecryptMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
     

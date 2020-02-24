@@ -31,7 +31,7 @@ uint8_t screenContent[27];
 
 static const bagl_element_t ui_screen[] = {
         UI_BACKGROUND(),
-        {{BAGL_ICON,0x00,117,13,8,6,0,0,0,0xFFFFFF,0,0,BAGL_GLYPH_ICON_CHECK},NULL,0,0,0,NULL,NULL,NULL},
+        {{BAGL_ICON,0x00,117,11,8,6,0,0,0,0xFFFFFF,0,0,BAGL_GLYPH_ICON_CHECK},NULL,0,0,0,NULL,NULL,NULL},
         UI_TEXT(0x00, 0, 12, 128, "Your Address"),
         {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)screenContent,0,0,0,NULL,NULL,NULL}
 };
@@ -51,26 +51,22 @@ static unsigned int ui_screen_button(unsigned int button_mask, unsigned int butt
 
 void reedSolomonEncode(const uint64_t inp, uint8_t * const output);
 
-//todo: running show address twice makes it stuck
 void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        volatile unsigned int * const flags, volatile unsigned int * const tx) {
+        unsigned int * const flags, unsigned int * const tx) {
 
-    //should be at least the size of 2 uint32's for the key path
-    //the +2 * sizeof(uint32_t) is done for saftey, it is second checked in deriveArdorKeypair
-    if ((dataLength <  MIN_DERIVATION_LENGTH * sizeof(uint32_t)) || (dataLength <  MAX_DERIVATION_LENGTH * sizeof(uint32_t))) {
+    if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > dataLength) || (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < dataLength)) {
         G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
         return;
     }
 
     uint8_t derivationParamLengthInBytes = dataLength;
 
-    //todo check if the 3 is actually the shortest param
     if (0 != derivationParamLengthInBytes % sizeof(uint32_t)) {
         G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
         return;
     }
 
-    uint32_t derivationPathCpy[MAX_DERIVATION_LENGTH]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy)); 
+    uint32_t derivationPathCpy[MAX_DERIVATION_LENGTH]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy));  //for some reason you can't point to the derivation path on the buffer when deriving keys
     
     //datalength is checked in the main function so there should not be worry for some kind of overflow
     os_memmove(derivationPathCpy, dataBuffer, derivationParamLengthInBytes);
@@ -102,7 +98,7 @@ void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t 
 }
 
 void showAddressHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
+        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
 
     showAddressHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
     

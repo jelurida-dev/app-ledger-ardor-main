@@ -570,7 +570,7 @@ uint8_t parseMainTxnData() {
     os_memmove(&(state.txnAuth.version), ptr, sizeof(state.txnAuth.version));
     ptr += sizeof(state.txnAuth.version);
 
-    if (SUPPORTED_TXN_VERSION != state.txnAuth.version) //todo: fill this in
+    if (SUPPORTED_TXN_VERSION != state.txnAuth.version)
         return R_WRONG_VERSION_ERR;
 
     ptr += 4;   // Skip the timestamp
@@ -647,13 +647,13 @@ uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
     os_memmove(&state.txnAuth.attachmentTempInt32Num1, ptr, sizeof(state.txnAuth.attachmentTempInt32Num1));
     ptr += sizeof(state.txnAuth.attachmentTempInt32Num1);
 
-    if (state.txnAuth.attachmentTempInt32Num1 > NUM_CHAINS)
+    if (NUM_CHAINS < state.txnAuth.attachmentTempInt32Num1)
         return R_BAD_CHAIN_ID_ERR;
 
     os_memmove(&state.txnAuth.attachmentTempInt32Num2, ptr, sizeof(state.txnAuth.attachmentTempInt32Num2));
     ptr += sizeof(state.txnAuth.attachmentTempInt32Num2);
 
-    if (state.txnAuth.attachmentTempInt32Num2 > NUM_CHAINS)
+    if (NUM_CHAINS < state.txnAuth.attachmentTempInt32Num2)
         return R_BAD_CHAIN_ID_ERR;
 
     os_memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
@@ -805,7 +805,7 @@ uint8_t signTxn(const uint32_t * const derivationPath, const uint8_t derivationP
 //This is the main command handler, it checks that params are in the right size,
 //and manages calls to initTxnAuthState(), signTxn(), addToReadBuffer(), parseFromStack()
 void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
+        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
 
     if (dataLength < 1) {
         initTxnAuthState();
@@ -919,7 +919,7 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
 }
 
 void authAndSignTxnHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
+        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
 
     authAndSignTxnHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
 

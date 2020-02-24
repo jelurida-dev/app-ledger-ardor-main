@@ -58,12 +58,9 @@ void cleanTokenCreationState() {
     state.tokenCreation.mode = STATE_INVAILD;
 }
 
-
-//todo finish off the changes coming from isLastCommandDifferent
-
 //todo figure out why the params are volatile?
 void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
+        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
 
     if (isLastCommandDifferent)
         cleanTokenCreationState(); 
@@ -87,7 +84,7 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
 
             state.tokenCreation.mode = STATE_BYTES_RECIEVED;
 
-            cx_hash(&state.tokenCreation.sha256.header, 0, dataBuffer, dataLength, 0, 0); //todo, calling this without a hash destination, lets see if it works
+            cx_hash(&state.tokenCreation.sha256.header, 0, dataBuffer, dataLength, 0, 0);
 
             G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
             break;
@@ -114,7 +111,6 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
 
             uint8_t derivationPathLengthInUints32 = (dataLength - 4) / sizeof(uint32_t);
 
-            //todo move derivation path length max to constant
             if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32)) {
                 cleanTokenCreationState();
                 G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
@@ -199,7 +195,7 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
 
 
 void signTokenMessageHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent) {
+                unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
 
     signTokenMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
     

@@ -9,17 +9,17 @@ typedef struct {
     uint8_t numDecimalsBeforePoint;
 } chainType;
 
-static const chainType CHAINS[];
-static const uint8_t NUM_CHAINS;
-static const uint8_t SUPPORTED_TXN_VERSION;
+extern const chainType CHAINS[];
+extern const uint8_t NUM_CHAINS;
+extern const uint8_t SUPPORTED_TXN_VERSION;
 
-static const uint8_t ARDOR_SPECIAL_IDENTIFIER[];
-static const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN;
+extern const uint8_t ARDOR_SPECIAL_IDENTIFIER[];
+extern const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN;
 
 
-static const uint16_t VERSION;
-static const uint8_t VERSION_FLAGS;
-static const char UI_APP_VERSION_TXT[];
+extern const uint16_t VERSION;
+extern const uint8_t VERSION_FLAGS;
+extern const char UI_APP_VERSION_TXT[];
 
 
 //must make this a define instead of static const, because some array declirations are dependant on this size

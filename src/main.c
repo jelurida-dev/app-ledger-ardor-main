@@ -87,7 +87,7 @@ void ui_idle(void) {
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
-typedef void handler_fn_t(const uint8_t p1, const uint8_t p2, const uint8_t *dataBuffer, const uint16_t dataLength, volatile unsigned int * const flags, volatile unsigned int * const tx, const bool isLastCommandDifferent);
+typedef void handler_fn_t(const uint8_t p1, const uint8_t p2, const uint8_t *dataBuffer, const uint16_t dataLength, unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent);
 
 handler_fn_t getVersionHandler;
 handler_fn_t authAndSignTxnHandler;
@@ -194,12 +194,14 @@ static void ardor_main(void) {
 					continue;
 				}
 
-				PRINTF("\n canery check %d\n", check_canary());
+				PRINTF("\n canery check %d last command number %d \n", check_canary(), lastCmdNumber);
+
+				uint8_t lastCommandSaver = G_io_apdu_buffer[OFFSET_INS]; //the handler is going to write over the buffer, so the command needs to be put aside
 
 				handlerFn(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2],
 				          G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], &flags, &tx, G_io_apdu_buffer[OFFSET_INS] != lastCmdNumber);
 
-				lastCmdNumber = G_io_apdu_buffer[OFFSET_INS];
+				lastCmdNumber = lastCommandSaver;
 			}
 			CATCH(EXCEPTION_IO_RESET) {
 				THROW(EXCEPTION_IO_RESET); //lastCmdNumber will be zero'd when ardor_main will be called again
