@@ -66,36 +66,37 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
         G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
         return;
     }
-    PRINTF("\n sc 122 %d\n", check_canary());
 
     uint32_t derivationPathCpy[MAX_DERIVATION_LENGTH]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy)); 
     
     //datalength is checked in the main function so there should not be worry for some kind of overflow
     os_memmove(derivationPathCpy, dataBuffer, derivationParamLengthInBytes);
     
-    PRINTF("\n sc 12123 %d\n", check_canary());
-    uint8_t publicKeyEd25519[32];
+    uint8_t publicKeyEd25519YLE[32];
     uint8_t publicKeyCurve[32];
     uint8_t chainCode[32];
     uint16_t exception = 0;
 
-    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / 4, 0, publicKeyCurve, publicKeyEd25519, chainCode, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
+    uint8_t privateKey[64];
 
-    PRINTF("\n sc 12 %d\n", check_canary());
+    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / 4, privateKey, publicKeyCurve, publicKeyEd25519YLE, chainCode, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
     G_io_apdu_buffer[(*tx)++] = ret;
 
     if (R_SUCCESS == ret) {
         
-        os_memmove(G_io_apdu_buffer + *tx, publicKeyEd25519, sizeof(publicKeyEd25519));
-        *tx += sizeof(publicKeyEd25519);
+        os_memmove(G_io_apdu_buffer + *tx, publicKeyCurve, sizeof(publicKeyCurve));
+        *tx += sizeof(publicKeyCurve);
 
         if (P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY == p1) {
-            os_memmove(G_io_apdu_buffer + *tx, chainCode, sizeof(chainCode));
-            *tx += sizeof(chainCode);    
+            os_memmove(G_io_apdu_buffer + *tx, publicKeyEd25519YLE, sizeof(publicKeyEd25519YLE));
+            *tx += sizeof(publicKeyEd25519YLE);
 
-            os_memmove(G_io_apdu_buffer + *tx, publicKeyCurve, sizeof(publicKeyCurve));
-            *tx += sizeof(publicKeyCurve);
+            os_memmove(G_io_apdu_buffer + *tx, chainCode, sizeof(chainCode));
+            *tx += sizeof(chainCode);
+
+            os_memmove(G_io_apdu_buffer + *tx, privateKey, sizeof(privateKey));
+            *tx += sizeof(privateKey);
         }
 
     } else if (R_KEY_DERIVATION_EX == ret) {  

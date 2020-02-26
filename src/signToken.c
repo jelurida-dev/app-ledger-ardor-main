@@ -150,14 +150,14 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
             os_memcpy(G_io_apdu_buffer + *tx, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
             *tx += sizeof(publicKeyAndFinalHash);
 
-            cx_hash(&state.tokenCreation.sha256.header, 0, &timestamp, 4, 0, 0); //adding the timestamp to the hash
+            cx_hash(&state.tokenCreation.sha256.header, 0, &timestamp, sizeof(timestamp), 0, 0); //adding the timestamp to the hash
 
             os_memcpy(G_io_apdu_buffer + *tx, &timestamp, sizeof(timestamp));
             *tx += sizeof(timestamp);
 
             cx_hash(&state.tokenCreation.sha256.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
 
-            uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
+            uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
 
             if (R_SUCCESS != (ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, &exception))) {
                 os_memset(keySeed, 0, sizeof(keySeed));

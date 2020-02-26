@@ -781,7 +781,7 @@ uint8_t parseFromStack() {
 uint8_t signTxn(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
                  uint8_t * const destBuffer, uint16_t * const outException) {
 
-    uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
+    uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
     uint8_t ret = 0;
 
     if (R_SUCCESS != (ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, outException))) {
@@ -801,7 +801,6 @@ uint8_t signTxn(const uint32_t * const derivationPath, const uint8_t derivationP
     return R_SUCCESS;
 }
 
-//todo figure out what volotile means?
 //This is the main command handler, it checks that params are in the right size,
 //and manages calls to initTxnAuthState(), signTxn(), addToReadBuffer(), parseFromStack()
 void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
