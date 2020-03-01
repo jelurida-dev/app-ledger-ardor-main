@@ -25,14 +25,17 @@
 
 #include "aes/aes.h"
 
-#include "ardor.h"
 #include "returnValues.h"
+#include "config.h"
+#include "ardor.h"
 
 #define P1_INIT         0
 #define P1_MSG_BYTES    1
 #define P1_SIGN         2
 
-//todo, check out status mamangment on all commands
+#define STATE_INVAILD           0
+#define STATE_MODE_INITED       1
+#define STATE_BYTES_RECIEVED    2
 
 /*
     modes:
@@ -45,58 +48,80 @@
             returns:    1 byte status
 
         P1_SIGN:
-            dataBuffer: timestamp (4 bytes) | derivaiton path (uint32) * some length | 
+            dataBuffer: timestamp (4 bytes) | derivaiton path (uint32) * some length |
             returns:    1 byte status | sharedkey 32 bytes
 */
 
-//todo figure out why the params are volatile?
+
+//does what it says :)
+void cleanTokenCreationState() {
+    state.tokenCreation.mode = STATE_INVAILD;
+}
+
+//Since this is a callback function, and this handler manages state, it's this function's reposibility to clear the state
+//Every time we get some sort of an error
 void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        volatile unsigned int * const flags, volatile unsigned int * const tx) {
+        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
+
+    UNUSED(p2);
+    UNUSED(flags);
+
+    if (isLastCommandDifferent)
+        cleanTokenCreationState(); 
 
     switch(p1) {
 
         case P1_INIT:
-            state.tokenCreation.mode = P1_INIT;
-            cx_sha256_init(&state.tokenCreation.hashstate);
+            cleanTokenCreationState();
+            state.tokenCreation.mode = STATE_MODE_INITED;
+            cx_sha256_init(&state.tokenCreation.sha256);
             G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
             break;
 
         case P1_MSG_BYTES:
-            if ((P1_INIT != state.tokenCreation.mode) && (P1_MSG_BYTES != state.tokenCreation.mode)) {
+
+            if (isLastCommandDifferent || (STATE_INVAILD == state.tokenCreation.mode)) {
+                cleanTokenCreationState();
                 G_io_apdu_buffer[(*tx)++] = R_WRONG_STATE;
                 break;
             }
 
-            cx_hash(&state.tokenCreation.hashstate.header, 0, dataBuffer, dataLength, 0, 0); //todo, calling this without a hash destination, lets see if it works
+            state.tokenCreation.mode = STATE_BYTES_RECIEVED;
+
+            cx_hash(&state.tokenCreation.sha256.header, 0, dataBuffer, dataLength, 0, 0);
 
             G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
             break;
 
         case P1_SIGN:
 
+            if (isLastCommandDifferent || (STATE_BYTES_RECIEVED != state.tokenCreation.mode)) {
+                cleanTokenCreationState();
+                G_io_apdu_buffer[(*tx)++] = R_WRONG_STATE;
+                break;
+            }
+
             if (dataLength < 4) {
+                cleanTokenCreationState();
                 G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
                 break;
             }
 
             if (0 != (dataLength - 4) % sizeof(uint32_t)) {
+                cleanTokenCreationState();
                 G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;
                 break;
             }
 
             uint8_t derivationPathLengthInUints32 = (dataLength - 4) / sizeof(uint32_t);
 
-            if (derivationPathLengthInUints32 < 2) {
-                G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_SHORT;
+            if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32)) {
+                cleanTokenCreationState();
+                G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
                 break;
             }
 
-            if (derivationPathLengthInUints32 > 32) {
-                G_io_apdu_buffer[(*tx)++] = R_DERIVATION_PATH_TOO_LONG;
-                break;
-            }
-
-            uint32_t derivationPath[32];
+            uint32_t derivationPath[MAX_DERIVATION_LENGTH];
             os_memcpy(derivationPath, dataBuffer + 4, derivationPathLengthInUints32 * sizeof(uint32_t));
 
             uint16_t exception = 0;
@@ -106,6 +131,8 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
             uint8_t ret = ardorKeys(derivationPath, derivationPathLengthInUints32, 0, publicKeyAndFinalHash, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
             if (R_SUCCESS != ret) {
+                cleanTokenCreationState();
+
                 G_io_apdu_buffer[(*tx)++] = ret;
 
                 if (R_KEY_DERIVATION_EX == ret) {
@@ -121,23 +148,25 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
 
             G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
-            cx_hash(&state.tokenCreation.hashstate.header, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash), 0, 0); //adding the public key to the hash
+            cx_hash(&state.tokenCreation.sha256.header, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash), 0, 0); //adding the public key to the hash
             
             //also make a copy to the output buffer, because of how a token is constructed
             os_memcpy(G_io_apdu_buffer + *tx, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
             *tx += sizeof(publicKeyAndFinalHash);
 
-            cx_hash(&state.tokenCreation.hashstate.header, 0, &timestamp, 4, 0, 0); //adding the timestamp to the hash
+            cx_hash(&state.tokenCreation.sha256.header, 0, (uint8_t*)&timestamp, sizeof(timestamp), 0, 0); //adding the timestamp to the hash
 
             os_memcpy(G_io_apdu_buffer + *tx, &timestamp, sizeof(timestamp));
             *tx += sizeof(timestamp);
 
-            cx_hash(&state.tokenCreation.hashstate.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
+            cx_hash(&state.tokenCreation.sha256.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
 
-            uint8_t keySeed[64]; os_memset(keySeed, 0, sizeof(keySeed));
+            uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
 
             if (R_SUCCESS != (ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, &exception))) {
                 os_memset(keySeed, 0, sizeof(keySeed));
+                cleanTokenCreationState();
+                
                 
                 *tx = 0; //rewind all the stuff we wrote on the output buffer and just write over that
                 G_io_apdu_buffer[(*tx)++] = ret;
@@ -150,18 +179,18 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
                 break;
             }
 
-            
-
-            //should only use the first 32 bytes of keyseed
             signMsg(keySeed, publicKeyAndFinalHash, G_io_apdu_buffer + *tx); //is a void function, no ret value to check against
             os_memset(keySeed, 0, sizeof(keySeed));
 
             *tx += 64;
 
+            cleanTokenCreationState();
+
             break;
        
        default:
 
+            cleanTokenCreationState();
             G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
             break;
     }
@@ -169,9 +198,9 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
 
 
 void signTokenMessageHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                volatile unsigned int * const flags, volatile unsigned int * const tx) {
+               uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
 
-    signTokenMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
+    signTokenMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
     
     G_io_apdu_buffer[(*tx)++] = 0x90;
     G_io_apdu_buffer[(*tx)++] = 0x00;

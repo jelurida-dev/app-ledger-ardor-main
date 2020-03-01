@@ -17,6 +17,7 @@
  */
 
 #include <stdbool.h>
+#include <os.h>
 
 #include "aes.h"
 #include "aes-internal.h"
@@ -170,7 +171,7 @@ d##3 = TE0(s##3) ^ TE1(s##0) ^ TE2(s##1) ^ TE3(s##2) ^ rk[4 * i + 3]
 
 
 /* AES encrypt interface */
-
+/* rewritern to aes_encrypt_init_fixed that takes an external buffer
 void * aes_encrypt_init(const aes_uchar *key, size_t len)
 {
 	aes_uint *rk[AES_PRIV_SIZE];
@@ -183,6 +184,8 @@ void * aes_encrypt_init(const aes_uchar *key, size_t len)
 	rk[AES_PRIV_NR_POS] = res;
 	return rk;
 }
+
+*/
 
 //returns true iff success
 bool aes_encrypt_init_fixed(const aes_uchar *key, size_t len, aes_uint *rk)

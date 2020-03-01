@@ -15,6 +15,7 @@
  */
 
 #include <stdbool.h>
+#include <os.h>
 
 #include "aes.h"
 #include "aes-internal.h"
@@ -130,7 +131,9 @@ d##3 = TD0(s##3) ^ TD1(s##2) ^ TD2(s##1) ^ TD3(s##0) ^ rk[4 * i + 3]
 }
 
 
-/* AES decrypt interface */
+/* AES decrypt interface 
+
+Function bellow rewriten to aes_decrypt_init_fixed that takes an external buffer to hold the key
 
 void * aes_decrypt_init(const aes_uchar *key, size_t len)
 {
@@ -144,6 +147,7 @@ void * aes_decrypt_init(const aes_uchar *key, size_t len)
 	rk[AES_PRIV_NR_POS] = res;
 	return rk;
 }
+*/
 
 bool aes_decrypt_init_fixed(const aes_uchar *key, size_t len, aes_uint * rk)
 {
@@ -157,13 +161,11 @@ bool aes_decrypt_init_fixed(const aes_uchar *key, size_t len, aes_uint * rk)
 	return true;
 }
 
-
 void aes_decrypt(void *ctx, const aes_uchar *crypt, aes_uchar *plain)
 {
 	aes_uint *rk = ctx;
 	aes_rijndael_decrypt(ctx, rk[AES_PRIV_NR_POS], crypt, plain);
 }
-
 
 void aes_decrypt_deinit(void *ctx)
 {

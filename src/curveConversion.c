@@ -17,7 +17,7 @@ extern const uint8_t f25519_one[F25519_SIZE];
 /* Copy two points */
 static inline void f25519_copy(uint8_t *x, const uint8_t *a)
 {
-	memcpy(x, a, F25519_SIZE);
+	os_memcpy(x, a, F25519_SIZE);
 }
 
 
