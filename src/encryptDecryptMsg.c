@@ -35,6 +35,7 @@
 #define P1_INIT_DECRYPT_SHOW_SHARED_KEY     3
 #define P1_AES_ENCRYPT_DECRYPT              4
 
+
 /*
 
     This command allows the client to encrypt and decrypt messages that are assigned to some foreign public key and nonce
@@ -56,15 +57,28 @@
 
         P1_AES_ENCRYPT_DECRYPT:
         dataBuffer: buffer (224 max size) should be in modulu of 16 
-        returns:    encrypted / decrypted buffer (same size as input)
+        returns:    1 bytes status | encrypted / decrypted buffer (same size as input)
 */
 
 void cleanEncryptionState() {
     state.encryption.mode = 0;
 }
 
+
+//declerations of all AES functions, not including the h file to avoid mess of types
+bool aes_decrypt_init_fixed(const aes_uchar *key, size_t len, aes_uint * rk);
+void aes_decrypt(void *ctx, const aes_uchar *crypt, aes_uchar *plain);
+bool aes_encrypt_init_fixed(const aes_uchar *key, size_t len, aes_uint *rk);
+void aes_encrypt(void *ctx, const aes_uchar *plain, aes_uchar *crypt);
+
+
+//Since this is a callback function, and the handler manages state, it's this function's reposibility to clean the state
+//Every time we get some sort of an error
 void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
+        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
+
+    UNUSED(p2);
+    UNUSED(flags);
 
     if (isLastCommandDifferent)
         cleanEncryptionState();
@@ -95,14 +109,14 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
         uint8_t nonce[32];
         os_memcpy(derivationPath, dataBuffer, derivationLength * sizeof(uint32_t));
 
-        uint8_t * noncePtr = dataBuffer + derivationLength * sizeof(uint32_t) + 32;
+        const uint8_t * noncePtr = dataBuffer + derivationLength * sizeof(uint32_t) + 32;
 
         if (P1_INIT_ENCRYPT == p1) {
             cx_rng(nonce, sizeof(nonce));
             noncePtr = nonce; //if we are decrypting then we are using from the command
         }
 
-        uint8_t exceptionOut = 0;
+        uint16_t exceptionOut = 0;
         uint8_t encryptionKey[32];
 
         uint8_t ret = getSharedEncryptionKey(derivationPath, derivationLength, dataBuffer + derivationLength * sizeof(uint32_t), noncePtr, &exceptionOut, encryptionKey);
@@ -175,7 +189,7 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
             return;
         }
 
-        uint8_t * pos = dataBuffer;
+        uint8_t * pos = G_io_apdu_buffer + OFFSET_CDATA;
         uint8_t tmp[AES_BLOCK_SIZE];
 
         while (pos < dataBuffer + dataLength) {
@@ -201,7 +215,7 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
         *tx = 1 + dataLength;
 
         for (uint8_t i = 0; i < dataLength; i++)
-                G_io_apdu_buffer[i+1] = dataBuffer[i];
+                G_io_apdu_buffer[i+1] = G_io_apdu_buffer[OFFSET_CDATA + i];
 
         G_io_apdu_buffer[0] = R_SUCCESS;
 
@@ -212,7 +226,7 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
 }
 
 void encryptDecryptMessageHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
+        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
 
     encryptDecryptMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
     

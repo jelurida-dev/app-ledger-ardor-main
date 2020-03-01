@@ -69,10 +69,10 @@ void sha256Buffer(const uint8_t * const bufferTohash, const uint16_t sizeOfBuffe
 }
 
 //This is the EC-KCDSA siging implementation
-//@param in: keySeedBfr should point to a 32 byte keyseed (privateKey ^ -1)
+//@param in: keySeedBfr should point to a 32 byte keyseed (privateKey ^ -1) - note this function can edit keySeedBfr in the process
 //@parma in: msgSha256 should point to a 32 byte sha256 of the message we are signing
 //@param out: sig should point to 64 bytes allocated to hold the signiture of the message
-void signMsg(const uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_t * const sig) {
+void signMsg(uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_t * const sig) {
 
     uint8_t publicKeyX[32], privateKey[32]; os_memset(publicKeyX, 0, sizeof(publicKeyX)); os_memset(privateKey, 0, sizeof(privateKey));
 
@@ -96,6 +96,8 @@ void signMsg(const uint8_t * const keySeedBfr, const uint8_t * const msgSha256, 
 }
 
 
+//from curveConversion.C
+void morph25519_e2m(uint8_t *montgomery, const uint8_t *y);
 
 //todo: make sure i clean everything out
 //this function derives an ardor keeyseed (privatekey ^ -1), public key, ed255119 public key and chaincode
@@ -177,7 +179,7 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
             }
             FINALLY {
                 os_memset(privateKey.d, 0, privateKey.d_len);
-                os_memset(keySeedBfr, 0, sizeof(keySeedBfr));
+                os_memset(KLKR, 0, sizeof(KLKR));
                 os_memset(publicKeyYLE, 0, sizeof(publicKeyYLE));
             }
         }

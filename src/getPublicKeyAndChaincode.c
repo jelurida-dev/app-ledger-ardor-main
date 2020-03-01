@@ -48,7 +48,9 @@
 
 
 void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-     unsigned int * const flags, unsigned int * const tx) {
+     uint8_t * const flags, uint8_t * const tx) {
+
+    UNUSED(p2); UNUSED(flags); 
 
     if ((P1_GET_PUBLIC_KEY != p1) && (P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY != p1)) {
         G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
@@ -106,7 +108,9 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
 }
 
 void getPublicKeyAndChainCodeHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-     unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
+     uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
+
+    UNUSED(isLastCommandDifferent); //there is no state to manage, so there's nothing to do with this parameter
 
     getPublicKeyAndChainCodeHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
     

@@ -58,9 +58,13 @@ void cleanTokenCreationState() {
     state.tokenCreation.mode = STATE_INVAILD;
 }
 
-//todo figure out why the params are volatile?
+//Since this is a callback function, and this handler manages state, it's this function's reposibility to clear the state
+//Every time we get some sort of an error
 void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
+        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
+
+    UNUSED(p2);
+    UNUSED(flags);
 
     if (isLastCommandDifferent)
         cleanTokenCreationState(); 
@@ -150,7 +154,7 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
             os_memcpy(G_io_apdu_buffer + *tx, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
             *tx += sizeof(publicKeyAndFinalHash);
 
-            cx_hash(&state.tokenCreation.sha256.header, 0, &timestamp, sizeof(timestamp), 0, 0); //adding the timestamp to the hash
+            cx_hash(&state.tokenCreation.sha256.header, 0, (uint8_t*)&timestamp, sizeof(timestamp), 0, 0); //adding the timestamp to the hash
 
             os_memcpy(G_io_apdu_buffer + *tx, &timestamp, sizeof(timestamp));
             *tx += sizeof(timestamp);
@@ -175,7 +179,6 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
                 break;
             }
 
-            //should only use the first 32 bytes of keyseed
             signMsg(keySeed, publicKeyAndFinalHash, G_io_apdu_buffer + *tx); //is a void function, no ret value to check against
             os_memset(keySeed, 0, sizeof(keySeed));
 
@@ -195,7 +198,7 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
 
 
 void signTokenMessageHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-                unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
+               uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
 
     signTokenMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
     

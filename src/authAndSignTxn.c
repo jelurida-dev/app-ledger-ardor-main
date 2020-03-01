@@ -79,6 +79,7 @@
 //      dataBuffer: derivaiton path (uint32) * some length
 //      returns:    1 bytes status | 64 byte signiture
 
+
 static unsigned int ui_auth_button(unsigned int button_mask, unsigned int button_mask_counter);
 
 static unsigned int ui_firstScreen_button(unsigned int button_mask, unsigned int button_mask_counter) {
@@ -215,7 +216,7 @@ uint8_t chainNumDecimalsBeforePoint(const uint8_t chainId) {
 //@param numberToFormat - the input number to format, isn't const cuz we play with it in order to format the number
 //@param numDigitsBeforeDecimal - read first paragraph for info
 //@returns 0 iff some kind of error happend, else the length of the output string including the null terminator
-uint8_t formatAmount(uint8_t * const outputString, const uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDigitsBeforeDecimal) {
+uint8_t formatAmount(char * const outputString, const uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDigitsBeforeDecimal) {
     
     uint16_t outputIndex = 0;
     bool wasANumberWritten = false;
@@ -267,7 +268,7 @@ uint8_t formatAmount(uint8_t * const outputString, const uint16_t maxOutputLengt
 }
 
 //defined in readSolomon.c
-void reedSolomonEncode(const uint64_t inp, const uint8_t * output);
+void reedSolomonEncode(const uint64_t inp, const char * output);
 
 
 
@@ -279,7 +280,6 @@ void reedSolomonEncode(const uint64_t inp, const uint8_t * output);
 
 //@note: when adding screen's make sure to add "return R_SUCCESS;" at the end, in order for the tricle down filter on counter to work
 //@returns R_REJECT if we got to the -1 screen, meaning the txn was rejected, R_SUCCESS, R_FINSHED if we passed the last screen, and apropriate errors
-//todo figure out how errors are propigated and make sure we clean the state
 uint8_t setScreenTexts() {
 
     int8_t counter = state.txnAuth.dialogScreenIndex; //can't be uint cuz it has to have the ability to get negative
@@ -288,7 +288,7 @@ uint8_t setScreenTexts() {
         return R_REJECT;
 
     if (0 == counter--) {
-        state.txnAuth.displayType = 0; //todo: rename to display type
+        state.txnAuth.displayType = 0;
         snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Authorize");
         snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), "Transaction");
 
@@ -466,7 +466,12 @@ uint8_t setScreenTexts() {
 
 //This is the button handler for this handler function
 //More info can be found in the first paragraph
+
+//Since this is a callback function, and this handler manages state, it's this function's reposibility to call initTxnAuthState
+//Every time we get some sort of an error
 static unsigned int ui_auth_button(const unsigned int button_mask, const unsigned int button_mask_counter) {
+
+    UNUSED(button_mask_counter);
 
     switch (button_mask) {
         case BUTTON_EVT_RELEASED | BUTTON_LEFT:
@@ -563,9 +568,9 @@ uint8_t parseMainTxnData() {
             break;
     }
 
-    //todo: i think there is a bug here, cuz what happends if we don't find a txn type in our list above, we still check against the last one in the line below?
-    if (0 != currentTxnType->attachmentParsingFunctionNumber)
-        addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
+    if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) //goto check if the index in range before accessing the array
+        if (0 != currentTxnType->attachmentParsingFunctionNumber)
+            addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
 
     os_memmove(&(state.txnAuth.version), ptr, sizeof(state.txnAuth.version));
     ptr += sizeof(state.txnAuth.version);
@@ -740,7 +745,7 @@ uint8_t parseFromStack() {
     
     while (true) {
 
-        if (0 == state.txnAuth.numFunctionsOnStack) {//todo check the state here
+        if (0 == state.txnAuth.numFunctionsOnStack) {
 
             if (state.txnAuth.readBufferEndPos != state.txnAuth.readBufferReadOffset)
                 return R_NOT_ALL_BYTES_READ;
@@ -803,8 +808,11 @@ uint8_t signTxn(const uint32_t * const derivationPath, const uint8_t derivationP
 
 //This is the main command handler, it checks that params are in the right size,
 //and manages calls to initTxnAuthState(), signTxn(), addToReadBuffer(), parseFromStack()
+
+//Since this is a callback function, and this handler manages state, it's this function's reposibility to call initTxnAuthState
+//Every time we get some sort of an error
 void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
+        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
 
     if (dataLength < 1) {
         initTxnAuthState();
@@ -918,7 +926,7 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
 }
 
 void authAndSignTxnHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
+        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
 
     authAndSignTxnHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
 

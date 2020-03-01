@@ -87,7 +87,7 @@ void ui_idle(void) {
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
-typedef void handler_fn_t(const uint8_t p1, const uint8_t p2, const uint8_t *dataBuffer, const uint16_t dataLength, unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent);
+typedef void handler_fn_t(const uint8_t p1, const uint8_t p2, const uint8_t *dataBuffer, const uint16_t dataLength, uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent);
 
 handler_fn_t getVersionHandler;
 handler_fn_t authAndSignTxnHandler;
@@ -109,16 +109,6 @@ static handler_fn_t* lookupHandler(uint8_t ins) {
 	}
 }
 
-// These are the offsets of various parts of a request APDU packet. INS
-// identifies the requested command (see above), and P1 and P2 are parameters
-// to the command.
-#define CLA          0xE0
-#define OFFSET_CLA   0x00
-#define OFFSET_INS   0x01
-#define OFFSET_P1    0x02
-#define OFFSET_P2    0x03
-#define OFFSET_LC    0x04
-#define OFFSET_CDATA 0x05
 
 //thit is used to clean state if we change command types
 uint8_t lastCmdNumber = 0;
@@ -152,14 +142,12 @@ static void ardor_main(void) {
 
 	lastCmdNumber = 0;
 
-	volatile unsigned int rx = 0;
-	volatile unsigned int tx = 0;
-	volatile unsigned int flags = 0;
+	uint8_t rx = 0;
+	uint8_t tx = 0;
+	uint8_t flags = 0;
 
 	// Exchange APDUs until EXCEPTION_IO_RESET is thrown.
 	for (;;) {
-		volatile unsigned short sw = 0;
-
 		// The Ledger SDK implements a form of exception handling. In addition
 		// to explicit THROWs in user code, syscalls (prefixed with os_ or
 		// cx_) may also throw exceptions.
@@ -182,7 +170,7 @@ static void ardor_main(void) {
 				// Malformed APDU.
 				if (CLA != G_io_apdu_buffer[OFFSET_CLA]) {
 					lastCmdNumber = 0; //forces the next handler call to clean the state
-					fillBufferWithAnswerAndEnding(R_BAD_CLA, tx);
+					fillBufferWithAnswerAndEnding(R_BAD_CLA, &tx);
 					continue;
 				}
 
@@ -190,7 +178,7 @@ static void ardor_main(void) {
 				handler_fn_t *handlerFn = lookupHandler(G_io_apdu_buffer[OFFSET_INS]);
 				if (!handlerFn) {
 					lastCmdNumber = 0; //force the next handler call to clean the state
-					fillBufferWithAnswerAndEnding(R_UNKOWN_CMD, tx);
+					fillBufferWithAnswerAndEnding(R_UNKOWN_CMD, &tx);
 					continue;
 				}
 
@@ -217,7 +205,7 @@ static void ardor_main(void) {
 
 				G_io_apdu_buffer[tx++] = R_EXCEPTION;
 				G_io_apdu_buffer[tx++] = e >> 8;
-				fillBufferWithAnswerAndEnding(e & 0xFF, tx);
+				fillBufferWithAnswerAndEnding(e & 0xFF, &tx);
 			}
 			FINALLY {
 			}
@@ -243,6 +231,9 @@ void io_seproxyhal_display(const bagl_element_t *element) {
 unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 unsigned char io_event(unsigned char channel) {
+
+	UNUSED(channel);
+
 	// can't have more than one tag in the reply, not supported yet.
 	switch (G_io_seproxyhal_spi_buffer[0]) {
 	case SEPROXYHAL_TAG_FINGER_EVENT:

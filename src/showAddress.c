@@ -27,7 +27,7 @@
 #include "config.h"
 #include "ardor.h"
 
-uint8_t screenContent[27];
+char screenContent[27];
 
 static const bagl_element_t ui_screen[] = {
         UI_BACKGROUND(),
@@ -37,6 +37,8 @@ static const bagl_element_t ui_screen[] = {
 };
 
 static unsigned int ui_screen_button(unsigned int button_mask, unsigned int button_mask_counter) {
+
+    UNUSED(button_mask_counter);
 
     if (!(BUTTON_EVT_RELEASED & button_mask))
         return 0;
@@ -49,10 +51,12 @@ static unsigned int ui_screen_button(unsigned int button_mask, unsigned int butt
     return 0;
 }
 
-void reedSolomonEncode(const uint64_t inp, uint8_t * const output);
+void reedSolomonEncode(const uint64_t inp, char * const output);
 
 void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        unsigned int * const flags, unsigned int * const tx) {
+        uint8_t * const flags, uint8_t * const tx) {
+
+    UNUSED(p1); UNUSED(p2); UNUSED(flags);
 
     if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > dataLength) || (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < dataLength)) {
         G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
@@ -76,7 +80,7 @@ void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t 
     uint16_t exception = 0;
 
     uint8_t publicKey[32]; os_memset(publicKey, 0, sizeof(publicKey));
-    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / 4, 0, publicKey, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
+    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKey, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
     if (R_SUCCESS == ret) {
         os_memset(screenContent, 0, sizeof(screenContent));
@@ -98,7 +102,9 @@ void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t 
 }
 
 void showAddressHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
+       uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
+
+    UNUSED(isLastCommandDifferent);
 
     showAddressHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx);
     

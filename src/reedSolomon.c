@@ -40,7 +40,7 @@ uint8_t gmult(const uint8_t a, const uint8_t b) {
 
 //@inp in - the buffer to encode, it's not const, cuz it's edited while converting
 //@output out - output should be of length 21;
-void reedSolomonEncode(uint64_t inp, uint8_t * const output) {
+void reedSolomonEncode(uint64_t inp, char * const output) {
 
     uint8_t plain_string_32[sizeof(initial_codeword)];
     os_memset(plain_string_32, 0, sizeof(initial_codeword));

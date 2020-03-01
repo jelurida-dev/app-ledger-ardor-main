@@ -25,7 +25,9 @@
 //function that returns the version, in order to see if this is actually the ardor app
 //returns VERSION 2 bytes | FLAGS 1 byte | ARDOR_SPECIAL_IDENTIFIER 3 bytes
 void getVersionHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        unsigned int * const flags, unsigned int * const tx, const bool isLastCommandDifferent) {
+        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
+
+	UNUSED(p1); UNUSED(p2); UNUSED(dataBuffer); UNUSED(dataLength); UNUSED(flags); UNUSED(isLastCommandDifferent);
 
 	G_io_apdu_buffer[(*tx)++] = VERSION >> 8;
 	G_io_apdu_buffer[(*tx)++] = VERSION & 0xFF;

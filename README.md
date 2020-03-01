@@ -54,6 +54,13 @@ In order to compile an upload onto ledger call
 
 	make load
 
+## Compiler warnings
+
+Make sure you have handled all warning that come out of calling make clean and make load before release
+todo: We might want to raise the warning level, some day
+You can ignore warnings coming out of OS library files, curve25519_i64.c, curveConversion.c and the aes folder
+since they are externaly imported
+
 ## Javascript lib
 
 You use lib found [here]: https://gitlab.com/haimbender/ardor-ledger-js in order to comunicate with the app, some test examples can be found there too
@@ -66,3 +73,11 @@ I advise to keep this flag always on, it just gives extra security and doesn't t
 The way this works is it defines an int at the end of the stack, inits it at startup and then check's against it every call to io_exchange,
 if it changes it throws an EXCEPTION_IO_RESET, which should reset the app.
 In order to debug a stack overflow call check_canary() add different parts of the code to check if you have overflowed the stack
+
+
+## Error handling
+
+Errors are propegated though the call stack and it's the command handler's or button handler's job to respond accordingly -> Clear the state if they manage it
+and return the error back to the caller
+
+All return values for functions should be checked in every function

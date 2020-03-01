@@ -7,6 +7,7 @@
  * See README for more details.
  */
 
+#include <os.h>
 #include "aes.h"
 
 static void inc32(aes_uchar *block)
