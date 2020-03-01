@@ -79,9 +79,7 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
     uint8_t chainCode[32];
     uint16_t exception = 0;
 
-    uint8_t privateKey[64];
-
-    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / 4, privateKey, publicKeyCurve, publicKeyEd25519YLE, chainCode, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
+    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKeyCurve, publicKeyEd25519YLE, chainCode, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
     G_io_apdu_buffer[(*tx)++] = ret;
 
@@ -96,9 +94,6 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
 
             os_memmove(G_io_apdu_buffer + *tx, chainCode, sizeof(chainCode));
             *tx += sizeof(chainCode);
-
-            os_memmove(G_io_apdu_buffer + *tx, privateKey, sizeof(privateKey));
-            *tx += sizeof(privateKey);
         }
 
     } else if (R_KEY_DERIVATION_EX == ret) {  
