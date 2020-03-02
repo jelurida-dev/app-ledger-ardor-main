@@ -20,7 +20,7 @@
 
 TARGET_NAME = TARGET_NANOS
 APPNAME = Ardor#Here you need switch between Ardor and NXT (Mind the letter casing, it matters)
-DEVEL = 1#Use when devolping #todo change this up in production
+DEVEL = 1#This means we are in DEBUG mode, change this up when releasing in production
 
 #####################################3
 

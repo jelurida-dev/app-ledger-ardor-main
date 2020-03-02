@@ -16,8 +16,8 @@
 ********************************************************************************/
 
 uint64_t publicKeyToId(const uint8_t * const publicKey);
-uint8_t ardorKeys(const uint32_t * derivationPath, const uint8_t derivationPathLengthInUints32, 
-                            uint8_t *keySeedBfrOut, uint8_t *publicKeyCurveOut, uint8_t * publicKeyEd25519Out, uint8_t * chainCodeOut, uint16_t * exceptionOut);
+uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
+                    uint8_t * const keySeedBfrOut, uint8_t * const publicKeyCurveXout, uint8_t * const publicKeyEd25519YLEWithXParityOut, uint8_t * const chainCodeOut, uint16_t * const exceptionOut);
 
 void signMsg(uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_t * const sig);
 

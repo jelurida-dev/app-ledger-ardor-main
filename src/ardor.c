@@ -106,13 +106,13 @@ void morph25519_e2m(uint8_t *montgomery, const uint8_t *y);
 //@param in: derivationPathLengthInUints32 - kinda what it says it is
 //@param optional out: keySeedBfrOut - 32 byte EC-KCDSA keyseed for the derivation path
 //@param optional out: publicKeyCurveXout - 32 byte EC-KCDSA public key for the derivation path
-//@param optional out: publicKeyEd25519YLEOut - 32 byte ED255119 public key for the derivation path (used for debuging)
+//@param optional out: publicKeyEd25519YLEWithXParityOut - 32 byte ED255119 public key for the derivation path (used for debuging), with the MSB as X's parity
 //@param optional out: chainCodeOut - the 32 byte ED255119 derivation chaincode, used for external master public key derivation
 //@param out: exceptionOut - iff the return code is R_EXCEPTION => exceptionOut will be filled with the Nano exception code
 //@returns: regular return values
 
 uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
-                    uint8_t * const keySeedBfrOut, uint8_t * const publicKeyCurveXout, uint8_t * const publicKeyEd25519YLEOut, uint8_t * const chainCodeOut, uint16_t * const exceptionOut) {
+                    uint8_t * const keySeedBfrOut, uint8_t * const publicKeyCurveXout, uint8_t * const publicKeyEd25519YLEWithXParityOut, uint8_t * const chainCodeOut, uint16_t * const exceptionOut) {
     
     uint8_t publicKeyYLE[32]; os_memset(publicKeyYLE, 0, sizeof(publicKeyYLE)); //declaring here although used later, so it can be acessable to the finally statement
     uint8_t KLKR[64]; os_memset(KLKR, 0, sizeof(KLKR));
@@ -137,12 +137,13 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
                     privateKey.d_len = 64; //don't know why the length is 64 instead of 32, it just works
                     os_memmove(privateKey.d, KLKR, 32); //Copy just the KL part
                     
-
-                    if (0 != keySeedBfrOut)
-                        os_memmove(keySeedBfrOut, KLKR, 32); //KL is the keeyseed
-
+                    //KL is the keeyseed, KR is used for key derivation
+                    if (0 != keySeedBfrOut) {
+                        //os_memmove(keySeedBfrOut, KLKR, 64); used for testing - DO NOT COMMIT THIS LINE! DO NOT COMMIT THIS LINE!, most functions expect a 32 private key and they will get stack overwtite
+                        os_memmove(keySeedBfrOut, KLKR, 32);
+                    }
                     
-                    if ((0 != publicKeyCurveXout) || (0 != publicKeyEd25519YLEOut)) {
+                    if ((0 != publicKeyCurveXout) || (0 != publicKeyEd25519YLEWithXParityOut)) {
 
                         cx_ecfp_public_key_t publicKey; 
                         cx_ecfp_init_public_key(CX_CURVE_Ed25519, 0, 0, &publicKey);
@@ -156,21 +157,20 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
                                 NULL, 0, NULL, 0);
 
                         // copy public key from big endian to little endian
-                        for (uint8_t i = 0; i < sizeof(publicKeyYLE); i++) {
+                        for (uint8_t i = 0; i < sizeof(publicKeyYLE); i++)
                             publicKeyYLE[i] = publicKey.W[64 - i];
-                        }
-
-                        //todo figure out why we need this and write about this in the readme
-                        if ((publicKey.W[32] & 1) != 0) {
-                            publicKeyYLE[31] |= 0x80;
-                        }
-
-                        if (0 != publicKeyEd25519YLEOut)
-                            os_memmove(publicKeyEd25519YLEOut, publicKeyYLE, 32);
-
 
                         if (0 != publicKeyCurveXout)
                             morph25519_e2m(publicKeyCurveXout, publicKeyYLE);
+
+                        //We encode the pairty of X into the LSB of Y, since it's never used
+                        //This allows us to compress X,Y into 32 bytes
+                        if ((publicKey.W[32] & 1) != 0)
+                            publicKeyYLE[31] |= 0x80;
+
+                        if (0 != publicKeyEd25519YLEWithXParityOut)
+                            os_memmove(publicKeyEd25519YLEWithXParityOut, publicKeyYLE, 32);
+
                     }
             }
             CATCH_OTHER(exception) {

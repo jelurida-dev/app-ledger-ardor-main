@@ -77,9 +77,11 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
     uint8_t publicKeyEd25519YLE[32];
     uint8_t publicKeyCurve[32];
     uint8_t chainCode[32];
+    //uint8_t K[64]; //DO NOT COMMIT THIS LINE!!! DO NOT COMMIT THIS LINE!!!!, used for testing only, to send the privatekey to the client, private key should never be released
     uint16_t exception = 0;
 
-    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKeyCurve, publicKeyEd25519YLE, chainCode, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
+    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKeyCurve, publicKeyEd25519YLE, chainCode, &exception);
+    //uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / sizeof(uint32_t), K, publicKeyCurve, publicKeyEd25519YLE, chainCode, &exception); //DO NOT COMMIT THIS LINE!!! DO NOT COMMIT THIS LINE!!!!, used for testing only, to send the privatekey to the client, private key should never be released
 
     G_io_apdu_buffer[(*tx)++] = ret;
 
@@ -94,6 +96,9 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
 
             os_memmove(G_io_apdu_buffer + *tx, chainCode, sizeof(chainCode));
             *tx += sizeof(chainCode);
+
+            //os_memmove(G_io_apdu_buffer + *tx, K, sizeof(K)); //DO NOT COMMIT THIS LINE!!! DO NOT COMMIT THIS LINE!!!!, used for testing only, to send the privatekey to the client, private key should never be released
+            //*tx += sizeof(K); //DO NOT COMMIT THIS LINE!!! DO NOT COMMIT THIS LINE!!!!, used for testing only, to send the privatekey to the client, private key should never be released
         }
 
     } else if (R_KEY_DERIVATION_EX == ret) {  
