@@ -88,7 +88,7 @@ All return values for functions should be checked in every function
 We wanted to create some kind of derivation scheme simular to BIP32/44 for Ardor, but since it's using EC-KCDSA on Curve25519,
 we had to get creative with already existing schemes.
 
-The solution we came up with was to ride on top of (https://cardanolaunch.com/assets/Ed25519_BIP.pdf "BIP32-Ed25519 Hierarchical Deterministic paper") derivation scheme for ED25519 on a twisted edwards curve using SLIP10 initialization on 512 bits master seed from bip39/bip32 24 words, which is supported on most platforms, then converting the key pairs from ED25519 on the twisted edwards curve to EC-KCDSA on Curve25519 (It's complex, you might need to read it a few times, it's ok)
+The solution we came up with was to ride on top of [BIP32-Ed25519 Hierarchical Deterministic paper](https://cardanolaunch.com/assets/Ed25519_BIP.pdf) derivation scheme for ED25519 on a twisted edwards curve using SLIP10 initialization on 512 bits master seed from bip39/bip32 24 words, which is supported on most platforms, then converting the key pairs from ED25519 on the twisted edwards curve to EC-KCDSA on Curve25519 (It's complex, you might need to read it a few times, it's ok)
 
 Just to recall for the readers who don't know, a public key is a Point(X,Y) on a curve C, X,Y are integers modolu some field F with a base point on the curve G
 (C, F, G) define "curves", in this paper we are dealing with the twisted edwards curve and curve25519
@@ -103,10 +103,10 @@ Lets refer to CLAMP(SHA512(privateKey)[:32]) as KL
 
 The derivation composition flow is for path P:
 
-1] os_perso_derive_node_bip32 derives KLKR and chaincode for P (will explain later why we need this) acording to the (https://cardanolaunch.com/assets/Ed25519_BIP.pdf ""BIP32-Ed25519 Hierarchical Deterministic paper") using SLIP10 initialization on 512 bits master seed from bip39/bip32 24 words
-2] derive PublicKeyED25519 using cx_eddsa_get_public_key and KL, the point is encoded as 65 bytes 04 XBigEndian YBigEndian
-3] PubleyKeyED25519YLE = convert(YBigEndian) - just reverse the bytes
-4] PublicKeyCurve25519X = morphe(PubleyKeyEED25519YLE)
+1. os_perso_derive_node_bip32 derives KLKR and chaincode for P (will explain later why we need this) acording to the [BIP32-Ed25519 Hierarchical Deterministic paper](https://cardanolaunch.com/assets/Ed25519_BIP.pdf) using SLIP10 initialization on 512 bits master seed from bip39/bip32 24 words
+2. derive PublicKeyED25519 using cx_eddsa_get_public_key and KL, the point is encoded as 65 bytes 04 XBigEndian YBigEndian
+3. PubleyKeyED25519YLE = convert(YBigEndian) - just reverse the bytes
+4. PublicKeyCurve25519X = morphe(PubleyKeyEED25519YLE)
 
 Points on Curve25519 can be defined by just the X point (cuz each X has only 1 Y), so PublicKeyCurve25519X and
 KL should hold PublicKeyCurve25519X = KL * Curve25519BasePoint
@@ -115,12 +115,12 @@ In EC-KCDSA publickey = privatekey^-1 * BasePoint (don't ask me why the private 
 
 Extra Notes:
 
-ED25519 public keys are usually compressed into a Y point in little endian having the MSB bit encode the parity of X, (since each Y has two possible X values, X and -X in feild F which means if one is even the second is odd)
+* ED25519 public keys are usually compressed into a Y point in little endian having the MSB bit encode the parity of X, (since each Y has two possible X values, X and -X in feild F which means if one is even the second is odd)
 
-In order to derive public keys outside of the ledger (Masterkey derivation), all we need is the ED25519 public key and chaincode, described in the derivation scheme
+* In order to derive public keys outside of the ledger (Masterkey derivation), all we need is the ED25519 public key and chaincode, described in the derivation scheme
 
-Code for the derivation implementation can found in (https://cardanolaunch.com/assets/Ed25519_BIP.pdf "Python") //todo add javascript and javfa implementations
+* Code for the derivation implementation can found in [Python](https://cardanolaunch.com/assets/Ed25519_BIP.pdf) //todo add javascript and javfa implementations
 
-You can read the actuall paper on derivation (https://www.jelurida.com/sites/default/files/kcdsa.pdf "here")
+* You can read the actuall paper on derivation [here](https://www.jelurida.com/sites/default/files/kcdsa.pdf)
 
-The curves don't really look like curves, just a cloud of points
+* The curves don't really look like curves, just a cloud of points
