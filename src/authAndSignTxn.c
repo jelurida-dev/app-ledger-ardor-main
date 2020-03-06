@@ -376,7 +376,39 @@ uint8_t setScreenTexts() {
 
                     return R_SUCCESS;
                 }
+
+                break;
             
+            case 0x0102: // Asset Transfer
+                if (0 == counter--) {
+                    state.txnAuth.displayType = 1;
+
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Asset Id");
+                    formatAmount(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), state.txnAuth.attachmentTempInt64Num1, 0);
+
+                    return R_SUCCESS;
+                }
+
+                if (0 == counter--) {
+                    state.txnAuth.displayType = 1;
+
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Quantity QNT");
+                    formatAmount(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), state.txnAuth.attachmentTempInt64Num2, 0);
+
+                    return R_SUCCESS;
+                }
+
+                if (0 == counter--) {
+                    state.txnAuth.displayType = 1;
+
+                    snprintf(state.txnAuth.displayTitle, sizeof(state.txnAuth.displayTitle), "Recipient");
+                    snprintf(state.txnAuth.displaystate, sizeof(state.txnAuth.displaystate), APP_PREFIX);
+                    reedSolomonEncode(state.txnAuth.recipientId, state.txnAuth.displaystate + strlen(state.txnAuth.displaystate));
+
+                    return R_SUCCESS;
+                }
+
+                break;
 
             /* case 0x0202: //Ask order placement
 
@@ -691,6 +723,28 @@ uint8_t parseAskOrderPlacementAttachment() {
     return R_SUCCESS;
 }
 
+uint8_t parseAssetTransferAttachment() {
+
+    state.txnAuth.attachmentTempInt64Num1 = 0; //asset id
+    state.txnAuth.attachmentTempInt64Num2 = 0; //quantity
+
+    uint8_t * ptr = readFromBuffer(sizeof(state.txnAuth.attachmentTempInt64Num1) * 2);
+    if (0 == ptr)
+        return R_SEND_MORE_BYTES;
+
+    if (1 != *ptr)
+        return R_UNSUPPORTED_ATTACHMENT_VERSION;
+
+    ptr += 1; //skip version byte
+    
+    os_memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
+    ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
+
+    os_memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
+
+    return R_SUCCESS;
+}
+
 //Addes bytes to the read buffer
 //@param newData: ptr to the data
 //@param numBytes: number of bytes in the data
@@ -733,6 +787,8 @@ uint8_t callFunctionNumber(const uint8_t functionNum) {
             return parseAskOrderPlacementAttachment();
         case 6:
             return parseIngoreBytesUntilTheEnd();
+        case 7:
+            return parseAssetTransferAttachment();
     }
 
     return R_PARSE_FUNCTION_NOT_FOUND;
