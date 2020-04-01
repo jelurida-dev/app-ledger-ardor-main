@@ -18,92 +18,78 @@
 
 #Defines
 
-TARGET_NAME = TARGET_NANOS
+TARGET_NAME = TARGET_NANOX
 APPNAME = Ardor#Here you need switch between Ardor and NXT (Mind the letter casing, it matters)
 DEVEL = 1#This means we are in DEBUG mode, change this up when releasing in production
 
 #####################################3
 
 ifeq ($(BOLOS_SDK),)
-$(error Environment variable BOLOS_SDK is not set)
+	$(error Environment variable BOLOS_SDK is not set)
 endif
+
 include $(BOLOS_SDK)/Makefile.defines
 
 ifeq ($(APPNAME),Ardor)
 	DEFINES = "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
 	PATH_PREFIX = "44'/16754'"
 	DEFINES += APP_PREFIX=\"ARDOR-\"
+
+	ifeq ($(TARGET_NAME),TARGET_NANOX)
+		ICONNAME = ArdorIconNanoX.gif
+	else
+		ICONNAME = ArdorIconNanoS.gif
+	endif
 else
 	echo $(APPNAME)
 	DEFINES = "PATH_PREFIX={44|0x80000000,29|0x80000000}"
 	PATH_PREFIX = "44'/29'"
 	DEFINES += APP_PREFIX=\"NXT-\"
-endif
 
-DEFINES += HAVE_BOLOS_APP_STACK_CANARY
-
-ifeq ($(TARGET_NAME),TARGET_NANOX)
-	ifeq ($(APPNAME),Ardor)
-		ICONNAME = ArdorIcon.gif
+	ifeq ($(TARGET_NAME),TARGET_NANOX)
+		ICONNAME = NXTIconNanoX.gif
 	else
-		ICONNAME = NXTIcon.gif
-	endif
-else
-	ifeq ($(APPNAME),Ardor)
-		ICONNAME = ArdorIcon.gif
-	else
-		ICONNAME = NXTIcon.gif
+		ICONNAME = NXTIconNanoS.gif
 	endif
 endif
-
-ifeq ($(TARGET_NAME),TARGET_NANOX)
-	DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000 HAVE_BLE_APDU
-endif
-
-
-APPVERSION_M = 0
-APPVERSION_N = 3
-APPVERSION_P = 0
-APPVERSION   = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
-
-# The --path argument here restricts which BIP32 paths the app is allowed to derive.
-APP_LOAD_PARAMS = --appFlags 0x40 --curve ed25519 $(COMMON_LOAD_PARAMS) --path
-APP_LOAD_PARAMS +=$(PATH_PREFIX)
-APP_SOURCE_PATH = src
-SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f
-
-ifeq ($(TARGET_NAME),TARGET_NANOX)
-	SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
-	SDK_SOURCE_PATH  += lib_ux
-endif
-
-all: default
-
-load: all
-	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
-
-delete:
-	python -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
 
 ############
 # Platform #
 ############
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
-DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
-DEFINES += HAVE_GLO096
-DEFINES += HAVE_BAGL BAGL_WIDTH=128 BAGL_HEIGHT=64
-DEFINES += HAVE_BAGL_ELLIPSIS # long label truncation feature
-DEFINES += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
-DEFINES += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
-DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-DEFINES += HAVE_UX_FLOW
-else
-DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128 OS_IO_SEPROXYHAL
+	SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
+	SDK_SOURCE_PATH  += lib_ux
+	DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
+	DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
+	DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
+	DEFINES += HAVE_BLE_APDU # basic ledger apdu transport over BLE
 
+	DEFINES += HAVE_GLO096
+	DEFINES += BAGL_WIDTH=128 BAGL_HEIGHT=64
+	DEFINES += HAVE_BAGL_ELLIPSIS # long label truncation feature
+	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
+	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
+	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
+	DEFINES += HAVE_UX_FLOW
+else
+	DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128
 endif
 
-DEFINES += HAVE_BAGL HAVE_SPRINTF
+
+APPVERSION_M = 1
+APPVERSION_N = 0
+APPVERSION_P = 0
+APPVERSION   = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
+
+# The --path argument here restricts which BIP32 paths the app is allowed to derive.
+# The --appFlags param 
+APP_LOAD_PARAMS = --appFlags 0x200 --curve ed25519 $(COMMON_LOAD_PARAMS) --path
+APP_LOAD_PARAMS +=$(PATH_PREFIX)
+APP_SOURCE_PATH = src
+SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f
+
+DEFINES += HAVE_BAGL HAVE_SPRINTF OS_IO_SEPROXYHAL HAVE_BOLOS_APP_STACK_CANARY
 DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=6 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 DEFINES += LEDGER_MAJOR_VERSION=$(APPVERSION_M) LEDGER_MINOR_VERSION=$(APPVERSION_N) LEDGER_PATCH_VERSION=$(APPVERSION_P) TCS_LOADER_PATCH_VERSION=0
 DEFINES += APPVERSION=\"$(APPVERSION)\"
@@ -111,9 +97,14 @@ DEFINES += APPVERSION=\"$(APPVERSION)\"
 # U2F
 DEFINES   += HAVE_U2F HAVE_IO_U2F
 DEFINES   += U2F_PROXY_MAGIC=\"ARD\"
-DEFINES   += USB_SEGMENT_SIZE=64 
+DEFINES   += USB_SEGMENT_SIZE=64
 DEFINES   += BLE_SEGMENT_SIZE=32 #max MTU, min 20
 
+
+WEBUSB_URL = https://www.ledger.com/pages/supported-crypto-assets
+DEFINES += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
+
+DEFINES += BLAKE_SDK
 
 # Enabling debug PRINTF
 ifeq ($(DEVEL), 1)
@@ -128,10 +119,14 @@ else
 endif
 
 
-WEBUSB_URL = https://www.ledger.com/pages/supported-crypto-assets
-DEFINES += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
+all: default
 
-DEFINES += BLAKE_SDK
+load: all
+	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
+
+delete:
+	python -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
+
 
 ##############
 #  Compiler  #
