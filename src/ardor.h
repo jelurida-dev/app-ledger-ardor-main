@@ -15,6 +15,10 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#if defined(TARGET_NANOS)
+    unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element);
+#endif
+
 uint64_t publicKeyToId(const uint8_t * const publicKey);
 uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
                     uint8_t * const keySeedBfrOut, uint8_t * const publicKeyCurveXout, uint8_t * const publicKeyEd25519YLEWithXParityOut, uint8_t * const chainCodeOut, uint16_t * const exceptionOut);
@@ -22,7 +26,6 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
 void signMsg(uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_t * const sig);
 
 
-unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element);
 bool check_canary();
 
 uint8_t getSharedEncryptionKey(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, const uint8_t* const targetPublicKey, 
@@ -70,6 +73,18 @@ typedef struct {
    	uint16_t txnSizeBytes;                                 //The decalred Txn size
 
 } authTxn_t;
+
+typedef struct {
+    char feeText[21];               //9,223,372,036,854,775,807 is the biggest number you can hold in uint64 + the dot + null terminator means the longest text is 20
+    char amount[21];                //same as feeText
+    char chainAndTxnType[60];       //Aproximation
+    char optionalWindow1Text[31];   //same as fee text + name of the chain + space
+    char optionalWindow2Title[20];  //The longest string is price per (some chain name here)
+    char optionalWindow2Text[31];   //MAX(Ardor arddress = 27, feeText + chainName)
+    char appendagesText[11];        //0x and then 8 chars
+    uint8_t chosenFlow;
+
+} authTxnNanoXText_t;
 
 //State for the encryptDecrypt handler
 typedef struct {

@@ -57,6 +57,9 @@ endif
 # Platform #
 ############
 
+#This inits the SDK_SOURCE_PATH variable, moving this will screw up the build, because the next if does +=
+SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f
+
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 	SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
 	SDK_SOURCE_PATH  += lib_ux
@@ -87,9 +90,8 @@ APPVERSION   = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 APP_LOAD_PARAMS = --appFlags 0x200 --curve ed25519 $(COMMON_LOAD_PARAMS) --path
 APP_LOAD_PARAMS +=$(PATH_PREFIX)
 APP_SOURCE_PATH = src
-SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f
 
-DEFINES += HAVE_BAGL HAVE_SPRINTF OS_IO_SEPROXYHAL HAVE_BOLOS_APP_STACK_CANARY
+DEFINES += HAVE_BAGL HAVE_SPRINTF HAVE_BOLOS_APP_STACK_CANARY OS_IO_SEPROXYHAL
 DEFINES += HAVE_IO_USB HAVE_L4_USBLIB IO_USB_MAX_ENDPOINTS=6 IO_HID_EP_LENGTH=64 HAVE_USB_APDU
 DEFINES += LEDGER_MAJOR_VERSION=$(APPVERSION_M) LEDGER_MINOR_VERSION=$(APPVERSION_N) LEDGER_PATCH_VERSION=$(APPVERSION_P) TCS_LOADER_PATCH_VERSION=0
 DEFINES += APPVERSION=\"$(APPVERSION)\"
@@ -101,7 +103,7 @@ DEFINES   += USB_SEGMENT_SIZE=64
 DEFINES   += BLE_SEGMENT_SIZE=32 #max MTU, min 20
 
 
-WEBUSB_URL = https://www.ledger.com/pages/supported-crypto-assets
+WEBUSB_URL = https://www.ledger.com/pages/supported-crypto-assets #todo swap this to some jelurida web site
 DEFINES += HAVE_WEBUSB WEBUSB_URL_SIZE_B=$(shell echo -n $(WEBUSB_URL) | wc -c) WEBUSB_URL=$(shell echo -n $(WEBUSB_URL) | sed -e "s/./\\\'\0\\\',/g")
 
 DEFINES += BLAKE_SDK

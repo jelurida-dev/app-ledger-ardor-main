@@ -2,6 +2,24 @@
 
 This is the official Ardor wallet app for the Ledger Nano S and X
 
+## More documentation
+
+You can use [This]: https://buildmedia.readthedocs.org/media/pdf/ledger/latest/ledger.pdf as a resource for info
+Also Ledger has a slack channel where you can ask questions
+
+## Debug Prints
+
+In order to have the printf functions work from the code, you need to install debug firmware 
+https://ledger.readthedocs.io/en/latest/userspace/debugging.html
+
+2. turn on the debug in the make file - make sure not to commit this
+
+todo fix this one
+
+## How to switch between different target build
+
+todo write content here
+
 ## Enforcments to hold as a developer
 
 There are a few things that a dev must make sure the app is doing, and there is no way to enforce this in code
@@ -67,6 +85,13 @@ You use lib found [here]: https://gitlab.com/haimbender/ardor-ledger-js in order
 
 
 ## Stackoverflow canary
+
+To get the amount of memeory used in the app call the following:
+readelf -s bin/app.elf | grep app_stack_canary 
+that will output the canary (which is at the end of the memory space) location then subtruct 0x20001800 from it to get the actuall used up space for the app
+the NanoS has 4k of memory for the app and the stack #todo rewrite and fill in for NANOX
+
+0xda7a0000 is the start address for the nanoX
 
 The app uses the SDK's built in app_stack_canary, it's activated in the makefile by the define HAVE_BOLOS_APP_STACK_CANARY
 I advise to keep this flag always on, it just gives extra security and doesn't take up much CPU.

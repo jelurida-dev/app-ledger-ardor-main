@@ -31,20 +31,22 @@
 
 
 
-
-
 //the global state
 states_t state;
 
-//This is a prepocessor function for dialogs, it allows long labels to go in circles, like long crypto addresses, I have no idea how this works :)
-unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element)
-{
-    //I guess we are filtering on the UI element
-    if (element->component.userid > 0)
-        UX_CALLBACK_SET_INTERVAL(MAX(3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
-    
-    return 1;
-}
+#if defined(TARGET_NANOS)
+
+    //This is a prepocessor function for dialogs, it allows long labels to go in circles, like long crypto addresses, I have no idea how this works :)
+    unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element)
+    {
+        //I guess we are filtering on the UI element
+        if (element->component.userid > 0)
+            UX_CALLBACK_SET_INTERVAL(MAX(3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+        
+        return 1;
+    }
+
+#endif
 
 //self explanatory
 //output must point to buffer of 32 bytes in size
