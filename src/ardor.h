@@ -47,44 +47,32 @@ typedef struct {
 
     bool isClean;                                          //If the state was just initilized
 
-
-    char displayTitle[64];                              //The title in the autherization dialog
-    char displaystate[130];                             //The content line in the autherization dialog
-    
     cx_sha256_t hashstate;                                 //The state of the hash for the txn buffer
 
     uint32_t chainId;                                      //What it says it is
     uint16_t txnTypeAndSubType;                            //What it says it is
     uint8_t txnTypeIndex;                                  //txnTypeAndSubType's index in TXN_TYPES
 
-    uint8_t version;                                       //the txn version
     uint64_t recipientId;                                  //the recipient address ID
     uint64_t amount;                                       //the amount to be sent in the txn, note that every chain parses this number differently, it dives this number by some 10^X
     uint64_t fee;                                          //What it says it is
-    uint32_t appendagesFlags;                              //What it says it is
-    
-    uint8_t displayType;                                   //If this is a first, middle or last display in the dialog sequence
-    int8_t dialogScreenIndex;                              //The window index in the currently showing dialog
-
+                                 //What it says it is
 
    	int32_t attachmentTempInt32Num1, attachmentTempInt32Num2;    //Different attachments parse in different ways, they all need space in state, so this is how it's defined
    	int64_t attachmentTempInt64Num1, attachmentTempInt64Num2, attachmentTempInt64Num3; 
 
    	uint16_t txnSizeBytes;                                 //The decalred Txn size
 
-} authTxn_t;
 
-typedef struct {
     char feeText[21];               //9,223,372,036,854,775,807 is the biggest number you can hold in uint64 + the dot + null terminator means the longest text is 20
-    char amount[21];                //same as feeText
-    char chainAndTxnType[60];       //Aproximation
+    char chainAndTxnTypeText[60];   //Aproximation of size
     char optionalWindow1Text[31];   //same as fee text + name of the chain + space
-    char optionalWindow2Title[20];  //The longest string is price per (some chain name here)
+    char optionalWindow2Title[20];  //The longest string is price per (some chain name  here)
     char optionalWindow2Text[31];   //MAX(Ardor arddress = 27, feeText + chainName)
     char appendagesText[11];        //0x and then 8 chars
-    uint8_t chosenFlow;
+    uint8_t uiFlowBitfeild;         //This is a bit feild for selecting the right UI flow
 
-} authTxnNanoXText_t;
+} authTxn_t;
 
 //State for the encryptDecrypt handler
 typedef struct {
