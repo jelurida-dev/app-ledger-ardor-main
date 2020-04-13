@@ -60,7 +60,6 @@ and the whole process is used to sync between the 2 Ledger App code and Java imp
 The code flow starts at ardor_main which is a try/catch (global exception catch, so that the app wont crash) loop on io_exchange,
 waiting for the next command buffer and the calling the appropriate handler function which is implemented in the different C files
 
-
 ## APDU Protocol
 
 Commands are in the format of
@@ -104,9 +103,7 @@ You use lib found [here]: https://gitlab.com/haimbender/ardor-ledger-js in order
 To get the amount of memeory used in the app call the following:
 readelf -s bin/app.elf | grep app_stack_canary 
 that will output the canary (which is at the end of the memory space) location then subtruct 0x20001800 from it to get the actuall used up space for the app
-the NanoS has 4k of memory for the app and the stack #todo rewrite and fill in for NANOX
-
-0xda7a0000 is the start address for the nanoX
+the NanoS has 4k of memory for the app and the stack, the start address to subtract for the NanoX is 0xda7a0000
 
 The app uses the SDK's built in app_stack_canary, it's activated in the makefile by the define HAVE_BOLOS_APP_STACK_CANARY
 I advise to keep this flag always on, it just gives extra security and doesn't take up much CPU.
