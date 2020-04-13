@@ -9,21 +9,36 @@ Also Ledger has a slack channel where you can ask questions
 
 ## Debug Prints
 
-In order to have the printf functions work from the code, you need to install debug firmware 
-https://ledger.readthedocs.io/en/latest/userspace/debugging.html
+1. In order to have the printf functions work from the code, you need to install [debug firmware]: https://ledger.readthedocs.io/en/latest/userspace/debugging.html
+2. turn on the debug in the make file (DEVEL = 1) - make sure not to commit this
+3. make clean and then make load -> to make sure all the PRINTF's come into effect
 
-2. turn on the debug in the make file - make sure not to commit this
-
-todo fix this one
 
 ## How to switch between different target build
 
-todo write content here
+If you want to switch between NanoS and NanoX builds, you have to
+1. Swap the SDK folders
+2. Change the value of TARGET_NAME in the make file to TARGET_NANOS or TARGET_NANOX 
 
 ## Enforcments to hold as a developer
 
 There are a few things that a dev must make sure the app is doing, and there is no way to enforce this in code
 bacause of the platform limitations, so it's desribed here.
+
+### Underflow
+
+Since we are using unsigned types a lot, we have to be very careful no to underflow on these types, for example:
+derivationLengthSigned = (dataLength - 32) / sizeof(uint32_t);
+
+This line would underflow if the dataLength is smaller then 32, which would make potential be a security vulnerability, 
+so make sure to search the whole project for minus "-", and make sure the code is safe.
+
+### 0 Warnings
+
+Make sure when releaseing the product that it has no warning coming in the code that you write, SDK warnings are OK since
+there is nothing you can do about them
+
+### State Cleaning
 
 Because we use a union for all of the command handler's states (called state, defined in ardor.h) in order to save memory, the app is vulnerable to
 an attack in which the state is filled using one command and then exploited using a different command's interpretation of the same state
