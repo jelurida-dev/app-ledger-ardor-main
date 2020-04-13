@@ -68,11 +68,6 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
         G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
         return;
     }
-
-    uint32_t derivationPathCpy[MAX_DERIVATION_LENGTH]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy)); 
-    
-    //datalength is checked in the main function so there should not be worry for some kind of overflow
-    os_memmove(derivationPathCpy, dataBuffer, derivationParamLengthInBytes);
     
     uint8_t publicKeyEd25519YLE[32];
     uint8_t publicKeyCurve[32];
@@ -80,7 +75,7 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
     //uint8_t K[64]; //DO NOT COMMIT THIS LINE!!! DO NOT COMMIT THIS LINE!!!!, used for testing only, to send the privatekey to the client, private key should never be released
     uint16_t exception = 0;
 
-    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKeyCurve, publicKeyEd25519YLE, chainCode, &exception);
+    uint8_t ret = ardorKeys(dataBuffer, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKeyCurve, publicKeyEd25519YLE, chainCode, &exception);
     //uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / sizeof(uint32_t), K, publicKeyCurve, publicKeyEd25519YLE, chainCode, &exception); //DO NOT COMMIT THIS LINE!!! DO NOT COMMIT THIS LINE!!!!, used for testing only, to send the privatekey to the client, private key should never be released
 
     G_io_apdu_buffer[(*tx)++] = ret;

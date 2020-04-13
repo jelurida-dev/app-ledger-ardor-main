@@ -89,18 +89,14 @@ void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t 
         G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
         return;
     }
-
-    uint32_t derivationPathCpy[MAX_DERIVATION_LENGTH]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy));  //for some reason you can't point to the derivation path on the buffer when deriving keys
-    
-    //datalength is checked in the main function so there should not be worry for some kind of overflow
-    os_memmove(derivationPathCpy, dataBuffer, derivationParamLengthInBytes);
     
     G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
     uint16_t exception = 0;
 
     uint8_t publicKey[32]; os_memset(publicKey, 0, sizeof(publicKey));
-    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKey, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
+
+    uint8_t ret = ardorKeys(dataBuffer, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKey, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
     if (R_SUCCESS == ret) {
         os_memset(screenContent, 0, sizeof(screenContent));

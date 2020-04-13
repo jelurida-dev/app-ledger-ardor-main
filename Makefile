@@ -18,7 +18,7 @@
 
 #Defines
 
-TARGET_NAME = TARGET_NANOX
+TARGET_NAME = TARGET_NANOS
 APPNAME = Ardor#Here you need switch between Ardor and NXT (Mind the letter casing, it matters)
 DEVEL = 1#This means we are in DEBUG mode, change this up when releasing in production
 
@@ -58,11 +58,10 @@ endif
 ############
 
 #This inits the SDK_SOURCE_PATH variable, moving this will screw up the build, because the next if does +=
-SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f
+SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f lib_ux
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 	SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
-	SDK_SOURCE_PATH  += lib_ux
 	DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
 	DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 	DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
@@ -74,11 +73,11 @@ ifeq ($(TARGET_NAME),TARGET_NANOX)
 	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
 	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
 	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-	DEFINES += HAVE_UX_FLOW
 else
 	DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128
 endif
 
+DEFINES += HAVE_UX_FLOW
 
 APPVERSION_M = 1
 APPVERSION_N = 0
@@ -87,7 +86,7 @@ APPVERSION   = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # The --path argument here restricts which BIP32 paths the app is allowed to derive.
 # The --appFlags param 
-APP_LOAD_PARAMS = --appFlags 0x200 --curve ed25519 $(COMMON_LOAD_PARAMS) --path
+APP_LOAD_PARAMS = --appFlags 0x0000 --curve ed25519 $(COMMON_LOAD_PARAMS) --path
 APP_LOAD_PARAMS +=$(PATH_PREFIX)
 APP_SOURCE_PATH = src
 

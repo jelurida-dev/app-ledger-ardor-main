@@ -483,7 +483,7 @@ uint8_t parseMainTxnData() {
     if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
         snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s %s", chainName(state.txnAuth.chainId), txnTypeNameAtIndex(state.txnAuth.txnTypeIndex));
     } else {
-        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s UnknownTxnType", chainName(state.txnAuth.chainId)); //todo rename chainAndTxnType
+        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s UnknownTxnType", chainName(state.txnAuth.chainId));
     }
 
     if (SUPPORTED_TXN_VERSION != *((uint8_t*)ptr))
@@ -534,7 +534,7 @@ uint8_t parseReferencedTxn() {
 //Does what it says
 uint8_t parseAppendagesFlags() {
     
-    uint32_t * ptr = readFromBuffer(sizeof(uint32_t));
+    uint8_t * ptr = readFromBuffer(sizeof(uint32_t));
     
     if (0 == ptr)
         return R_SEND_MORE_BYTES;
@@ -716,7 +716,7 @@ uint8_t parseFromStack() {
 //@param outException out -              ptr to where to write the exception if it happends
 //@returns R_SUCCESS iff success else the appropriate error code is returned
 
-uint8_t signTxn(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
+uint8_t signTxn(const uint8_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
                  uint8_t * const destBuffer, uint16_t * const outException) {
 
     uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
@@ -775,18 +775,12 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
             G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
             return;
         }
-        
-        
-
-        uint32_t derivationPathCpy[MAX_DERIVATION_LENGTH]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy));
-
-        os_memmove(derivationPathCpy, dataBuffer, derivationParamLengthInBytes);
 
         uint16_t exception = 0;
 
         G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
-        uint8_t ret = signTxn(derivationPathCpy, derivationParamLengthInBytes / 4, G_io_apdu_buffer + 1, &exception);
+        uint8_t ret = signTxn(dataBuffer, derivationParamLengthInBytes / 4, G_io_apdu_buffer + 1, &exception);
 
         initTxnAuthState();
 

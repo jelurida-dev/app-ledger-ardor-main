@@ -63,7 +63,7 @@ const ux_flow_step_t * const ux_idle_flow [] = {
 
 // ui_idle displays the main menu. Note that your app isn't required to use a
 // menu as its idle screen; you can define your own completely custom screen.
-void ui_idle(void) {
+void ui_idle() {
     // reserve a display stack slot if none yet
     if(G_ux.stack_count == 0) {
         ux_stack_push();
