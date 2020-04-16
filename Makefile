@@ -18,9 +18,9 @@
 
 #Defines
 
-TARGET_NAME = TARGET_NANOS
+TARGET_NAME = TARGET_NANOX
 APPNAME = Ardor#Here you need switch between Ardor and NXT (Mind the letter casing, it matters)
-DEVEL = 1#This means we are in DEBUG mode, change this up when releasing in production
+DEVEL = 0#This means we are in DEBUG mode, change this up when releasing in production
 
 #####################################3
 
@@ -59,9 +59,13 @@ endif
 
 #This inits the SDK_SOURCE_PATH variable, moving this will screw up the build, because the next if does +=
 SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f lib_ux
-
+APP_LOAD_PARAMS = --curve ed25519 $(COMMON_LOAD_PARAMS) 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
-	SDK_SOURCE_PATH  += lib_blewbxx lib_blewbxx_impl
+	SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
+	
+	# The --appFlags param gives permision to open bluetooth
+	APP_LOAD_PARAMS += --appFlags 0x0200
+
 	DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
 	DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 	DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
@@ -74,6 +78,9 @@ ifeq ($(TARGET_NAME),TARGET_NANOX)
 	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
 	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
 else
+	# Since we don't have bluetooth in NanoS we set --appFlags to 0
+	APP_LOAD_PARAMS += --appFlags 0x0000
+
 	DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128
 endif
 
@@ -85,9 +92,7 @@ APPVERSION_P = 0
 APPVERSION   = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # The --path argument here restricts which BIP32 paths the app is allowed to derive.
-# The --appFlags param 
-APP_LOAD_PARAMS = --appFlags 0x0000 --curve ed25519 $(COMMON_LOAD_PARAMS) --path
-APP_LOAD_PARAMS +=$(PATH_PREFIX)
+APP_LOAD_PARAMS += --path $(PATH_PREFIX)
 APP_SOURCE_PATH = src
 
 DEFINES += HAVE_BAGL HAVE_SPRINTF HAVE_BOLOS_APP_STACK_CANARY OS_IO_SEPROXYHAL
