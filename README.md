@@ -2,10 +2,43 @@
 
 This is the official Ardor wallet app for the Ledger Nano S and X
 
+## More documentation
+
+You can use [This]: https://buildmedia.readthedocs.org/media/pdf/ledger/latest/ledger.pdf as a resource for info
+Also Ledger has a slack channel where you can ask questions
+
+## Debug Prints
+
+1. In order to have the printf functions work from the code, you need to install [debug firmware]: https://ledger.readthedocs.io/en/latest/userspace/debugging.html
+2. turn on the debug in the make file (DEVEL = 1) - make sure not to commit this
+3. make clean and then make load -> to make sure all the PRINTF's come into effect
+
+
+## How to switch between different target build
+
+If you want to switch between NanoS and NanoX builds, you have to
+1. Swap the SDK folders
+2. Change the value of TARGET_NAME in the make file to TARGET_NANOS or TARGET_NANOX 
+
 ## Enforcments to hold as a developer
 
 There are a few things that a dev must make sure the app is doing, and there is no way to enforce this in code
 bacause of the platform limitations, so it's desribed here.
+
+### Underflow
+
+Since we are using unsigned types a lot, we have to be very careful no to underflow on these types, for example:
+derivationLengthSigned = (dataLength - 32) / sizeof(uint32_t);
+
+This line would underflow if the dataLength is smaller then 32, which would make potential be a security vulnerability, 
+so make sure to search the whole project for minus "-", and make sure the code is safe.
+
+### 0 Warnings
+
+Make sure when releaseing the product that it has no warning coming in the code that you write, SDK warnings are OK since
+there is nothing you can do about them
+
+### State Cleaning
 
 Because we use a union for all of the command handler's states (called state, defined in ardor.h) in order to save memory, the app is vulnerable to
 an attack in which the state is filled using one command and then exploited using a different command's interpretation of the same state
@@ -26,7 +59,6 @@ and the whole process is used to sync between the 2 Ledger App code and Java imp
 
 The code flow starts at ardor_main which is a try/catch (global exception catch, so that the app wont crash) loop on io_exchange,
 waiting for the next command buffer and the calling the appropriate handler function which is implemented in the different C files
-
 
 ## APDU Protocol
 
@@ -67,6 +99,11 @@ You use lib found [here]: https://gitlab.com/haimbender/ardor-ledger-js in order
 
 
 ## Stackoverflow canary
+
+To get the amount of memeory used in the app call the following:
+readelf -s bin/app.elf | grep app_stack_canary 
+that will output the canary (which is at the end of the memory space) location then subtruct 0x20001800 from it to get the actuall used up space for the app
+the NanoS has 4k of memory for the app and the stack, the start address to subtract for the NanoX is 0xda7a0000
 
 The app uses the SDK's built in app_stack_canary, it's activated in the makefile by the define HAVE_BOLOS_APP_STACK_CANARY
 I advise to keep this flag always on, it just gives extra security and doesn't take up much CPU.

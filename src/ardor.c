@@ -31,20 +31,9 @@
 
 
 
-
-
 //the global state
 states_t state;
 
-//This is a prepocessor function for dialogs, it allows long labels to go in circles, like long crypto addresses, I have no idea how this works :)
-unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element)
-{
-    //I guess we are filtering on the UI element
-    if (element->component.userid > 0)
-        UX_CALLBACK_SET_INTERVAL(MAX(3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
-    
-    return 1;
-}
 
 //self explanatory
 //output must point to buffer of 32 bytes in size
@@ -110,7 +99,7 @@ void morph25519_e2m(uint8_t *montgomery, const uint8_t *y);
 //@param optional out: chainCodeOut - the 32 byte ED255119 derivation chaincode, used for external master public key derivation
 //@param out: exceptionOut - iff the return code is R_EXCEPTION => exceptionOut will be filled with the Nano exception code
 //@returns: regular return values
-uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
+uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
                     uint8_t * const keySeedBfrOut, uint8_t * const publicKeyCurveXout, uint8_t * const publicKeyEd25519YLEWithXParityOut, uint8_t * const chainCodeOut, uint16_t * const exceptionOut) {
     
     uint8_t publicKeyYLE[32]; os_memset(publicKeyYLE, 0, sizeof(publicKeyYLE)); //declaring here although used later, so it can be acessable to the finally statement
@@ -122,14 +111,18 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
     if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32))
         return R_WRONG_SIZE_ERR;
 
+    //os_perso_derive_node_bip32 doesn't accept derivation paths located on the input buffer, so we make a local stack copy
+    uint32_t copiedDerivationPath[MAX_DERIVATION_LENGTH]; os_memset(copiedDerivationPath, 0, sizeof(copiedDerivationPath));
+    os_memmove(copiedDerivationPath, derivationPath, derivationPathLengthInUints32 * sizeof(uint32_t));
+
     for (uint8_t i = 0; i < sizeof(bipPrefix) / sizeof(bipPrefix[0]); i++) {
-        if (derivationPath[i] != bipPrefix[i])
+        if (copiedDerivationPath[i] != bipPrefix[i])
             return R_WRONG_DERIVATION_PATH_HEADER;
     }
 
     BEGIN_TRY {
             TRY {
-                    os_perso_derive_node_bip32(CX_CURVE_Ed25519, derivationPath, derivationPathLengthInUints32, KLKR, chainCodeOut);
+                    os_perso_derive_node_bip32(CX_CURVE_Ed25519, copiedDerivationPath, derivationPathLengthInUints32, KLKR, chainCodeOut);
 
                     // weird custom initilization, code copied from Cardano's EdDSA implementaion
                     privateKey.curve = CX_CURVE_Ed25519;
@@ -190,7 +183,7 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
 //@param derivationPath - the derivation path
 //@param derivationPathLengthInUints32 - kinda clear what this is
 //@param targetPublicKey - the 32 byte public key
-uint8_t getSharedEncryptionKey(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, const uint8_t* const targetPublicKey, 
+uint8_t getSharedEncryptionKey(const uint8_t * const derivationPath, const uint8_t derivationPathLengthInUints32, const uint8_t* const targetPublicKey, 
                                 const uint8_t * const nonce, uint16_t * const exceptionOut, uint8_t * const aesKeyOut) {
     
     uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
