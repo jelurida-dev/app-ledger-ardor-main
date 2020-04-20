@@ -368,14 +368,11 @@ static void showScreen() {
 //Returns: Success iff everything is good, otherwise probably some kind of formating error
 uint8_t setScreenTexts() {
 
-    state.txnAuth.uiFlowBitfeild = 0;
-
     uint8_t ret = 0;
 
     if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
 
         state.txnAuth.uiFlowBitfeild |= 2; //turn on the second bit
-
 
         switch (state.txnAuth.txnTypeAndSubType) {
 
@@ -531,7 +528,7 @@ uint8_t parseReferencedTxn() {
     return R_SUCCESS;
 }
 
-//Does what it says
+//Does what it says, it's added to function stack on init
 uint8_t parseAppendagesFlags() {
     
     uint8_t * ptr = readFromBuffer(sizeof(uint32_t));
