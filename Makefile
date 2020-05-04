@@ -18,7 +18,7 @@
 
 #Defines
 
-TARGET_NAME = TARGET_NANOX
+#TARGET_NAME = TARGET_NANOX	#Not required here, this is defined by the SDK in use (from the BOLOS_SDK env variable)
 APPNAME = Ardor#Here you need switch between Ardor and NXT (Mind the letter casing, it matters)
 DEVEL = 0#This means we are in DEBUG mode, change this up when releasing in production
 
@@ -60,6 +60,10 @@ endif
 #This inits the SDK_SOURCE_PATH variable, moving this will screw up the build, because the next if does +=
 SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f lib_ux
 APP_LOAD_PARAMS = --curve ed25519 $(COMMON_LOAD_PARAMS) 
+
+# Ledger: add the "Pending security review" disclaimer
+APP_LOAD_PARAMS += --tlvraw 9F:01
+
 ifeq ($(TARGET_NAME),TARGET_NANOX)
 	SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
 	
@@ -88,7 +92,7 @@ DEFINES += HAVE_UX_FLOW
 
 APPVERSION_M = 1
 APPVERSION_N = 0
-APPVERSION_P = 0
+APPVERSION_P = 1
 APPVERSION   = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
 
 # The --path argument here restricts which BIP32 paths the app is allowed to derive.
@@ -127,6 +131,11 @@ endif
 
 all: default
 
+src/authAndSignTxn.o: src/authAndSignTxn.c src/txnTypeLists.c
+
+src/txnTypeLists.c:
+	python ./createTxnTypes.py > $@
+
 load: all
 	python -m ledgerblue.loadApp $(APP_LOAD_PARAMS)
 
@@ -145,6 +154,8 @@ AS := $(GCCPATH)arm-none-eabi-gcc
 LD := $(GCCPATH)arm-none-eabi-gcc
 LDFLAGS += -O3 -Os
 LDLIBS += -lm -lgcc -lc
+
+SOURCE_FILES += src/txnTypeLists.c
 
 ##################
 #  Dependencies  #
