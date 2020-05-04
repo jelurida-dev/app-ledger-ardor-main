@@ -27,30 +27,50 @@
 #include "config.h"
 #include "ardor.h"
 
-char screenContent[27];
 
-static const bagl_element_t ui_screen[] = {
-        UI_BACKGROUND(),
-        {{BAGL_ICON,0x00,117,11,8,6,0,0,0,0xFFFFFF,0,0,BAGL_GLYPH_ICON_CHECK},NULL,0,0,0,NULL,NULL,NULL},
-        UI_TEXT(0x00, 0, 12, 128, "Your Address"),
-        {{BAGL_LABELINE,0x01,15,26,98,12,10,0,0,0xFFFFFF,0,BAGL_FONT_OPEN_SANS_EXTRABOLD_11px|BAGL_FONT_ALIGNMENT_CENTER,26},(char*)screenContent,0,0,0,NULL,NULL,NULL}
-};
-
-static unsigned int ui_screen_button(unsigned int button_mask, unsigned int button_mask_counter) {
-
-    UNUSED(button_mask_counter);
-
-    if (!(BUTTON_EVT_RELEASED & button_mask))
-        return 0;
+//done button callback
+unsigned int doneButton(const bagl_element_t *e) {
+    
+    UNUSED(e);
 
     G_io_apdu_buffer[0] = R_SUCCESS;
     G_io_apdu_buffer[1] = 0x90;
     G_io_apdu_buffer[2] = 0x00;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 3);
-    ui_idle();
-    return 0;
+    
+    ui_idle();  // redraw ui
+    return 0; // DO NOT REDRAW THE BUTTON
 }
 
+//Defenition of the UI for this handler
+char screenContent[27];
+UX_STEP_VALID(saFlowPage1, 
+    bnnn_paging,
+    doneButton(NULL),
+    {
+      .title = "Your Address",
+      .text = screenContent,
+    });
+UX_STEP_VALID(saFlowPage2, 
+    pb, 
+    doneButton(NULL),
+    {
+      &C_icon_validate_14,
+      "Done"
+    });
+UX_FLOW(saFlow,
+  &saFlowPage1,
+  &saFlowPage2
+);
+
+void showScreen() {
+    if(0 == G_ux.stack_count)
+        ux_stack_push();
+
+    ux_flow_init(0, saFlow, NULL);
+}
+
+//defined in reedSolomon.c
 void reedSolomonEncode(const uint64_t inp, char * const output);
 
 void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
@@ -69,24 +89,20 @@ void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t 
         G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
         return;
     }
-
-    uint32_t derivationPathCpy[MAX_DERIVATION_LENGTH]; os_memset(derivationPathCpy, 0, sizeof(derivationPathCpy));  //for some reason you can't point to the derivation path on the buffer when deriving keys
-    
-    //datalength is checked in the main function so there should not be worry for some kind of overflow
-    os_memmove(derivationPathCpy, dataBuffer, derivationParamLengthInBytes);
     
     G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
     uint16_t exception = 0;
 
     uint8_t publicKey[32]; os_memset(publicKey, 0, sizeof(publicKey));
-    uint8_t ret = ardorKeys(derivationPathCpy, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKey, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
+
+    uint8_t ret = ardorKeys(dataBuffer, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKey, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
     if (R_SUCCESS == ret) {
         os_memset(screenContent, 0, sizeof(screenContent));
         snprintf(screenContent, sizeof(screenContent), APP_PREFIX);
         reedSolomonEncode(publicKeyToId(publicKey), screenContent + strlen(screenContent));
-        UX_DISPLAY(ui_screen, (bagl_element_callback_t)makeTextGoAround_preprocessor);
+        showScreen();
         *flags |= IO_ASYNCH_REPLY;
     } else if (R_KEY_DERIVATION_EX == ret) {
         G_io_apdu_buffer[0] = ret;

@@ -31,20 +31,9 @@
 
 
 
-
-
 //the global state
 states_t state;
 
-//This is a prepocessor function for dialogs, it allows long labels to go in circles, like long crypto addresses, I have no idea how this works :)
-unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element)
-{
-    //I guess we are filtering on the UI element
-    if (element->component.userid > 0)
-        UX_CALLBACK_SET_INTERVAL(MAX(3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
-    
-    return 1;
-}
 
 //self explanatory
 //output must point to buffer of 32 bytes in size
@@ -99,9 +88,9 @@ void signMsg(uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_
 //from curveConversion.C
 void morph25519_e2m(uint8_t *montgomery, const uint8_t *y);
 
-//todo: make sure i clean everything out
-//this function derives an ardor keeyseed (privatekey ^ -1), public key, ed255119 public key and chaincode
 
+//this function derives an ardor keeyseed (privatekey ^ -1), public key, ed255119 public key and chaincode
+//For more info on how this derivation works, please read the readme
 //@param in: derivationPath - a BIP42 derivation path, must be at least of length MIN_DERIVATION_PATH_LENGTH
 //@param in: derivationPathLengthInUints32 - kinda what it says it is
 //@param optional out: keySeedBfrOut - 32 byte EC-KCDSA keyseed for the derivation path
@@ -110,8 +99,7 @@ void morph25519_e2m(uint8_t *montgomery, const uint8_t *y);
 //@param optional out: chainCodeOut - the 32 byte ED255119 derivation chaincode, used for external master public key derivation
 //@param out: exceptionOut - iff the return code is R_EXCEPTION => exceptionOut will be filled with the Nano exception code
 //@returns: regular return values
-
-uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
+uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
                     uint8_t * const keySeedBfrOut, uint8_t * const publicKeyCurveXout, uint8_t * const publicKeyEd25519YLEWithXParityOut, uint8_t * const chainCodeOut, uint16_t * const exceptionOut) {
     
     uint8_t publicKeyYLE[32]; os_memset(publicKeyYLE, 0, sizeof(publicKeyYLE)); //declaring here although used later, so it can be acessable to the finally statement
@@ -123,14 +111,18 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
     if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32))
         return R_WRONG_SIZE_ERR;
 
+    //os_perso_derive_node_bip32 doesn't accept derivation paths located on the input buffer, so we make a local stack copy
+    uint32_t copiedDerivationPath[MAX_DERIVATION_LENGTH]; os_memset(copiedDerivationPath, 0, sizeof(copiedDerivationPath));
+    os_memmove(copiedDerivationPath, derivationPath, derivationPathLengthInUints32 * sizeof(uint32_t));
+
     for (uint8_t i = 0; i < sizeof(bipPrefix) / sizeof(bipPrefix[0]); i++) {
-        if (derivationPath[i] != bipPrefix[i])
+        if (copiedDerivationPath[i] != bipPrefix[i])
             return R_WRONG_DERIVATION_PATH_HEADER;
     }
 
     BEGIN_TRY {
             TRY {
-                    os_perso_derive_node_bip32(CX_CURVE_Ed25519, derivationPath, derivationPathLengthInUints32, KLKR, chainCodeOut);
+                    os_perso_derive_node_bip32(CX_CURVE_Ed25519, copiedDerivationPath, derivationPathLengthInUints32, KLKR, chainCodeOut);
 
                     // weird custom initilization, code copied from Cardano's EdDSA implementaion
                     privateKey.curve = CX_CURVE_Ed25519;
@@ -148,7 +140,7 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
                         cx_ecfp_public_key_t publicKey; 
                         cx_ecfp_init_public_key(CX_CURVE_Ed25519, 0, 0, &publicKey);
 
-                        //This should return A = SHA512(privateKey)[:32] * B - B is the generator point in ED25519 and not sure if the hash is interpreted as big endian or little
+                        //This should return A = KL * B - B is the generator point in ED25519
                         //So publicKey.W = 04 Ax Ay in BE
                         cx_eddsa_get_public_key(
                                 &privateKey,
@@ -163,14 +155,13 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
                         if (0 != publicKeyCurveXout)
                             morph25519_e2m(publicKeyCurveXout, publicKeyYLE);
 
-                        //We encode the pairty of X into the LSB of Y, since it's never used
+                        //We encode the pairty of X into the MSB of Y, since it's never used because of the feild size
                         //This allows us to compress X,Y into 32 bytes
                         if ((publicKey.W[32] & 1) != 0)
                             publicKeyYLE[31] |= 0x80;
 
                         if (0 != publicKeyEd25519YLEWithXParityOut)
                             os_memmove(publicKeyEd25519YLEWithXParityOut, publicKeyYLE, 32);
-
                     }
             }
             CATCH_OTHER(exception) {
@@ -192,7 +183,7 @@ uint8_t ardorKeys(const uint32_t * const derivationPath, const uint8_t derivatio
 //@param derivationPath - the derivation path
 //@param derivationPathLengthInUints32 - kinda clear what this is
 //@param targetPublicKey - the 32 byte public key
-uint8_t getSharedEncryptionKey(const uint32_t * const derivationPath, const uint8_t derivationPathLengthInUints32, const uint8_t* const targetPublicKey, 
+uint8_t getSharedEncryptionKey(const uint8_t * const derivationPath, const uint8_t derivationPathLengthInUints32, const uint8_t* const targetPublicKey, 
                                 const uint8_t * const nonce, uint16_t * const exceptionOut, uint8_t * const aesKeyOut) {
     
     uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));

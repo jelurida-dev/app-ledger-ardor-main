@@ -2,10 +2,43 @@
 
 This is the official Ardor wallet app for the Ledger Nano S and X
 
+## More documentation
+
+You can use [This]: https://buildmedia.readthedocs.org/media/pdf/ledger/latest/ledger.pdf as a resource for info
+Also Ledger has a slack channel where you can ask questions
+
+## Debug Prints
+
+1. In order to have the printf functions work from the code, you need to install [debug firmware]: https://ledger.readthedocs.io/en/latest/userspace/debugging.html
+2. turn on the debug in the make file (DEVEL = 1) - make sure not to commit this
+3. make clean and then make load -> to make sure all the PRINTF's come into effect
+
+
+## How to switch between different target build
+
+If you want to switch between NanoS and NanoX builds, you have to
+1. Swap the SDK folders
+2. Change the value of TARGET_NAME in the make file to TARGET_NANOS or TARGET_NANOX 
+
 ## Enforcments to hold as a developer
 
 There are a few things that a dev must make sure the app is doing, and there is no way to enforce this in code
 bacause of the platform limitations, so it's desribed here.
+
+### Underflow
+
+Since we are using unsigned types a lot, we have to be very careful no to underflow on these types, for example:
+derivationLengthSigned = (dataLength - 32) / sizeof(uint32_t);
+
+This line would underflow if the dataLength is smaller then 32, which would make potential be a security vulnerability, 
+so make sure to search the whole project for minus "-", and make sure the code is safe.
+
+### 0 Warnings
+
+Make sure when releaseing the product that it has no warning coming in the code that you write, SDK warnings are OK since
+there is nothing you can do about them
+
+### State Cleaning
 
 Because we use a union for all of the command handler's states (called state, defined in ardor.h) in order to save memory, the app is vulnerable to
 an attack in which the state is filled using one command and then exploited using a different command's interpretation of the same state
@@ -26,7 +59,6 @@ and the whole process is used to sync between the 2 Ledger App code and Java imp
 
 The code flow starts at ardor_main which is a try/catch (global exception catch, so that the app wont crash) loop on io_exchange,
 waiting for the next command buffer and the calling the appropriate handler function which is implemented in the different C files
-
 
 ## APDU Protocol
 
@@ -68,6 +100,11 @@ You use lib found [here]: https://gitlab.com/haimbender/ardor-ledger-js in order
 
 ## Stackoverflow canary
 
+To get the amount of memeory used in the app call the following:
+readelf -s bin/app.elf | grep app_stack_canary 
+that will output the canary (which is at the end of the memory space) location then subtruct 0x20001800 from it to get the actuall used up space for the app
+the NanoS has 4k of memory for the app and the stack, the start address to subtract for the NanoX is 0xda7a0000
+
 The app uses the SDK's built in app_stack_canary, it's activated in the makefile by the define HAVE_BOLOS_APP_STACK_CANARY
 I advise to keep this flag always on, it just gives extra security and doesn't take up much CPU.
 The way this works is it defines an int at the end of the stack, inits it at startup and then check's against it every call to io_exchange,
@@ -81,3 +118,46 @@ Errors are propegated though the call stack and it's the command handler's or bu
 and return the error back to the caller
 
 All return values for functions should be checked in every function
+
+
+## How key derivation works
+
+We wanted to create some kind of derivation scheme simular to BIP32/44 for Ardor, but since it's using EC-KCDSA on Curve25519,
+we had to get creative with already existing schemes.
+
+The solution we came up with was to ride on top of [BIP32-Ed25519 Hierarchical Deterministic paper](https://cardanolaunch.com/assets/Ed25519_BIP.pdf) derivation scheme for ED25519 on a twisted edwards curve using SLIP10 initialization on 512 bits master seed from bip39/bip32 24 words, which is supported on most platforms, then converting the key pairs from ED25519 on the twisted edwards curve to EC-KCDSA on Curve25519 (It's complex, you might need to read it a few times, it's ok)
+
+Just to recall for the readers who don't know, a public key is a Point(X,Y) on a curve C, X,Y are integers modolu some field F with a base point on the curve G
+(C, F, G) define "curves", in this paper we are dealing with the twisted edwards curve and curve25519
+
+There is also a morphe function between the twisted edwards curve (remember, we are talking about the actual curve itself, base point and field) and the curve25519
+such that: if Apoint = Knumber * BasePointED25519 on the twisted edwarads curve then morphe(Apoint) = Knumber * BasePointECKCDSA on curve255119
+Implementation for this function can be found in curveConversion.c
+
+ED25519 Keys are defined as: PublicKeyED25519Point = CLAMP(SHA512(privateKey)[:32]) * ED25519BasePoint
+
+Lets refer to CLAMP(SHA512(privateKey)[:32]) as KL
+
+The derivation composition flow is for path P:
+
+1. os_perso_derive_node_bip32 derives KLKR and chaincode for P (will explain later why we need this) acording to the [BIP32-Ed25519 Hierarchical Deterministic paper](https://cardanolaunch.com/assets/Ed25519_BIP.pdf) using SLIP10 initialization on 512 bits master seed from bip39/bip32 24 words
+2. derive PublicKeyED25519 using cx_eddsa_get_public_key and KL, the point is encoded as 65 bytes 04 XBigEndian YBigEndian
+3. PubleyKeyED25519YLE = convert(YBigEndian) - just reverse the bytes
+4. PublicKeyCurve25519X = morphe(PubleyKeyEED25519YLE)
+
+Points on Curve25519 can be defined by just the X point (cuz each X has only 1 Y), so PublicKeyCurve25519X and
+KL should hold PublicKeyCurve25519X = KL * Curve25519BasePoint
+
+In EC-KCDSA publickey = privatekey^-1 * BasePoint (don't ask me why the private is in reverse), privateKey ^ -1 is refered to as the keyseed, so KL is the keyseed for the PublicKeyCurve25519X public key for path P, whop, we've done it!
+
+Extra Notes:
+
+* ED25519 public keys are usually compressed into a Y point in little endian having the MSB bit encode the parity of X, (since each Y has two possible X values, X and -X in feild F which means if one is even the second is odd)
+
+* In order to derive public keys outside of the ledger (Masterkey derivation), all we need is the ED25519 public key and chaincode, described in the derivation scheme
+
+* Code for the derivation implementation can found in [Python](https://cardanolaunch.com/assets/Ed25519_BIP.pdf) //todo add javascript and javfa implementations
+
+* You can read the actuall paper on derivation [here](https://www.jelurida.com/sites/default/files/kcdsa.pdf)
+
+* The curves don't really look like curves, just a cloud of points

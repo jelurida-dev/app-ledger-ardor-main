@@ -91,24 +91,22 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
             return;
         }
 
-        uint8_t derivationLength = 0;
+        int16_t derivationLengthSigned = 0;
 
-        //todo if data length is smaller the 0, we might underflow here, what happens then?, we need to find all places like this, check if this gives out a warning
         if (P1_INIT_ENCRYPT == p1)
-            derivationLength = (dataLength - 32) / sizeof(uint32_t);
+            derivationLengthSigned = (dataLength - 32) / sizeof(uint32_t); //no underflow because type is signed
         else
-            derivationLength = (dataLength - 32 * 2 - 16) / sizeof(uint32_t);
+            derivationLengthSigned = (dataLength - 32 * 2 - 16) / sizeof(uint32_t);
 
-        if ((MIN_DERIVATION_LENGTH > derivationLength) || (MAX_DERIVATION_LENGTH < derivationLength)) {
+        if ((MIN_DERIVATION_LENGTH > derivationLengthSigned) || (MAX_DERIVATION_LENGTH < derivationLengthSigned)) {
             cleanEncryptionState();
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
             return;
         }
 
-        uint32_t derivationPath[MAX_DERIVATION_LENGTH]; //todo check if i can just point to the derivation path
-        uint8_t nonce[32];
-        os_memcpy(derivationPath, dataBuffer, derivationLength * sizeof(uint32_t));
+        uint8_t derivationLength = derivationLengthSigned; //cast is ok, because if the check above
 
+        uint8_t nonce[32];
         const uint8_t * noncePtr = dataBuffer + derivationLength * sizeof(uint32_t) + 32;
 
         if (P1_INIT_ENCRYPT == p1) {
@@ -119,7 +117,7 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
         uint16_t exceptionOut = 0;
         uint8_t encryptionKey[32];
 
-        uint8_t ret = getSharedEncryptionKey(derivationPath, derivationLength, dataBuffer + derivationLength * sizeof(uint32_t), noncePtr, &exceptionOut, encryptionKey);
+        uint8_t ret = getSharedEncryptionKey(dataBuffer, derivationLength, dataBuffer + derivationLength * sizeof(uint32_t), noncePtr, &exceptionOut, encryptionKey);
 
         if (R_KEY_DERIVATION_EX == ret) {
             cleanEncryptionState();

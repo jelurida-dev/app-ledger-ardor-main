@@ -113,6 +113,7 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
                 break;
             }
 
+            //underflow was checked against above above
             uint8_t derivationPathLengthInUints32 = (dataLength - 4) / sizeof(uint32_t);
 
             if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32)) {
@@ -121,14 +122,13 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
                 break;
             }
 
-            uint32_t derivationPath[MAX_DERIVATION_LENGTH];
-            os_memcpy(derivationPath, dataBuffer + 4, derivationPathLengthInUints32 * sizeof(uint32_t));
-
             uint16_t exception = 0;
+            uint32_t timestamp = 0;
+            uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
 
             //gotta do some space reuse
             uint8_t publicKeyAndFinalHash[32]; os_memset(publicKeyAndFinalHash, 0, sizeof(publicKeyAndFinalHash));
-            uint8_t ret = ardorKeys(derivationPath, derivationPathLengthInUints32, 0, publicKeyAndFinalHash, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
+            uint8_t ret = ardorKeys(dataBuffer + sizeof(timestamp), derivationPathLengthInUints32, keySeed, publicKeyAndFinalHash, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
             if (R_SUCCESS != ret) {
                 cleanTokenCreationState();
@@ -143,8 +143,8 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
                 break;
             }
 
-            uint32_t timestamp;
-            os_memcpy(&timestamp, dataBuffer, 4);
+            
+            os_memcpy(&timestamp, dataBuffer, sizeof(timestamp));
 
             G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
@@ -160,24 +160,6 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
             *tx += sizeof(timestamp);
 
             cx_hash(&state.tokenCreation.sha256.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
-
-            uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
-
-            if (R_SUCCESS != (ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, &exception))) {
-                os_memset(keySeed, 0, sizeof(keySeed));
-                cleanTokenCreationState();
-                
-                
-                *tx = 0; //rewind all the stuff we wrote on the output buffer and just write over that
-                G_io_apdu_buffer[(*tx)++] = ret;
-
-                if (R_KEY_DERIVATION_EX == ret) {
-                    G_io_apdu_buffer[(*tx)++] = exception >> 8;
-                    G_io_apdu_buffer[(*tx)++] = exception & 0xFF;   
-                }
-
-                break;
-            }
 
             signMsg(keySeed, publicKeyAndFinalHash, G_io_apdu_buffer + *tx); //is a void function, no ret value to check against
             os_memset(keySeed, 0, sizeof(keySeed));
