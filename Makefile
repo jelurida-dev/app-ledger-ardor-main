@@ -18,7 +18,6 @@
 
 #Defines
 
-#TARGET_NAME = TARGET_NANOX	#Not required here, this is defined by the SDK in use (from the BOLOS_SDK env variable)
 APPNAME = Ardor#Here you need switch between Ardor and NXT (Mind the letter casing, it matters)
 DEVEL = 0#This means we are in DEBUG mode, change this up when releasing in production
 
