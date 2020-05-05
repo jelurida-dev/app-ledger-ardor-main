@@ -16,10 +16,8 @@ extern const uint8_t SUPPORTED_TXN_VERSION;
 extern const uint8_t ARDOR_SPECIAL_IDENTIFIER[];
 extern const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN;
 
-
 extern const uint16_t VERSION;
 extern const uint8_t VERSION_FLAGS;
-extern const char UI_APP_VERSION_TXT[];
 
 
 //must make this a define instead of static const, because some array declirations are dependant on this size
