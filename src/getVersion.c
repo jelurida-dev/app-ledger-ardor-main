@@ -29,8 +29,9 @@ void getVersionHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const
 
 	UNUSED(p1); UNUSED(p2); UNUSED(dataBuffer); UNUSED(dataLength); UNUSED(flags); UNUSED(isLastCommandDifferent);
 
-	G_io_apdu_buffer[(*tx)++] = VERSION >> 8;
-	G_io_apdu_buffer[(*tx)++] = VERSION & 0xFF;
+	G_io_apdu_buffer[(*tx)++] = APPVERSION_M;
+	G_io_apdu_buffer[(*tx)++] = APPVERSION_N;
+	G_io_apdu_buffer[(*tx)++] = APPVERSION_P;
 	G_io_apdu_buffer[(*tx)++] = VERSION_FLAGS;
 
 	os_memmove(G_io_apdu_buffer + (*tx), ARDOR_SPECIAL_IDENTIFIER, ARDOR_SPECIAL_IDENTIFIER_LEN);
