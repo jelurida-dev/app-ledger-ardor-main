@@ -25,32 +25,32 @@ DEVEL = 0#This means we are in DEBUG mode, change this up when releasing in prod
 #####################################3
 
 ifeq ($(BOLOS_SDK),)
-	$(error Environment variable BOLOS_SDK is not set)
+    $(error Environment variable BOLOS_SDK is not set)
 endif
 
 include $(BOLOS_SDK)/Makefile.defines
 
 ifeq ($(APPNAME),Ardor)
-	DEFINES = "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
-	PATH_PREFIX = "44'/16754'"
-	DEFINES += APP_PREFIX=\"ARDOR-\"
-
-	ifeq ($(TARGET_NAME),TARGET_NANOX)
-		ICONNAME = ArdorIconNanoX.gif
-	else
-		ICONNAME = ArdorIconNanoS.gif
-	endif
+    DEFINES = "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
+    PATH_PREFIX = "44'/16754'"
+    DEFINES += APP_PREFIX=\"ARDOR-\"
+    
+    ifeq ($(TARGET_NAME),TARGET_NANOX)
+    	ICONNAME = ArdorIconNanoX.gif
+    else
+    	ICONNAME = ArdorIconNanoS.gif
+    endif
 else
-	echo $(APPNAME)
-	DEFINES = "PATH_PREFIX={44|0x80000000,29|0x80000000}"
-	PATH_PREFIX = "44'/29'"
-	DEFINES += APP_PREFIX=\"NXT-\"
-
-	ifeq ($(TARGET_NAME),TARGET_NANOX)
-		ICONNAME = NXTIconNanoX.gif
-	else
-		ICONNAME = NXTIconNanoS.gif
-	endif
+    echo $(APPNAME)
+    DEFINES = "PATH_PREFIX={44|0x80000000,29|0x80000000}"
+    PATH_PREFIX = "44'/29'"
+    DEFINES += APP_PREFIX=\"NXT-\"
+    
+    ifeq ($(TARGET_NAME),TARGET_NANOX)
+        ICONNAME = NXTIconNanoX.gif
+    else
+        ICONNAME = NXTIconNanoS.gif
+    endif
 endif
 
 ############
@@ -65,27 +65,27 @@ APP_LOAD_PARAMS = --curve ed25519 $(COMMON_LOAD_PARAMS)
 APP_LOAD_PARAMS += --tlvraw 9F:01
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
-	SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
-	
-	# The --appFlags param gives permision to open bluetooth
-	APP_LOAD_PARAMS += --appFlags 0x0200
-
-	DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
-	DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
-	DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
-	DEFINES += HAVE_BLE_APDU # basic ledger apdu transport over BLE
-
-	DEFINES += HAVE_GLO096
-	DEFINES += BAGL_WIDTH=128 BAGL_HEIGHT=64
+    SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
+    
+    # The --appFlags param gives permision to open bluetooth
+    APP_LOAD_PARAMS += --appFlags 0x0200
+    
+    DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
+    DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
+    DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
+    DEFINES += HAVE_BLE_APDU # basic ledger apdu transport over BLE
+    
+    DEFINES += HAVE_GLO096
+    DEFINES += BAGL_WIDTH=128 BAGL_HEIGHT=64
 	DEFINES += HAVE_BAGL_ELLIPSIS # long label truncation feature
-	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
-	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
-	DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
+    DEFINES += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
+    DEFINES += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
+    DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
 else
-	# Since we don't have bluetooth in NanoS we set --appFlags to 0
-	APP_LOAD_PARAMS += --appFlags 0x0000
-
-	DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128
+    # Since we don't have bluetooth in NanoS we set --appFlags to 0
+    APP_LOAD_PARAMS += --appFlags 0x0000
+    
+    DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128
 endif
 
 DEFINES += HAVE_UX_FLOW
@@ -118,22 +118,28 @@ DEFINES += BLAKE_SDK
 
 # Enabling debug PRINTF
 ifeq ($(DEVEL), 1)
-	DEFINES += DEVEL HAVE_PRINTF
-	ifeq ($(TARGET_NAME),TARGET_NANOX)
-		DEFINES += PRINTF=mcu_usb_printf
-	else
-		DEFINES += PRINTF=screen_printf
-	endif
+    DEFINES += DEVEL HAVE_PRINTF
+    ifeq ($(TARGET_NAME),TARGET_NANOX)
+        DEFINES += PRINTF=mcu_usb_printf
+    else
+        DEFINES += PRINTF=screen_printf
+    endif
 else
-	DEFINES += PRINTF\(...\)=
+    DEFINES += PRINTF\(...\)=
 endif
 
+AUTOGEN_SRC := src/txnTypeLists.c
+AUTOGEN_OBJ := $(AUTOGEN_SRC:src/%.c=obj/%.o)
+
+SOURCE_FILES += $(AUTOGEN_SRC)
+
+.PHONY: realclean clean
 
 all: default
 
-src/authAndSignTxn.o: src/authAndSignTxn.c src/txnTypeLists.c
+$(AUTOGEN_OBJ): src/authAndSignTxn.c $(AUTOGEN_SRC)
 
-src/txnTypeLists.c:
+$(AUTOGEN_SRC):
 	python ./createTxnTypes.py > $@
 
 load: all
@@ -142,10 +148,26 @@ load: all
 delete:
 	python -m ledgerblue.deleteApp $(COMMON_DELETE_PARAMS)
 
+realclean: clean
+	rm -f $(AUTOGEN_SRC)
+
 
 ##############
 #  Compiler  #
 ##############
+ifneq ($(BOLOS_ENV),)
+$(info BOLOS_ENV=$(BOLOS_ENV))
+CLANGPATH := $(BOLOS_ENV)/clang-arm-fropi/bin/
+GCCPATH := $(BOLOS_ENV)/gcc-arm-none-eabi-5_3-2016q1/bin/
+else
+$(info BOLOS_ENV is not set: falling back to CLANGPATH and GCCPATH)
+endif
+ifeq ($(CLANGPATH),)
+$(info CLANGPATH is not set: clang will be used from PATH)
+endif
+ifeq ($(GCCPATH),)
+$(info GCCPATH is not set: arm-none-eabi-* will be used from PATH)
+endif
 
 CC := $(CLANGPATH)clang
 CFLAGS += -O3 -Os
@@ -154,8 +176,6 @@ AS := $(GCCPATH)arm-none-eabi-gcc
 LD := $(GCCPATH)arm-none-eabi-gcc
 LDFLAGS += -O3 -Os
 LDLIBS += -lm -lgcc -lc
-
-SOURCE_FILES += src/txnTypeLists.c
 
 ##################
 #  Dependencies  #
