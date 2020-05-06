@@ -18,7 +18,6 @@
 
 #Defines
 
-#TARGET_NAME = TARGET_NANOX	#Not required here, this is defined by the SDK in use (from the BOLOS_SDK env variable)
 APPNAME = Ardor#Here you need switch between Ardor and NXT (Mind the letter casing, it matters)
 DEVEL = 0#This means we are in DEBUG mode, change this up when releasing in production
 
@@ -93,7 +92,13 @@ DEFINES += HAVE_UX_FLOW
 APPVERSION_M = 1
 APPVERSION_N = 0
 APPVERSION_P = 1
+
+DEFINES += APPVERSION_M=$(APPVERSION_M)
+DEFINES += APPVERSION_N=$(APPVERSION_N)
+DEFINES += APPVERSION_P=$(APPVERSION_P)
 APPVERSION   = $(APPVERSION_M).$(APPVERSION_N).$(APPVERSION_P)
+
+
 
 # The --path argument here restricts which BIP32 paths the app is allowed to derive.
 APP_LOAD_PARAMS += --path $(PATH_PREFIX)

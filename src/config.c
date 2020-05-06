@@ -18,6 +18,4 @@ const uint8_t SUPPORTED_TXN_VERSION = 1;
 const uint8_t ARDOR_SPECIAL_IDENTIFIER[] = {0xba, 0xbe, 0x00};
 const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN = sizeof(ARDOR_SPECIAL_IDENTIFIER);
 
-const char UI_APP_VERSION_TXT[] = "1.0";
-const uint16_t VERSION = 0x0001;
 const uint8_t VERSION_FLAGS = 0x00;
