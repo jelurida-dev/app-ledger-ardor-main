@@ -19,7 +19,7 @@ def main():
 
 			parseFunction = appendageParseFunctionDict.get(txSubType * 256 + txtype , 0)
 
-			out += '{' + '0x{:02x}{:02x},"{}",{}'.format(txSubType, txtype, name[0:-1], parseFunction) + '},\n'
+			out += '{' + '0x{:02x}{:02x},"{}",{}'.format(txSubType, txtype, name.rstrip(), parseFunction) + '},\n'
 
 
 		print(out[0:-2] + "};")
