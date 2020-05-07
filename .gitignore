@@ -13,4 +13,4 @@ src/glyphs\.h
 
 usbtool/
 
-src/txnTypesList.c
+src/txnTypeLists.c
