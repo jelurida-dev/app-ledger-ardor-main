@@ -17,8 +17,6 @@
 #*******************************************************************************
 
 #Defines
-
-APPNAME = Ardor#Here you need switch between Ardor and NXT (Mind the letter casing, it matters)
 DEVEL = 0#This means we are in DEBUG mode, change this up when releasing in production
 
 #####################################3
@@ -29,7 +27,12 @@ endif
 
 include $(BOLOS_SDK)/Makefile.defines
 
-ifeq ($(APPNAME),Ardor)
+ifndef COIN
+COIN=ardor
+endif
+
+ifeq ($(COIN),ardor)
+    APPNAME = Ardor
     DEFINES = "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
     PATH_PREFIX = "44'/16754'"
     DEFINES += APP_PREFIX=\"ARDOR-\"
@@ -39,8 +42,8 @@ ifeq ($(APPNAME),Ardor)
     else
     	ICONNAME = ArdorIconNanoS.gif
     endif
-else
-    echo $(APPNAME)
+else ifeq ($(COIN),nxt)
+    APPNAME = NXT
     DEFINES = "PATH_PREFIX={44|0x80000000,29|0x80000000}"
     PATH_PREFIX = "44'/29'"
     DEFINES += APP_PREFIX=\"NXT-\"
@@ -50,7 +53,10 @@ else
     else
         ICONNAME = NXTIconNanoS.gif
     endif
+else
+    $(error /!\ Coin "$(COIN)" not in list of allowed variants! Type "make listvariants" for variants list. Build non-default variant with "make COIN=<variant>")
 endif
+$(info Building $(APPNAME) app...)
 
 ############
 # Platform #
@@ -194,4 +200,4 @@ include $(BOLOS_SDK)/Makefile.rules
 dep/%.d: %.c Makefile
 
 listvariants:
-	@echo VARIANTS COIN sia
+	@echo VARIANTS COIN ardor nxt
