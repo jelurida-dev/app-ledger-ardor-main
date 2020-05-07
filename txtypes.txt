@@ -56,3 +56,5 @@
 11,1,Coin Exchange Order Cancel
 12,0,Contract Reference
 12,1,Contract Reference Delete
+13,0,Add Permission
+13,1,Remove Permission
