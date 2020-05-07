@@ -144,7 +144,7 @@ all: default
 
 $(AUTOGEN_OBJ): src/authAndSignTxn.c $(AUTOGEN_SRC)
 
-$(AUTOGEN_SRC):
+$(AUTOGEN_SRC): createTxnTypes.py txtypes.txt
 	python ./createTxnTypes.py > $@
 
 load: all
