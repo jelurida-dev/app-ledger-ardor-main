@@ -8,6 +8,20 @@ This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app f
 
 ## Developer Resources 
 
+### Compiling using the Jelurida docker image for ledger compilation
+
+The image was made to make it easy to compilation the project on any platform you might be running, if you don't have access to this image, don't worry you can still setup up your own dev env and compile.
+
+To compile using the image
+1. Virtualy map your project folder using `-v "PROJECT_FOLDER_HERE:/app"` into /app on the machine when you create your personal image
+2. cd /app - this should be your project folder
+3. pyenv activate ledger - to activate the right version of python
+4. `make clean BOLOS_SDK=/root/nanox-secure-sdk-1.6`
+5. `make BOLOS_SDK=/root/nanox-secure-sdk-1.6`
+6. `make load BOLOS_SDK=/root/nanox-secure-sdk-1.6` this shouldn't work, since the ledger usb isn't mounted into the docker, but it will produce a python command for loading the image on your own machine, copy paste this command on your own machine to load the newly compiled app onto the ledger device
+
+* Switch between /root/nanox-secure-sdk-1.6 and /root/nanos-secure-sdk-1.6 if you want to compile for a different device
+
 ### Enable Log Messages
 
 To turn on logging on the Ledger app
