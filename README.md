@@ -10,12 +10,12 @@ This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app f
 
 ### Compiling using the Jelurida docker image for ledger compilation
 
-The image was made to make it easy to compilation the project on any platform you might be running, if you don't have access to this image, don't worry you can still setup up your own dev env and compile.
+The image was made to make it easy to compile the project on any platform you might be running, if you don't have access to this image, don't worry you can still setup up your own dev env and compile.
 
 To compile using the image
-1. Virtualy map your project folder using `-v "PROJECT_FOLDER_HERE:/app"` into /app on the machine when you create your personal image
-2. cd /app - this should be your project folder
-3. pyenv activate ledger - to activate the right version of python
+1. Virtualy map your project folder using `-v "PROJECT_FOLDER_HERE:/app"` into /app when you create your personal image
+2. `cd /app` - this should be your project folder
+3. `pyenv activate ledger` - to activate the right version of python
 4. `make clean BOLOS_SDK=/root/nanox-secure-sdk-1.6`
 5. `make BOLOS_SDK=/root/nanox-secure-sdk-1.6`
 6. `make load BOLOS_SDK=/root/nanox-secure-sdk-1.6` this shouldn't work, since the ledger usb isn't mounted into the docker, but it will produce a python command for loading the image on your own machine, copy paste this command on your own machine to load the newly compiled app onto the ledger device
@@ -166,6 +166,6 @@ Extra Notes:
 
 * Reference code for the derivation implementation can found in the [Ardor source code](https://bitbucket.org/Jelurida/ardor/src/master/)
 
-* [This repo](https://github.com/LedgerHQ/orakolo) implements SLIP10 master seed generation and BIP32 HD EdDSA key derivation in python for reference, [This clone](https://github.com/haimbender/orakolo) also implements master public key derivation for BIP32 EdDSA
+* [This repo](https://github.com/LedgerHQ/orakolo) implements SLIP10 master seed generation and BIP32 HD EdDSA key derivation in python for reference, [this clone](https://github.com/haimbender/orakolo) also implements master public key derivation for BIP32 EdDSA
 
 * Curve25519 and ED25519 curves don't really look like curves, they are just a cloud of points
