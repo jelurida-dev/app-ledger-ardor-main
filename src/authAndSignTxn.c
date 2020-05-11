@@ -119,9 +119,12 @@ void initTxnAuthState() {
 
     os_memset(state.txnAuth.feeText, 0, sizeof(state.txnAuth.feeText));    
     os_memset(state.txnAuth.chainAndTxnTypeText, 0, sizeof(state.txnAuth.chainAndTxnTypeText));    
+    os_memset(state.txnAuth.optionalWindow1Title, 0, sizeof(state.txnAuth.optionalWindow1Title));
     os_memset(state.txnAuth.optionalWindow1Text, 0, sizeof(state.txnAuth.optionalWindow1Text));    
     os_memset(state.txnAuth.optionalWindow2Title, 0, sizeof(state.txnAuth.optionalWindow2Title));    
     os_memset(state.txnAuth.optionalWindow2Text, 0, sizeof(state.txnAuth.optionalWindow2Text));
+    os_memset(state.txnAuth.optionalWindow3Title, 0, sizeof(state.txnAuth.optionalWindow3Title));
+    os_memset(state.txnAuth.optionalWindow3Text, 0, sizeof(state.txnAuth.optionalWindow3Text));
     os_memset(state.txnAuth.appendagesText, 0, sizeof(state.txnAuth.appendagesText));
 
     state.txnAuth.uiFlowBitfeild = 0;
@@ -266,7 +269,7 @@ UX_STEP_NOCB(aasFlowPage2,
 UX_STEP_NOCB(aasFlowOptional1,
     bnnn_paging, 
     {
-      .title = "Amount",
+      .title = state.txnAuth.optionalWindow1Title,
       .text = state.txnAuth.optionalWindow1Text,
     });
 UX_STEP_NOCB(aasFlowOptional2, 
@@ -275,6 +278,12 @@ UX_STEP_NOCB(aasFlowOptional2,
       .title = state.txnAuth.optionalWindow2Title,
       .text = state.txnAuth.optionalWindow2Text,
     });
+UX_STEP_NOCB(aasFlowOptional3, 
+bnnn_paging, 
+{
+    .title = state.txnAuth.optionalWindow3Title,
+    .text = state.txnAuth.optionalWindow3Text,
+});
 UX_STEP_NOCB(aasFlowAppendages, 
     bnnn_paging, 
     {
@@ -303,7 +312,7 @@ UX_STEP_VALID(aasFlowPage5,
       "Reject",
     });
 
-UX_FLOW(ux_flow_00,
+UX_FLOW(ux_flow_000,
   &aasFlowPage1,
   &aasFlowPage2,
   &aasFlowPage3,
@@ -311,7 +320,7 @@ UX_FLOW(ux_flow_00,
   &aasFlowPage5
 );
 
-UX_FLOW(ux_flow_01,
+UX_FLOW(ux_flow_001,
   &aasFlowPage1,
   &aasFlowPage2,
   &aasFlowAppendages,
@@ -320,7 +329,7 @@ UX_FLOW(ux_flow_01,
   &aasFlowPage5
 );
 
-UX_FLOW(ux_flow_10,
+UX_FLOW(ux_flow_010,
   &aasFlowPage1,
   &aasFlowPage2,
   &aasFlowOptional1,
@@ -330,11 +339,34 @@ UX_FLOW(ux_flow_10,
   &aasFlowPage5
 );
 
-UX_FLOW(ux_flow_11,
+UX_FLOW(ux_flow_011,
   &aasFlowPage1,
   &aasFlowPage2,
   &aasFlowOptional1,
   &aasFlowOptional2,
+  &aasFlowAppendages,
+  &aasFlowPage3,
+  &aasFlowPage4,
+  &aasFlowPage5
+);
+
+UX_FLOW(ux_flow_100,
+  &aasFlowPage1,
+  &aasFlowPage2,
+  &aasFlowOptional1,
+  &aasFlowOptional2,
+  &aasFlowOptional3,
+  &aasFlowPage3,
+  &aasFlowPage4,
+  &aasFlowPage5
+);
+
+UX_FLOW(ux_flow_101,
+  &aasFlowPage1,
+  &aasFlowPage2,
+  &aasFlowOptional1,
+  &aasFlowOptional2,
+  &aasFlowOptional3,
   &aasFlowAppendages,
   &aasFlowPage3,
   &aasFlowPage4,
@@ -350,16 +382,22 @@ static void showScreen() {
     switch (state.txnAuth.uiFlowBitfeild) {
 
         case 0x00:
-            ux_flow_init(0, ux_flow_00, NULL);
+            ux_flow_init(0, ux_flow_000, NULL);
             break;
         case 0x01:
-            ux_flow_init(0, ux_flow_01, NULL);
+            ux_flow_init(0, ux_flow_001, NULL);
             break;
         case 0x02:
-            ux_flow_init(0, ux_flow_10, NULL);
+            ux_flow_init(0, ux_flow_010, NULL);
             break;
         case 0x03:
-            ux_flow_init(0, ux_flow_11, NULL);
+            ux_flow_init(0, ux_flow_011, NULL);
+            break;
+        case 0x04:
+            ux_flow_init(0, ux_flow_100, NULL);
+            break;
+        case 0x05:
+            ux_flow_init(0, ux_flow_101, NULL);
             break;
     }
 }
@@ -381,6 +419,10 @@ uint8_t setScreenTexts() {
             case 0x0000: //OrdinaryPayment
             case 0x00fe: //FxtPayment
 
+                    state.txnAuth.uiFlowBitfeild += 2;
+
+                    snprintf(state.txnAuth.optionalWindow1Title, sizeof(state.txnAuth.optionalWindow1Title), "Amount");
+
                     if (0 == formatAmount(state.txnAuth.optionalWindow1Text, sizeof(state.txnAuth.optionalWindow1Text), state.txnAuth.amount, chainNumDecimalsBeforePoint(state.txnAuth.chainId)))
                         return R_FORMAT_AMOUNT_ERR;
 
@@ -393,6 +435,11 @@ uint8_t setScreenTexts() {
             case 0x00fc: //FxtCoinExchangeOrderIssue
             case 0x000b: //CoinExchangeOrderIssue
                     
+                    state.txnAuth.uiFlowBitfeild += 2;
+
+
+                    snprintf(state.txnAuth.optionalWindow1Title, sizeof(state.txnAuth.optionalWindow1Title), "Amount");
+
                     ret = formatAmount(state.txnAuth.optionalWindow1Text, sizeof(state.txnAuth.optionalWindow1Text), state.txnAuth.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.txnAuth.attachmentTempInt32Num2));
 
                     if (0 == ret)
@@ -411,9 +458,22 @@ uint8_t setScreenTexts() {
                     //note: the existence of chainName(state.txnAuth.attachmentTempInt32Num1) was already checked in the parsing function
                     snprintf(state.txnAuth.optionalWindow2Text + ret - 1, sizeof(state.txnAuth.optionalWindow2Text) - ret - 1, " %s", chainName(state.txnAuth.attachmentTempInt32Num1));
 
-            break;
-            default:
-                state.txnAuth.uiFlowBitfeild &= (0xff - 2); //since we don't fall under a txn type that needs 2 extra windows, turn off the second bit
+                    break;
+
+            case 0x0102: // Asset Transfer
+
+                    state.txnAuth.uiFlowBitfeild += 4;
+
+                    snprintf(state.txnAuth.optionalWindow1Title, sizeof(state.txnAuth.optionalWindow1Title), "Asset Id");
+                    formatAmount(state.txnAuth.optionalWindow1Text, sizeof(state.txnAuth.optionalWindow1Text), state.txnAuth.attachmentTempInt64Num1, 0);
+
+                    snprintf(state.txnAuth.optionalWindow2Title, sizeof(state.txnAuth.optionalWindow2Title), "Quantity QNT");
+                    formatAmount(state.txnAuth.optionalWindow2Text, sizeof(state.txnAuth.optionalWindow2Text), state.txnAuth.attachmentTempInt64Num2, 0);
+
+                    snprintf(state.txnAuth.optionalWindow3Title, sizeof(state.txnAuth.optionalWindow3Title), "Recipient");
+                    snprintf(state.txnAuth.optionalWindow3Text, sizeof(state.txnAuth.optionalWindow3Text), APP_PREFIX);
+                    reedSolomonEncode(state.txnAuth.recipientId, state.txnAuth.optionalWindow3Text + strlen(state.txnAuth.optionalWindow3Text));
+                    break;
         }
     }
 
@@ -617,6 +677,28 @@ uint8_t parseAskOrderPlacementAttachment() {
     return R_SUCCESS;
 }
 
+uint8_t parseAssetTransferAttachment() {
+
+    state.txnAuth.attachmentTempInt64Num1 = 0; //asset id
+    state.txnAuth.attachmentTempInt64Num2 = 0; //quantity
+
+    uint8_t * ptr = readFromBuffer(sizeof(state.txnAuth.attachmentTempInt64Num1) * 2);
+    if (0 == ptr)
+        return R_SEND_MORE_BYTES;
+
+    if (1 != *ptr)
+        return R_UNSUPPORTED_ATTACHMENT_VERSION;
+
+    ptr += 1; //skip version byte
+
+    os_memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
+    ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
+
+    os_memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
+
+    return R_SUCCESS;
+}
+
 //Addes bytes to the read buffer
 //@param newData: ptr to the data
 //@param numBytes: number of bytes in the data
@@ -659,6 +741,8 @@ uint8_t callFunctionNumber(const uint8_t functionNum) {
             return parseAskOrderPlacementAttachment();
         case 6:
             return parseIngoreBytesUntilTheEnd();
+        case 7:
+            return parseAssetTransferAttachment();
     }
 
     return R_PARSE_FUNCTION_NOT_FOUND;

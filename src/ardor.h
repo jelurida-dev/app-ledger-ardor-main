@@ -66,9 +66,12 @@ typedef struct {
 
     char feeText[21];               //9,223,372,036,854,775,807 is the biggest number you can hold in uint64 + the dot + null terminator means the longest text is 20
     char chainAndTxnTypeText[60];   //Aproximation of size
+    char optionalWindow1Title[9];   //MAX("Amount","Asset Id")
     char optionalWindow1Text[31];   //same as fee text + name of the chain + space
     char optionalWindow2Title[20];  //The longest string is price per (some chain name  here)
     char optionalWindow2Text[31];   //MAX(Ardor arddress = 27, feeText + chainName)
+    char optionalWindow3Title[10];  //MAX("Recipient")
+    char optionalWindow3Text[28];   //MAX(Ardor arddress = 27)
     char appendagesText[11];        //0x and then 8 chars
     uint8_t uiFlowBitfeild;         //This is a bit feild for selecting the right UI flow
 

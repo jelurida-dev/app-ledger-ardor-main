@@ -1,6 +1,6 @@
 
 
-appendageParseFunctionDict = {0x000b : 4, 0x00fc: 4}
+appendageParseFunctionDict = {0x000b : 4, 0x00fc: 4, 0x0102: 7}
 
 
 def main():
