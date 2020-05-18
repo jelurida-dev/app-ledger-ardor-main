@@ -17,7 +17,7 @@
 #*******************************************************************************
 
 #Defines
-DEVEL = 0#This means we are in DEBUG mode, change this up when releasing in production
+DEVEL = 1#This means we are in DEBUG mode, change this up when releasing in production
 
 #####################################3
 

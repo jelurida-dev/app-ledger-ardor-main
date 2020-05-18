@@ -142,6 +142,8 @@ static void ardor_main(void) {
 	uint8_t rx = 0;
 	uint8_t tx = 0;
 	uint8_t flags = 0;
+	uint16_t cmdCounter = 0;
+
 
 	// Exchange APDUs until EXCEPTION_IO_RESET is thrown.
 	for (;;) {
@@ -157,12 +159,45 @@ static void ardor_main(void) {
 
 		BEGIN_TRY {
 			TRY {
+
+				cmdCounter++;
+
 				rx = tx;
+
 				tx = 0; // ensure no race in CATCH_OTHER if io_exchange throws an error
 				
 				rx = io_exchange(CHANNEL_APDU | flags, rx);
 				flags = 0;
 
+				for (uint8_t i = 0; i < 10; i++)
+				 {
+
+					PRINTF("\n dummy50 %d", check_canary());
+
+
+					uint32_t copiedDerivationPath[6]; os_memset(copiedDerivationPath, 0, sizeof(copiedDerivationPath));
+
+					copiedDerivationPath[0] = 0x80000000 | 44;
+					copiedDerivationPath[1] = 0x80000000 | 16754;
+					copiedDerivationPath[2] = 0x80000000;
+					copiedDerivationPath[3] = 0x80000000 | 1;
+
+					uint8_t KLKR[65];  os_memset(KLKR, 0, sizeof(KLKR));
+					uint8_t chaincode[65];  os_memset(KLKR, 0, sizeof(KLKR));
+
+
+					os_perso_derive_node_bip32(CX_CURVE_Ed25519, copiedDerivationPath, 5, KLKR, chaincode);
+
+
+					PRINTF("\n dummy51 %d", check_canary());
+
+				}
+
+
+
+
+
+				
 				// No APDU received; trigger a reset.
 				if (rx == 0) {
 					THROW(EXCEPTION_IO_RESET); //lastCmdNumber will be zero'd when ardor_main will be called again
@@ -182,12 +217,14 @@ static void ardor_main(void) {
 					continue;
 				}
 
-				PRINTF("\n canery check %d last command number %d \n", check_canary(), lastCmdNumber);
+				PRINTF("\n canery check %d last command number %d counter %d\n", check_canary(), lastCmdNumber, cmdCounter);
 
 				uint8_t lastCommandSaver = G_io_apdu_buffer[OFFSET_INS]; //the handler is going to write over the buffer, so the command needs to be put aside
 
 				handlerFn(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2],
 				          G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], &flags, &tx, G_io_apdu_buffer[OFFSET_INS] != lastCmdNumber);
+
+				PRINTF("\n after calling handler");
 
 				lastCmdNumber = lastCommandSaver;
 			}
