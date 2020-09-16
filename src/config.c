@@ -15,6 +15,17 @@ const uint8_t NUM_CHAINS = sizeof(CHAINS) / sizeof(CHAINS[0]);
 
 const uint8_t SUPPORTED_TXN_VERSION = 1;
 
+const appendageType APPENDAGE_TYPES[] = {
+    {"Message"},
+    {"EncryptedMessage"},
+    {"EncryptToSelfMsg"},
+    {"PrunablePlainMsg"},
+    {"PrunableEncryptedMsg"},
+    {"PublicKeyAnnouncement"},
+    {"Phasing"}
+};
+const uint8_t NUM_APPENDAGE_TYPES = sizeof(APPENDAGE_TYPES) / sizeof(APPENDAGE_TYPES[0]);
+
 const uint8_t ARDOR_SPECIAL_IDENTIFIER[] = {0xba, 0xbe, 0x00};
 const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN = sizeof(ARDOR_SPECIAL_IDENTIFIER);
 

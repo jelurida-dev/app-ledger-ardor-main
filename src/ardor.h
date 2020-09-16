@@ -72,7 +72,7 @@ typedef struct {
     char optionalWindow2Text[31];   //MAX(Ardor arddress = 27, feeText + chainName)
     char optionalWindow3Title[10];  //MAX("Recipient")
     char optionalWindow3Text[28];   //MAX(Ardor arddress = 27)
-    char appendagesText[11];        //0x and then 8 chars
+    char appendagesText[60];        //this should allow displaying the names for up to three types, otherwise we show a bitmap
     uint8_t uiFlowBitfeild;         //This is a bit feild for selecting the right UI flow
 
 } authTxn_t;

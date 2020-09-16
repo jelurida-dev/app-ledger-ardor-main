@@ -149,6 +149,10 @@ char * chainName(const uint8_t chainId) {
     return (char*)PIC(((chainType*)PIC(&CHAINS[chainId - 1]))->name);
 }
 
+char * appendageTypeName(const uint8_t index) {
+    return (char*)PIC(((appendageType*)PIC(&APPENDAGE_TYPES[index]))->name);
+}
+
 //the amount of digits on the right of the decimal dot for each chain
 uint8_t chainNumDecimalsBeforePoint(const uint8_t chainId) {
     //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
@@ -586,7 +590,19 @@ uint8_t parseReferencedTxn() {
     return R_SUCCESS;
 }
 
-//Does what it says, it's added to function stack on init
+/**
+ * Parses the appendage type flag and prepares the text to show the user.
+ * This function is added to the function stack on init.
+ * 
+ * Current known appendages types:
+ *      MessageAppendix = 1
+ *      EncryptedMessageAppendix = 2
+ *      EncryptToSelfMessageAppendix = 4
+ *      PrunablePlainMessageAppendix = 8
+ *      PrunableEncryptedMessageAppendix = 16
+ *      PublicKeyAnnouncementAppendix = 32
+ *      PhasingAppendix = 64
+ */
 uint8_t parseAppendagesFlags() {
     
     uint8_t * ptr = readFromBuffer(sizeof(uint32_t));
@@ -600,7 +616,32 @@ uint8_t parseAppendagesFlags() {
 
     if (0 != appendages) {
         state.txnAuth.uiFlowBitfeild |= 1; //turn on the first bit
-        snprintf(state.txnAuth.appendagesText, sizeof(state.txnAuth.appendagesText), "0x%08X", appendages);
+
+        // fallback to hex string if we found unknown appendages
+        if (appendages >= 1 << NUM_APPENDAGE_TYPES) {
+            snprintf(state.txnAuth.appendagesText, sizeof(state.txnAuth.appendagesText), "0x%08X", appendages);
+        } else {
+            char * ptr = state.txnAuth.appendagesText;
+            size_t free = sizeof(state.txnAuth.appendagesText);
+            for (uint8_t j = 0; j < NUM_APPENDAGE_TYPES; j++) {
+                if ((appendages & 1 << j) != 0) {
+                    size_t len = strlen(appendageTypeName(j));
+
+                    // special case: not enough space to show the text for all appendages, revert to bitmap
+                    if (len + 2 > free) { // +2 for separator and null terminator
+                        for (uint8_t i = 0; i < NUM_APPENDAGE_TYPES; i++) {
+                            state.txnAuth.appendagesText[i] = (appendages & 1 << i) != 0 ? '1' + i : '_';
+                        }
+                        state.txnAuth.appendagesText[NUM_APPENDAGE_TYPES] = '\0';
+                        return R_SUCCESS;                        
+                    }
+
+                    snprintf(ptr, free, ptr == state.txnAuth.appendagesText ? "%s" : "&%s", appendageTypeName(j));
+                    ptr += ptr == state.txnAuth.appendagesText ? len : len + 1;
+                    free -= ptr == state.txnAuth.appendagesText ? len : len + 1;
+                }
+            }
+        }
     }
 
     return R_SUCCESS;
