@@ -279,11 +279,11 @@ UX_STEP_NOCB(aasFlowOptional2,
       .text = state.txnAuth.optionalWindow2Text,
     });
 UX_STEP_NOCB(aasFlowOptional3, 
-bnnn_paging, 
-{
-    .title = state.txnAuth.optionalWindow3Title,
-    .text = state.txnAuth.optionalWindow3Text,
-});
+    bnnn_paging, 
+    {
+        .title = state.txnAuth.optionalWindow3Title,
+        .text = state.txnAuth.optionalWindow3Text,
+    });
 UX_STEP_NOCB(aasFlowAppendages, 
     bnnn_paging, 
     {
@@ -350,7 +350,7 @@ UX_FLOW(ux_flow_011,
   &aasFlowPage5
 );
 
-UX_FLOW(ux_flow_100,
+UX_FLOW(ux_flow_110,
   &aasFlowPage1,
   &aasFlowPage2,
   &aasFlowOptional1,
@@ -361,7 +361,7 @@ UX_FLOW(ux_flow_100,
   &aasFlowPage5
 );
 
-UX_FLOW(ux_flow_101,
+UX_FLOW(ux_flow_111,
   &aasFlowPage1,
   &aasFlowPage2,
   &aasFlowOptional1,
@@ -393,11 +393,11 @@ static void showScreen() {
         case 0x03:
             ux_flow_init(0, ux_flow_011, NULL);
             break;
-        case 0x04:
-            ux_flow_init(0, ux_flow_100, NULL);
+        case 0x06:
+            ux_flow_init(0, ux_flow_110, NULL);
             break;
-        case 0x05:
-            ux_flow_init(0, ux_flow_101, NULL);
+        case 0x07:
+            ux_flow_init(0, ux_flow_111, NULL);
             break;
     }
 }
@@ -410,8 +410,6 @@ uint8_t setScreenTexts() {
 
     if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
 
-        state.txnAuth.uiFlowBitfeild |= 2; //turn on the second bit
-
         switch (state.txnAuth.txnTypeAndSubType) {
 
             //note: you have to write the type and subtype in reverse, because of little endian buffer representation an big endian C code representation
@@ -419,7 +417,7 @@ uint8_t setScreenTexts() {
             case 0x0000: //OrdinaryPayment
             case 0x00fe: //FxtPayment
 
-                    state.txnAuth.uiFlowBitfeild += 2;
+                    state.txnAuth.uiFlowBitfeild |= 2; //turn on the second bit for optional 1 & 2
 
                     snprintf(state.txnAuth.optionalWindow1Title, sizeof(state.txnAuth.optionalWindow1Title), "Amount");
 
@@ -435,7 +433,7 @@ uint8_t setScreenTexts() {
             case 0x00fc: //FxtCoinExchangeOrderIssue
             case 0x000b: //CoinExchangeOrderIssue
                     
-                    state.txnAuth.uiFlowBitfeild += 2;
+                    state.txnAuth.uiFlowBitfeild |= 2; //turn on the second bit for optional 1 & 2
 
 
                     snprintf(state.txnAuth.optionalWindow1Title, sizeof(state.txnAuth.optionalWindow1Title), "Amount");
@@ -462,7 +460,7 @@ uint8_t setScreenTexts() {
 
             case 0x0102: // Asset Transfer
 
-                    state.txnAuth.uiFlowBitfeild += 4;
+                    state.txnAuth.uiFlowBitfeild |= 6; // turn bits 2&3 for all three optional screens
 
                     snprintf(state.txnAuth.optionalWindow1Title, sizeof(state.txnAuth.optionalWindow1Title), "Asset Id");
                     formatAmount(state.txnAuth.optionalWindow1Text, sizeof(state.txnAuth.optionalWindow1Text), state.txnAuth.attachmentTempInt64Num1, 0);
