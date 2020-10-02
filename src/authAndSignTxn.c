@@ -536,7 +536,7 @@ uint8_t parseMainTxnData() {
             addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
 
     if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
-        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s %s", chainName(state.txnAuth.chainId), txnTypeNameAtIndex(state.txnAuth.txnTypeIndex));
+        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s: %s", chainName(state.txnAuth.chainId), txnTypeNameAtIndex(state.txnAuth.txnTypeIndex));
     } else {
         snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s UnknownTxnType", chainName(state.txnAuth.chainId));
     }
