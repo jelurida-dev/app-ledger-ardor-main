@@ -17,11 +17,11 @@ const uint8_t SUPPORTED_TXN_VERSION = 1;
 
 const appendageType APPENDAGE_TYPES[] = {
     {"Message"},
-    {"EncryptedMessage"},
-    {"EncryptToSelfMsg"},
-    {"PrunablePlainMsg"},
-    {"PrunableEncryptedMsg"},
-    {"PublicKeyAnnouncement"},
+    {"EncryptedMsg"},
+    {"NoteToSelf"},
+    {"PrunableMessage"},
+    {"PrunableEncMsg"},
+    {"PublicKeyAnnoun"},
     {"Phasing"}
 };
 const uint8_t NUM_APPENDAGE_TYPES = sizeof(APPENDAGE_TYPES) / sizeof(APPENDAGE_TYPES[0]);

@@ -540,9 +540,9 @@ uint8_t parseMainTxnData() {
             addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
 
     if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
-        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s: %s", chainName(state.txnAuth.chainId), txnTypeNameAtIndex(state.txnAuth.txnTypeIndex));
+        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s\n%s", chainName(state.txnAuth.chainId), txnTypeNameAtIndex(state.txnAuth.txnTypeIndex));
     } else {
-        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s UnknownTxnType", chainName(state.txnAuth.chainId));
+        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s\nUnknownTxnType", chainName(state.txnAuth.chainId));
     }
 
     if (SUPPORTED_TXN_VERSION != *((uint8_t*)ptr))
@@ -636,7 +636,7 @@ uint8_t parseAppendagesFlags() {
                         return R_SUCCESS;                        
                     }
 
-                    snprintf(ptr, free, ptr == state.txnAuth.appendagesText ? "%s" : "&%s", appendageTypeName(j));
+                    snprintf(ptr, free, ptr == state.txnAuth.appendagesText ? "%s" : "\n%s", appendageTypeName(j));
                     ptr += ptr == state.txnAuth.appendagesText ? len : len + 1;
                     free -= ptr == state.txnAuth.appendagesText ? len : len + 1;
                 }
