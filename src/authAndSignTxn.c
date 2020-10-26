@@ -119,9 +119,12 @@ void initTxnAuthState() {
 
     os_memset(state.txnAuth.feeText, 0, sizeof(state.txnAuth.feeText));    
     os_memset(state.txnAuth.chainAndTxnTypeText, 0, sizeof(state.txnAuth.chainAndTxnTypeText));    
+    os_memset(state.txnAuth.optionalWindow1Title, 0, sizeof(state.txnAuth.optionalWindow1Title));
     os_memset(state.txnAuth.optionalWindow1Text, 0, sizeof(state.txnAuth.optionalWindow1Text));    
     os_memset(state.txnAuth.optionalWindow2Title, 0, sizeof(state.txnAuth.optionalWindow2Title));    
     os_memset(state.txnAuth.optionalWindow2Text, 0, sizeof(state.txnAuth.optionalWindow2Text));
+    os_memset(state.txnAuth.optionalWindow3Title, 0, sizeof(state.txnAuth.optionalWindow3Title));
+    os_memset(state.txnAuth.optionalWindow3Text, 0, sizeof(state.txnAuth.optionalWindow3Text));
     os_memset(state.txnAuth.appendagesText, 0, sizeof(state.txnAuth.appendagesText));
 
     state.txnAuth.uiFlowBitfeild = 0;
@@ -144,6 +147,10 @@ char * txnTypeNameAtIndex(const uint8_t index) {
 char * chainName(const uint8_t chainId) {
     //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
     return (char*)PIC(((chainType*)PIC(&CHAINS[chainId - 1]))->name);
+}
+
+char * appendageTypeName(const uint8_t index) {
+    return (char*)PIC(((appendageType*)PIC(&APPENDAGE_TYPES[index]))->name);
 }
 
 //the amount of digits on the right of the decimal dot for each chain
@@ -266,7 +273,7 @@ UX_STEP_NOCB(aasFlowPage2,
 UX_STEP_NOCB(aasFlowOptional1,
     bnnn_paging, 
     {
-      .title = "Amount",
+      .title = state.txnAuth.optionalWindow1Title,
       .text = state.txnAuth.optionalWindow1Text,
     });
 UX_STEP_NOCB(aasFlowOptional2, 
@@ -274,6 +281,12 @@ UX_STEP_NOCB(aasFlowOptional2,
     {
       .title = state.txnAuth.optionalWindow2Title,
       .text = state.txnAuth.optionalWindow2Text,
+    });
+UX_STEP_NOCB(aasFlowOptional3, 
+    bnnn_paging, 
+    {
+        .title = state.txnAuth.optionalWindow3Title,
+        .text = state.txnAuth.optionalWindow3Text,
     });
 UX_STEP_NOCB(aasFlowAppendages, 
     bnnn_paging, 
@@ -303,7 +316,7 @@ UX_STEP_VALID(aasFlowPage5,
       "Reject",
     });
 
-UX_FLOW(ux_flow_00,
+UX_FLOW(ux_flow_000,
   &aasFlowPage1,
   &aasFlowPage2,
   &aasFlowPage3,
@@ -311,7 +324,7 @@ UX_FLOW(ux_flow_00,
   &aasFlowPage5
 );
 
-UX_FLOW(ux_flow_01,
+UX_FLOW(ux_flow_001,
   &aasFlowPage1,
   &aasFlowPage2,
   &aasFlowAppendages,
@@ -320,7 +333,7 @@ UX_FLOW(ux_flow_01,
   &aasFlowPage5
 );
 
-UX_FLOW(ux_flow_10,
+UX_FLOW(ux_flow_010,
   &aasFlowPage1,
   &aasFlowPage2,
   &aasFlowOptional1,
@@ -330,11 +343,34 @@ UX_FLOW(ux_flow_10,
   &aasFlowPage5
 );
 
-UX_FLOW(ux_flow_11,
+UX_FLOW(ux_flow_011,
   &aasFlowPage1,
   &aasFlowPage2,
   &aasFlowOptional1,
   &aasFlowOptional2,
+  &aasFlowAppendages,
+  &aasFlowPage3,
+  &aasFlowPage4,
+  &aasFlowPage5
+);
+
+UX_FLOW(ux_flow_110,
+  &aasFlowPage1,
+  &aasFlowPage2,
+  &aasFlowOptional1,
+  &aasFlowOptional2,
+  &aasFlowOptional3,
+  &aasFlowPage3,
+  &aasFlowPage4,
+  &aasFlowPage5
+);
+
+UX_FLOW(ux_flow_111,
+  &aasFlowPage1,
+  &aasFlowPage2,
+  &aasFlowOptional1,
+  &aasFlowOptional2,
+  &aasFlowOptional3,
   &aasFlowAppendages,
   &aasFlowPage3,
   &aasFlowPage4,
@@ -350,16 +386,22 @@ static void showScreen() {
     switch (state.txnAuth.uiFlowBitfeild) {
 
         case 0x00:
-            ux_flow_init(0, ux_flow_00, NULL);
+            ux_flow_init(0, ux_flow_000, NULL);
             break;
         case 0x01:
-            ux_flow_init(0, ux_flow_01, NULL);
+            ux_flow_init(0, ux_flow_001, NULL);
             break;
         case 0x02:
-            ux_flow_init(0, ux_flow_10, NULL);
+            ux_flow_init(0, ux_flow_010, NULL);
             break;
         case 0x03:
-            ux_flow_init(0, ux_flow_11, NULL);
+            ux_flow_init(0, ux_flow_011, NULL);
+            break;
+        case 0x06:
+            ux_flow_init(0, ux_flow_110, NULL);
+            break;
+        case 0x07:
+            ux_flow_init(0, ux_flow_111, NULL);
             break;
     }
 }
@@ -372,14 +414,16 @@ uint8_t setScreenTexts() {
 
     if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
 
-        state.txnAuth.uiFlowBitfeild |= 2; //turn on the second bit
-
         switch (state.txnAuth.txnTypeAndSubType) {
 
             //note: you have to write the type and subtype in reverse, because of little endian buffer representation an big endian C code representation
 
             case 0x0000: //OrdinaryPayment
             case 0x00fe: //FxtPayment
+
+                    state.txnAuth.uiFlowBitfeild |= 2; //turn on the second bit for optional 1 & 2
+
+                    snprintf(state.txnAuth.optionalWindow1Title, sizeof(state.txnAuth.optionalWindow1Title), "Amount");
 
                     if (0 == formatAmount(state.txnAuth.optionalWindow1Text, sizeof(state.txnAuth.optionalWindow1Text), state.txnAuth.amount, chainNumDecimalsBeforePoint(state.txnAuth.chainId)))
                         return R_FORMAT_AMOUNT_ERR;
@@ -393,6 +437,11 @@ uint8_t setScreenTexts() {
             case 0x00fc: //FxtCoinExchangeOrderIssue
             case 0x000b: //CoinExchangeOrderIssue
                     
+                    state.txnAuth.uiFlowBitfeild |= 2; //turn on the second bit for optional 1 & 2
+
+
+                    snprintf(state.txnAuth.optionalWindow1Title, sizeof(state.txnAuth.optionalWindow1Title), "Amount");
+
                     ret = formatAmount(state.txnAuth.optionalWindow1Text, sizeof(state.txnAuth.optionalWindow1Text), state.txnAuth.attachmentTempInt64Num1, chainNumDecimalsBeforePoint(state.txnAuth.attachmentTempInt32Num2));
 
                     if (0 == ret)
@@ -411,9 +460,22 @@ uint8_t setScreenTexts() {
                     //note: the existence of chainName(state.txnAuth.attachmentTempInt32Num1) was already checked in the parsing function
                     snprintf(state.txnAuth.optionalWindow2Text + ret - 1, sizeof(state.txnAuth.optionalWindow2Text) - ret - 1, " %s", chainName(state.txnAuth.attachmentTempInt32Num1));
 
-            break;
-            default:
-                state.txnAuth.uiFlowBitfeild &= (0xff - 2); //since we don't fall under a txn type that needs 2 extra windows, turn off the second bit
+                    break;
+
+            case 0x0102: // Asset Transfer
+
+                    state.txnAuth.uiFlowBitfeild |= 6; // turn bits 2&3 for all three optional screens
+
+                    snprintf(state.txnAuth.optionalWindow1Title, sizeof(state.txnAuth.optionalWindow1Title), "Asset Id");
+                    formatAmount(state.txnAuth.optionalWindow1Text, sizeof(state.txnAuth.optionalWindow1Text), state.txnAuth.attachmentTempInt64Num1, 0);
+
+                    snprintf(state.txnAuth.optionalWindow2Title, sizeof(state.txnAuth.optionalWindow2Title), "Quantity QNT");
+                    formatAmount(state.txnAuth.optionalWindow2Text, sizeof(state.txnAuth.optionalWindow2Text), state.txnAuth.attachmentTempInt64Num2, 0);
+
+                    snprintf(state.txnAuth.optionalWindow3Title, sizeof(state.txnAuth.optionalWindow3Title), "Recipient");
+                    snprintf(state.txnAuth.optionalWindow3Text, sizeof(state.txnAuth.optionalWindow3Text), APP_PREFIX);
+                    reedSolomonEncode(state.txnAuth.recipientId, state.txnAuth.optionalWindow3Text + strlen(state.txnAuth.optionalWindow3Text));
+                    break;
         }
     }
 
@@ -478,9 +540,9 @@ uint8_t parseMainTxnData() {
             addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
 
     if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
-        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s %s", chainName(state.txnAuth.chainId), txnTypeNameAtIndex(state.txnAuth.txnTypeIndex));
+        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s\n%s", chainName(state.txnAuth.chainId), txnTypeNameAtIndex(state.txnAuth.txnTypeIndex));
     } else {
-        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s UnknownTxnType", chainName(state.txnAuth.chainId));
+        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s\nUnknownTxnType", chainName(state.txnAuth.chainId));
     }
 
     if (SUPPORTED_TXN_VERSION != *((uint8_t*)ptr))
@@ -528,7 +590,19 @@ uint8_t parseReferencedTxn() {
     return R_SUCCESS;
 }
 
-//Does what it says, it's added to function stack on init
+/**
+ * Parses the appendage type flag and prepares the text to show the user.
+ * This function is added to the function stack on init.
+ * 
+ * Current known appendages types:
+ *      MessageAppendix = 1
+ *      EncryptedMessageAppendix = 2
+ *      EncryptToSelfMessageAppendix = 4
+ *      PrunablePlainMessageAppendix = 8
+ *      PrunableEncryptedMessageAppendix = 16
+ *      PublicKeyAnnouncementAppendix = 32
+ *      PhasingAppendix = 64
+ */
 uint8_t parseAppendagesFlags() {
     
     uint8_t * ptr = readFromBuffer(sizeof(uint32_t));
@@ -542,7 +616,32 @@ uint8_t parseAppendagesFlags() {
 
     if (0 != appendages) {
         state.txnAuth.uiFlowBitfeild |= 1; //turn on the first bit
-        snprintf(state.txnAuth.appendagesText, sizeof(state.txnAuth.appendagesText), "0x%08X", appendages);
+
+        // fallback to hex string if we found unknown appendages
+        if (appendages >= 1 << NUM_APPENDAGE_TYPES) {
+            snprintf(state.txnAuth.appendagesText, sizeof(state.txnAuth.appendagesText), "0x%08X", appendages);
+        } else {
+            char * ptr = state.txnAuth.appendagesText;
+            size_t free = sizeof(state.txnAuth.appendagesText);
+            for (uint8_t j = 0; j < NUM_APPENDAGE_TYPES; j++) {
+                if ((appendages & 1 << j) != 0) {
+                    size_t len = strlen(appendageTypeName(j));
+
+                    // special case: not enough space to show the text for all appendages, revert to bitmap
+                    if (len + 2 > free) { // +2 for separator and null terminator
+                        for (uint8_t i = 0; i < NUM_APPENDAGE_TYPES; i++) {
+                            state.txnAuth.appendagesText[i] = (appendages & 1 << i) != 0 ? '1' + i : '_';
+                        }
+                        state.txnAuth.appendagesText[NUM_APPENDAGE_TYPES] = '\0';
+                        return R_SUCCESS;                        
+                    }
+
+                    snprintf(ptr, free, ptr == state.txnAuth.appendagesText ? "%s" : "\n%s", appendageTypeName(j));
+                    ptr += ptr == state.txnAuth.appendagesText ? len : len + 1;
+                    free -= ptr == state.txnAuth.appendagesText ? len : len + 1;
+                }
+            }
+        }
     }
 
     return R_SUCCESS;
@@ -617,6 +716,28 @@ uint8_t parseAskOrderPlacementAttachment() {
     return R_SUCCESS;
 }
 
+uint8_t parseAssetTransferAttachment() {
+
+    state.txnAuth.attachmentTempInt64Num1 = 0; //asset id
+    state.txnAuth.attachmentTempInt64Num2 = 0; //quantity
+
+    uint8_t * ptr = readFromBuffer(sizeof(state.txnAuth.attachmentTempInt64Num1) * 2);
+    if (0 == ptr)
+        return R_SEND_MORE_BYTES;
+
+    if (1 != *ptr)
+        return R_UNSUPPORTED_ATTACHMENT_VERSION;
+
+    ptr += 1; //skip version byte
+
+    os_memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
+    ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
+
+    os_memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
+
+    return R_SUCCESS;
+}
+
 //Addes bytes to the read buffer
 //@param newData: ptr to the data
 //@param numBytes: number of bytes in the data
@@ -659,6 +780,8 @@ uint8_t callFunctionNumber(const uint8_t functionNum) {
             return parseAskOrderPlacementAttachment();
         case 6:
             return parseIngoreBytesUntilTheEnd();
+        case 7:
+            return parseAssetTransferAttachment();
     }
 
     return R_PARSE_FUNCTION_NOT_FOUND;
