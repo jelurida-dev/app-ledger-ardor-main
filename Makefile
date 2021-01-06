@@ -33,7 +33,7 @@ endif
 
 ifeq ($(COIN),ardor)
     APPNAME = Ardor
-    DEFINES = "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
+    DEFINES += "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
     PATH_PREFIX = "44'/16754'"
     DEFINES += APP_PREFIX=\"ARDOR-\"
     
@@ -44,7 +44,7 @@ ifeq ($(COIN),ardor)
     endif
 else ifeq ($(COIN),nxt)
     APPNAME = NXT
-    DEFINES = "PATH_PREFIX={44|0x80000000,29|0x80000000}"
+    DEFINES += "PATH_PREFIX={44|0x80000000,29|0x80000000}"
     PATH_PREFIX = "44'/29'"
     DEFINES += APP_PREFIX=\"NXT-\"
     
