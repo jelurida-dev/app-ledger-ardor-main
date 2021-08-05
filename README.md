@@ -4,7 +4,7 @@ This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app f
 
 ## Documentation
 
-[Ardor Wiki](https://ardordocs.jelurida.com/Connect_Ledger_Nano_S_to_your_Ardor_Wallet), [Ledger Documentation Hub](https://ledger.readthedocs.io/en/latest/)
+[Ardor Wiki](https://ardordocs.jelurida.com/Connect_Ledger_Nano_S_or_Nano_X_to_your_Ardor_Wallet), [Ledger Documentation Hub](https://ledger.readthedocs.io/en/latest/)
 
 ## Developer Resources 
 
