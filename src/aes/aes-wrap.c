@@ -30,7 +30,7 @@ int aes_wrap(const aes_uchar *kek, int n, const aes_uchar *plain, aes_uchar *cip
 
 	/* 1) Initialize variables. */
 	memset(a, 0xa6, 8);
-	os_memcpy(r, plain, 8 * n);
+	memcpy(r, plain, 8 * n);
 
 	ctx = aes_encrypt_init(kek, 16);
 	if (ctx == NULL)
@@ -46,12 +46,12 @@ int aes_wrap(const aes_uchar *kek, int n, const aes_uchar *plain, aes_uchar *cip
 	for (j = 0; j <= 5; j++) {
 		r = cipher + 8;
 		for (i = 1; i <= n; i++) {
-			os_memcpy(b, a, 8);
-			os_memcpy(b + 8, r, 8);
+			memcpy(b, a, 8);
+			memcpy(b + 8, r, 8);
 			aes_encrypt(ctx, b, b);
-			os_memcpy(a, b, 8);
+			memcpy(a, b, 8);
 			a[7] ^= n * j + i;
-			os_memcpy(r, b + 8, 8);
+			memcpy(r, b + 8, 8);
 			r += 8;
 		}
 	}

@@ -43,7 +43,7 @@ uint8_t gmult(const uint8_t a, const uint8_t b) {
 void reedSolomonEncode(uint64_t inp, char * const output) {
 
     uint8_t plain_string_32[sizeof(initial_codeword)];
-    os_memset(plain_string_32, 0, sizeof(initial_codeword));
+    memset(plain_string_32, 0, sizeof(initial_codeword));
 
     uint8_t index = 0;
 
@@ -64,7 +64,7 @@ void reedSolomonEncode(uint64_t inp, char * const output) {
         p[0] =        gmult(17, fb);
     }
 
-    os_memcpy(plain_string_32 + BASE_32_LENGTH, p, sizeof(initial_codeword) - BASE_32_LENGTH);
+    memcpy(plain_string_32 + BASE_32_LENGTH, p, sizeof(initial_codeword) - BASE_32_LENGTH);
 
     uint8_t stringIndex = 0;
 

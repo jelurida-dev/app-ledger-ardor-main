@@ -26,9 +26,9 @@ int aes_unwrap(const aes_uchar *kek, int n, const aes_uchar *cipher, aes_uchar *
 	void *ctx;
 
 	/* 1) Initialize variables. */
-	os_memcpy(a, cipher, 8);
+	memcpy(a, cipher, 8);
 	r = plain;
-	os_memcpy(r, cipher + 8, 8 * n);
+	memcpy(r, cipher + 8, 8 * n);
 
 	ctx = aes_decrypt_init(kek, 16);
 	if (ctx == NULL)
@@ -44,13 +44,13 @@ int aes_unwrap(const aes_uchar *kek, int n, const aes_uchar *cipher, aes_uchar *
 	for (j = 5; j >= 0; j--) {
 		r = plain + (n - 1) * 8;
 		for (i = n; i >= 1; i--) {
-			os_memcpy(b, a, 8);
+			memcpy(b, a, 8);
 			b[7] ^= n * j + i;
 
-			os_memcpy(b + 8, r, 8);
+			memcpy(b + 8, r, 8);
 			aes_decrypt(ctx, b, b);
-			os_memcpy(a, b, 8);
-			os_memcpy(r, b + 8, 8);
+			memcpy(a, b, 8);
+			memcpy(r, b + 8, 8);
 			r -= 8;
 		}
 	}

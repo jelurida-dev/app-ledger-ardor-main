@@ -148,20 +148,20 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
                 return;
             }
 
-            os_memcpy(state.encryption.cbc, dataBuffer + dataLength - sizeof(state.encryption.cbc), sizeof(state.encryption.cbc)); //Copying the IV into the CBC
+            memcpy(state.encryption.cbc, dataBuffer + dataLength - sizeof(state.encryption.cbc), sizeof(state.encryption.cbc)); //Copying the IV into the CBC
         }
         
         state.encryption.mode = p1;
         G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
 
         if (P1_INIT_ENCRYPT == p1) {
-            os_memcpy(G_io_apdu_buffer + *tx, nonce, sizeof(nonce));
+            memcpy(G_io_apdu_buffer + *tx, nonce, sizeof(nonce));
             *tx+= 32;
             cx_rng(state.encryption.cbc, sizeof(state.encryption.cbc)); //The IV is stored in the CVC
-            os_memcpy(G_io_apdu_buffer + *tx, state.encryption.cbc, sizeof(state.encryption.cbc));
+            memcpy(G_io_apdu_buffer + *tx, state.encryption.cbc, sizeof(state.encryption.cbc));
             *tx+= sizeof(state.encryption.cbc);
         } else if (P1_INIT_DECRYPT_SHOW_SHARED_KEY == p1) {
-            os_memcpy(G_io_apdu_buffer + *tx, encryptionKey, sizeof(encryptionKey));
+            memcpy(G_io_apdu_buffer + *tx, encryptionKey, sizeof(encryptionKey));
             *tx+= 32;
         }
 
@@ -197,14 +197,14 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
                     state.encryption.cbc[j] ^= pos[j];
 
                 aes_encrypt(state.encryption.ctx, state.encryption.cbc, state.encryption.cbc);
-                os_memcpy(pos, state.encryption.cbc, AES_BLOCK_SIZE);
+                memcpy(pos, state.encryption.cbc, AES_BLOCK_SIZE);
             } else {
-                os_memcpy(tmp, pos, AES_BLOCK_SIZE);
+                memcpy(tmp, pos, AES_BLOCK_SIZE);
                 aes_decrypt(state.encryption.ctx, pos, pos);
                 for (uint8_t j = 0; j < AES_BLOCK_SIZE; j++)
                     pos[j] ^= state.encryption.cbc[j];
 
-                os_memcpy(state.encryption.cbc, tmp, AES_BLOCK_SIZE);
+                memcpy(state.encryption.cbc, tmp, AES_BLOCK_SIZE);
             }
 
             pos += AES_BLOCK_SIZE;

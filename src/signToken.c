@@ -69,10 +69,10 @@ unsigned int txn_authorized(const bagl_element_t *e) {
     uint8_t tx = 0;
     uint16_t exception = 0;
     uint32_t timestamp = 0;
-    uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
+    uint8_t keySeed[32]; memset(keySeed, 0, sizeof(keySeed));
 
     //gotta do some space reuse
-    uint8_t publicKeyAndFinalHash[32]; os_memset(publicKeyAndFinalHash, 0, sizeof(publicKeyAndFinalHash));
+    uint8_t publicKeyAndFinalHash[32]; memset(publicKeyAndFinalHash, 0, sizeof(publicKeyAndFinalHash));
     uint8_t ret = ardorKeys(dataBuffer + sizeof(timestamp), derivationPathLengthInUints32, keySeed, publicKeyAndFinalHash, 0, 0, &exception);
 
     if (R_SUCCESS != ret) {
@@ -85,25 +85,25 @@ unsigned int txn_authorized(const bagl_element_t *e) {
             G_io_apdu_buffer[tx++] = exception & 0xFF;
         }
     } else {
-        os_memcpy(&timestamp, dataBuffer, sizeof(timestamp));
+        memcpy(&timestamp, dataBuffer, sizeof(timestamp));
 
         G_io_apdu_buffer[tx++] = R_SUCCESS;
 
         cx_hash(&state.tokenCreation.sha256.header, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash), 0, 0); //adding the public key to the hash
         
         //also make a copy to the output buffer, because of how a token is constructed
-        os_memcpy(G_io_apdu_buffer + tx, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
+        memcpy(G_io_apdu_buffer + tx, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
         tx += sizeof(publicKeyAndFinalHash);
 
         cx_hash(&state.tokenCreation.sha256.header, 0, (uint8_t*)&timestamp, sizeof(timestamp), 0, 0); //adding the timestamp to the hash
 
-        os_memcpy(G_io_apdu_buffer + tx, &timestamp, sizeof(timestamp));
+        memcpy(G_io_apdu_buffer + tx, &timestamp, sizeof(timestamp));
         tx += sizeof(timestamp);
 
         cx_hash(&state.tokenCreation.sha256.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
 
         signMsg(keySeed, publicKeyAndFinalHash, G_io_apdu_buffer + tx); //is a void function, no ret value to check against
-        os_memset(keySeed, 0, sizeof(keySeed));
+        memset(keySeed, 0, sizeof(keySeed));
 
         tx += 64;
 

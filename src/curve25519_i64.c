@@ -6,6 +6,7 @@
  */
 
 #include <stdint.h>
+#include <string.h>
 #include "curve25519_i64.h"
 
 
@@ -655,18 +656,18 @@ int sign25519(k25519 v, const k25519 h, const priv25519 x, const spriv25519 s) {
 	unsigned w;
 	int i;
 
-	os_memset(tmp, 0, 32);
+	memset(tmp, 0, 32);
 	divmod(tmp, h, 32, order25519, 32);
 
-	os_memset(tmp, 0, 32);
+	memset(tmp, 0, 32);
 	divmod(tmp, x, 32, order25519, 32);
 
-	os_memset(v, 0, sizeof(v));
+	memset(v, 0, sizeof(v));
 
 	i = mula_small(v, x, 0, h, 32, -1);
 	mula_small(v, v, 0, order25519, 32, (15-(int8_t) v[31])/16);
 
-	os_memset(tmp, 0, sizeof(tmp));
+	memset(tmp, 0, sizeof(tmp));
 
 	mula32(tmp, v, s, 32, 1);
 	divmod(tmp+32, tmp, 64, order25519, 32);

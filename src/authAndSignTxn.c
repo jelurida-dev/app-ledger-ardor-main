@@ -91,7 +91,7 @@ void initTxnAuthState() {
     state.txnAuth.txnSizeBytes = 0;
     state.txnAuth.numBytesRead = 0;
 
-    os_memset(state.txnAuth.functionStack, 0, sizeof(state.txnAuth.functionStack));
+    memset(state.txnAuth.functionStack, 0, sizeof(state.txnAuth.functionStack));
     state.txnAuth.functionStack[0] = 1; //Add the first parse function on the stack
     state.txnAuth.functionStack[1] = 2; //The appendages parse function
     state.txnAuth.numFunctionsOnStack = 2;
@@ -101,7 +101,7 @@ void initTxnAuthState() {
     
     cx_sha256_init(&state.txnAuth.hashstate);
 
-    os_memset(state.txnAuth.readBuffer, 0, sizeof(state.txnAuth.readBuffer));
+    memset(state.txnAuth.readBuffer, 0, sizeof(state.txnAuth.readBuffer));
     state.txnAuth.readBufferReadOffset = 0;
     state.txnAuth.readBufferEndPos = 0;
 
@@ -117,15 +117,15 @@ void initTxnAuthState() {
     state.txnAuth.attachmentTempInt64Num2 = 0;
     state.txnAuth.attachmentTempInt64Num3 = 0;
 
-    os_memset(state.txnAuth.feeText, 0, sizeof(state.txnAuth.feeText));    
-    os_memset(state.txnAuth.chainAndTxnTypeText, 0, sizeof(state.txnAuth.chainAndTxnTypeText));    
-    os_memset(state.txnAuth.optionalWindow1Title, 0, sizeof(state.txnAuth.optionalWindow1Title));
-    os_memset(state.txnAuth.optionalWindow1Text, 0, sizeof(state.txnAuth.optionalWindow1Text));    
-    os_memset(state.txnAuth.optionalWindow2Title, 0, sizeof(state.txnAuth.optionalWindow2Title));    
-    os_memset(state.txnAuth.optionalWindow2Text, 0, sizeof(state.txnAuth.optionalWindow2Text));
-    os_memset(state.txnAuth.optionalWindow3Title, 0, sizeof(state.txnAuth.optionalWindow3Title));
-    os_memset(state.txnAuth.optionalWindow3Text, 0, sizeof(state.txnAuth.optionalWindow3Text));
-    os_memset(state.txnAuth.appendagesText, 0, sizeof(state.txnAuth.appendagesText));
+    memset(state.txnAuth.feeText, 0, sizeof(state.txnAuth.feeText));    
+    memset(state.txnAuth.chainAndTxnTypeText, 0, sizeof(state.txnAuth.chainAndTxnTypeText));    
+    memset(state.txnAuth.optionalWindow1Title, 0, sizeof(state.txnAuth.optionalWindow1Title));
+    memset(state.txnAuth.optionalWindow1Text, 0, sizeof(state.txnAuth.optionalWindow1Text));    
+    memset(state.txnAuth.optionalWindow2Title, 0, sizeof(state.txnAuth.optionalWindow2Title));    
+    memset(state.txnAuth.optionalWindow2Text, 0, sizeof(state.txnAuth.optionalWindow2Text));
+    memset(state.txnAuth.optionalWindow3Title, 0, sizeof(state.txnAuth.optionalWindow3Title));
+    memset(state.txnAuth.optionalWindow3Text, 0, sizeof(state.txnAuth.optionalWindow3Text));
+    memset(state.txnAuth.appendagesText, 0, sizeof(state.txnAuth.appendagesText));
 
     state.txnAuth.uiFlowBitfeild = 0;
 }
@@ -513,7 +513,7 @@ uint8_t parseMainTxnData() {
     if (0 == ptr)
         return R_SEND_MORE_BYTES;
 
-    os_memmove(&(state.txnAuth.chainId), ptr, sizeof(state.txnAuth.chainId));
+    memmove(&(state.txnAuth.chainId), ptr, sizeof(state.txnAuth.chainId));
 
     ptr += sizeof(state.txnAuth.chainId);
 
@@ -521,7 +521,7 @@ uint8_t parseMainTxnData() {
         return R_BAD_CHAIN_ID_ERR;
 
 
-    os_memmove(&(state.txnAuth.txnTypeAndSubType), ptr, sizeof(state.txnAuth.txnTypeAndSubType));
+    memmove(&(state.txnAuth.txnTypeAndSubType), ptr, sizeof(state.txnAuth.txnTypeAndSubType));
 
     ptr += sizeof(state.txnAuth.txnTypeAndSubType);
 
@@ -554,14 +554,14 @@ uint8_t parseMainTxnData() {
     ptr += 2;   // Skip the deadline
     ptr += 32;  // Skip the sender publickey
 
-    os_memmove(&(state.txnAuth.recipientId), ptr, sizeof(state.txnAuth.recipientId));
+    memmove(&(state.txnAuth.recipientId), ptr, sizeof(state.txnAuth.recipientId));
     ptr += sizeof(state.txnAuth.recipientId);
 
-    os_memmove(&(state.txnAuth.amount), ptr, sizeof(state.txnAuth.amount));
+    memmove(&(state.txnAuth.amount), ptr, sizeof(state.txnAuth.amount));
     ptr += sizeof(state.txnAuth.amount);
 
     uint64_t fee = 0;
-    os_memmove(&fee, ptr, sizeof(fee));
+    memmove(&fee, ptr, sizeof(fee));
 
     uint8_t ret = formatAmount(state.txnAuth.feeText, sizeof(state.txnAuth.feeText), fee, chainNumDecimalsBeforePoint(state.txnAuth.chainId));
 
@@ -612,7 +612,7 @@ uint8_t parseAppendagesFlags() {
 
     uint32_t appendages = 0;
 
-    os_memmove(&appendages, ptr, sizeof(appendages));
+    memmove(&appendages, ptr, sizeof(appendages));
 
     if (0 != appendages) {
         state.txnAuth.uiFlowBitfeild |= 1; //turn on the first bit
@@ -674,22 +674,22 @@ uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
 
     ptr += 1;
 
-    os_memmove(&state.txnAuth.attachmentTempInt32Num1, ptr, sizeof(state.txnAuth.attachmentTempInt32Num1));
+    memmove(&state.txnAuth.attachmentTempInt32Num1, ptr, sizeof(state.txnAuth.attachmentTempInt32Num1));
     ptr += sizeof(state.txnAuth.attachmentTempInt32Num1);
 
     if (NUM_CHAINS < state.txnAuth.attachmentTempInt32Num1)
         return R_BAD_CHAIN_ID_ERR;
 
-    os_memmove(&state.txnAuth.attachmentTempInt32Num2, ptr, sizeof(state.txnAuth.attachmentTempInt32Num2));
+    memmove(&state.txnAuth.attachmentTempInt32Num2, ptr, sizeof(state.txnAuth.attachmentTempInt32Num2));
     ptr += sizeof(state.txnAuth.attachmentTempInt32Num2);
 
     if (NUM_CHAINS < state.txnAuth.attachmentTempInt32Num2)
         return R_BAD_CHAIN_ID_ERR;
 
-    os_memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
+    memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
     ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
     
-    os_memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
+    memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
 
     return R_SUCCESS;
 }
@@ -705,13 +705,13 @@ uint8_t parseAskOrderPlacementAttachment() {
     if (0 == ptr)
         return R_SEND_MORE_BYTES;
 
-    os_memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
+    memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
     ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
 
-    os_memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
+    memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
     ptr += sizeof(state.txnAuth.attachmentTempInt64Num2);
 
-    os_memmove(&state.txnAuth.attachmentTempInt64Num3, ptr, sizeof(state.txnAuth.attachmentTempInt64Num3));
+    memmove(&state.txnAuth.attachmentTempInt64Num3, ptr, sizeof(state.txnAuth.attachmentTempInt64Num3));
 
     return R_SUCCESS;
 }
@@ -730,10 +730,10 @@ uint8_t parseAssetTransferAttachment() {
 
     ptr += 1; //skip version byte
 
-    os_memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
+    memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
     ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
 
-    os_memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
+    memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
 
     return R_SUCCESS;
 }
@@ -747,7 +747,7 @@ uint8_t addToReadBuffer(const uint8_t * const newData, const uint8_t numBytes) {
     for (uint8_t i = 0; i < state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset; i++)
         state.txnAuth.readBuffer[i] = state.txnAuth.readBuffer[i + state.txnAuth.readBufferReadOffset];
 
-    os_memset(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset, 0, state.txnAuth.readBufferReadOffset); //set to 0, just for saftey
+    memset(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset, 0, state.txnAuth.readBufferReadOffset); //set to 0, just for saftey
 
     state.txnAuth.readBufferEndPos -= state.txnAuth.readBufferReadOffset;
     state.txnAuth.readBufferReadOffset = 0;
@@ -757,7 +757,7 @@ uint8_t addToReadBuffer(const uint8_t * const newData, const uint8_t numBytes) {
 
     cx_hash(&state.txnAuth.hashstate.header, 0, newData, numBytes, 0, 0);
 
-    os_memcpy(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos, newData, numBytes);
+    memcpy(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos, newData, numBytes);
     state.txnAuth.readBufferEndPos += numBytes;
 
     return R_SUCCESS;
@@ -815,8 +815,8 @@ uint8_t parseFromStack() {
             return ret;
 
         uint8_t tempBuffer[FUNCTION_STACK_SIZE - 1];
-        os_memmove(tempBuffer, state.txnAuth.functionStack + 1, sizeof(tempBuffer));
-        os_memmove(state.txnAuth.functionStack, tempBuffer, sizeof(tempBuffer));
+        memmove(tempBuffer, state.txnAuth.functionStack + 1, sizeof(tempBuffer));
+        memmove(state.txnAuth.functionStack, tempBuffer, sizeof(tempBuffer));
         state.txnAuth.functionStack[sizeof(state.txnAuth.functionStack) - 1] = 0;
         state.txnAuth.numFunctionsOnStack--;
 
@@ -839,11 +839,11 @@ uint8_t parseFromStack() {
 uint8_t signTxn(const uint8_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
                  uint8_t * const destBuffer, uint16_t * const outException) {
 
-    uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
+    uint8_t keySeed[32]; memset(keySeed, 0, sizeof(keySeed));
     uint8_t ret = 0;
 
     if (R_SUCCESS != (ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, outException))) {
-        os_memset(keySeed, 0, sizeof(keySeed));
+        memset(keySeed, 0, sizeof(keySeed));
         return ret;
     }
 
@@ -853,8 +853,8 @@ uint8_t signTxn(const uint8_t * const derivationPath, const uint8_t derivationPa
     //sign msg should only use the first 32 bytes of keyseed
     signMsg(keySeed, finalTxnSha256, destBuffer); //is a void function, no ret value to check against
     
-    os_memset(finalTxnSha256, 0, sizeof(finalTxnSha256)); //for security
-    os_memset(keySeed, 0, sizeof(keySeed));
+    memset(finalTxnSha256, 0, sizeof(finalTxnSha256)); //for security
+    memset(keySeed, 0, sizeof(keySeed));
 
     return R_SUCCESS;
 }

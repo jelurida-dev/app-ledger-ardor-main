@@ -34,7 +34,7 @@ static void aes_ccm_auth_start(void *aes, size_t M, size_t L, const aes_uchar *n
 	b[0] = aad_len ? 0x40 : 0 /* Adata */;
 	b[0] |= (((M - 2) / 2) /* M' */ << 3);
 	b[0] |= (L - 1) /* L' */;
-	os_memcpy(&b[1], nonce, 15 - L);
+	memcpy(&b[1], nonce, 15 - L);
 	AES_PUT_BE16(&b[AES_BLOCK_SIZE - L], plain_len);
 
 	aes_hexdump_key(MSG_EXCESSIVE, "CCM B_0", b, AES_BLOCK_SIZE);
@@ -44,7 +44,7 @@ static void aes_ccm_auth_start(void *aes, size_t M, size_t L, const aes_uchar *n
 		return;
 
 	AES_PUT_BE16(aad_buf, aad_len);
-	os_memcpy(aad_buf + 2, aad, aad_len);
+	memcpy(aad_buf + 2, aad, aad_len);
 	memset(aad_buf + 2 + aad_len, 0, sizeof(aad_buf) - 2 - aad_len);
 
 	xor_aes_block(aad_buf, x);
@@ -82,7 +82,7 @@ static void aes_ccm_encr_start(size_t L, const aes_uchar *nonce, aes_uchar *a)
 {
 	/* A_i = Flags | Nonce N | Counter i */
 	a[0] = L - 1; /* Flags = L' */
-	os_memcpy(&a[1], nonce, 15 - L);
+	memcpy(&a[1], nonce, 15 - L);
 }
 
 
