@@ -15,6 +15,10 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#include "ux.h"
+#include "cx.h"
+#include "os.h"
+
 #if defined(TARGET_NANOS)
     unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element);
 #endif
