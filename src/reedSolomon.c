@@ -16,12 +16,13 @@
 ********************************************************************************/
 
 #include <os.h>
+#include <string.h>
 
 
 #define BASE_32_LENGTH 13
 #define BASE_10_LENGTH 20
+#define CODEWORD_LENGTH 17
 
-static const uint8_t initial_codeword[] = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 static const uint8_t codeword_map[] = {3, 2, 1, 0, 7, 6, 5, 4, 13, 14, 15, 16, 12, 8, 9, 10, 11};
 static const char alphabet[] = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 static const uint8_t gexp[] = {1, 2, 4, 8, 16, 5, 10, 20, 13, 26, 17, 7, 14, 28, 29, 31, 27, 19, 3, 6, 12, 24, 21, 15, 30, 25, 23, 11, 22, 9, 18, 1};
@@ -42,8 +43,8 @@ uint8_t gmult(const uint8_t a, const uint8_t b) {
 //@output out - output should be of length 21;
 void reedSolomonEncode(uint64_t inp, char * const output) {
 
-    uint8_t plain_string_32[sizeof(initial_codeword)];
-    memset(plain_string_32, 0, sizeof(initial_codeword));
+    uint8_t plain_string_32[CODEWORD_LENGTH];
+    memset(plain_string_32, 0, CODEWORD_LENGTH);
 
     uint8_t index = 0;
 
@@ -64,7 +65,7 @@ void reedSolomonEncode(uint64_t inp, char * const output) {
         p[0] =        gmult(17, fb);
     }
 
-    memcpy(plain_string_32 + BASE_32_LENGTH, p, sizeof(initial_codeword) - BASE_32_LENGTH);
+    memcpy(plain_string_32 + BASE_32_LENGTH, p, CODEWORD_LENGTH - BASE_32_LENGTH);
 
     uint8_t stringIndex = 0;
 
