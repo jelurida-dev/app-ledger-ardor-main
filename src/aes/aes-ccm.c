@@ -86,7 +86,7 @@ static void aes_ccm_encr_start(size_t L, const aes_uchar *nonce, aes_uchar *a)
 }
 
 
-static void aes_ccm_encr(void *aes, size_t L, const aes_uchar *in, size_t len, aes_uchar *out,
+static void aes_ccm_encr(void *aes, const aes_uchar *in, size_t len, aes_uchar *out,
 			 aes_uchar *a)
 {
 	size_t last = len % AES_BLOCK_SIZE;
@@ -162,7 +162,7 @@ int aes_ccm_ae(const aes_uchar *key, size_t key_len, const aes_uchar *nonce,
 
 	/* Encryption */
 	aes_ccm_encr_start(L, nonce, a);
-	aes_ccm_encr(aes, L, plain, plain_len, crypt, a);
+	aes_ccm_encr(aes, plain, plain_len, crypt, a);
 	aes_ccm_encr_auth(aes, M, x, a, auth);
 
 	aes_encrypt_deinit(aes);
@@ -193,7 +193,7 @@ int aes_ccm_ad(const aes_uchar *key, size_t key_len, const aes_uchar *nonce,
 	aes_ccm_decr_auth(aes, M, a, auth, t);
 
 	/* plaintext = msg XOR (S_1 | S_2 | ... | S_n) */
-	aes_ccm_encr(aes, L, crypt, crypt_len, plain, a);
+	aes_ccm_encr(aes, crypt, crypt_len, plain, a);
 
 	aes_ccm_auth_start(aes, M, L, nonce, aad, aad_len, crypt_len, x);
 	aes_ccm_auth(aes, plain, crypt_len, x);
