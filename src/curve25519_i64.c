@@ -90,7 +90,7 @@ static int mula32(dstptr p, srcptr x, srcptr y, unsigned t, int z) {
  * requires t > 0 && d[t-1] != 0
  * requires that r[-1] and d[-1] are valid memory locations
  * q may overlap with r+t */
-static void divmod(dstptr q, dstptr r, int n, dstptr d, int t) {
+static void divmod(dstptr q, dstptr r, int n, srcptr d, int t) {
   int rn = 0;
   int dt = ((d[t - 1] & 0xFF) << 8);
   if (t > 1) {
