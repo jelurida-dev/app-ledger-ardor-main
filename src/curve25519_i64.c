@@ -655,16 +655,20 @@ int sign25519(k25519 v, const k25519 h, const priv25519 x, const spriv25519 s) {
 	uint8_t tmp[65];
 	unsigned w;
 	int i;
+  k25519 h1, x1;
+
+  cpy32(h1, h);
+  cpy32(x1, x);
 
 	memset(tmp, 0, 32);
-	divmod(tmp, h, 32, order25519, 32);
+	divmod(tmp, h1, 32, order25519, 32);
 
 	memset(tmp, 0, 32);
-	divmod(tmp, x, 32, order25519, 32);
+	divmod(tmp, x1, 32, order25519, 32);
 
-	memset(v, 0, sizeof(v));
+	memset(v, 0, 32);
 
-	i = mula_small(v, x, 0, h, 32, -1);
+	i = mula_small(v, x1, 0, h1, 32, -1);
 	mula_small(v, v, 0, order25519, 32, (15-(int8_t) v[31])/16);
 
 	memset(tmp, 0, sizeof(tmp));
