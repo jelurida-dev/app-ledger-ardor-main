@@ -8,3 +8,4 @@ usbtool/
 src/txnTypeLists.c
 .vscode/
 output-scan-build/
+tests/build/
