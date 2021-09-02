@@ -4,28 +4,34 @@ This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app f
 
 ## Documentation
 
-[Ardor Wiki](https://ardordocs.jelurida.com/Connect_Ledger_Nano_S_or_Nano_X_to_your_Ardor_Wallet), [Ledger Documentation Hub](https://ledger.readthedocs.io/en/latest/)
+[Ardor Wiki](https://ardordocs.jelurida.com/Connect_Ledger_Nano_S_or_Nano_X_to_your_Ardor_Wallet), [Ledger Developers Portal](https://developers.ledger.com/)
 
-## Developer Resources 
+## Developer Resources
 
-### Compiling using the Jelurida docker image for ledger compilation
+### Building using the Ledger Application Builder docker image
 
-The image was made to make it easy to compile the project on any platform you might be running, if you don't have access to this image, don't worry you can still setup up your own dev env and compile.
+The `ledger-app-builder` docker image is not currently published so you will need to [fetch and build it manually](https://github.com/LedgerHQ/ledger-app-builder#standard-build). You only need to do this once and the image will be cached on your system.
 
-To compile using the image
-1. Virtualy map your project folder using `-v "PROJECT_FOLDER_HERE:/app"` into /app when you create your personal image
-2. `cd /app` - this should be your project folder
-3. `pyenv activate ledger` - to activate the right version of python
-4. `make clean BOLOS_SDK=/root/nanox-secure-sdk-1.6`
-5. `make BOLOS_SDK=/root/nanox-secure-sdk-1.6`
-6. `make load BOLOS_SDK=/root/nanox-secure-sdk-1.6` this shouldn't work, since the ledger usb isn't mounted into the docker, but it will produce a python command for loading the image on your own machine, copy paste this command on your own machine to load the newly compiled app onto the ledger device
+Then you can switch to this repository and launch the `ledger-app-builder` docker image to build the Ardor app. Just follow the [standard instructions](https://github.com/LedgerHQ/ledger-app-builder#compile-your-app-in-the-container). In a nutshell:
 
-* Switch between /root/nanox-secure-sdk-1.6 and /root/nanos-secure-sdk-1.6 if you want to compile for a different device
+    $ docker run --rm -ti -v "$(realpath .):/app" ledger-app-builder:latest
+    root@656be163fe84:/app# make
+
+### Unit test
+
+Unit tests are under the `tests` directory. You can build and run them with the following commands:
+
+    cd tests
+    cmake -Bbuild -H. && make -C build
+    CTEST_OUTPUT_ON_FAILURE=1 make -C build clean test
+
+To clean the tests build just delete the `tests/build` directory.
 
 ### Enable Log Messages
 
 To turn on logging on the Ledger app
-1. Install the [debug firmware](https://ledger.readthedocs.io/en/latest/userspace/debugging.html)
+
+1. Install the [debug firmware](https://developers.ledger.com/docs/nano-app/debug/)
 2. Enable debugging in the makefile (DEVEL = 1) - make sure not to commit this change
 3. Execute `make clean` and then `make load` to generate the source code for all the PRINTF statements
 
@@ -35,7 +41,7 @@ In order to build the Nano S or Nano X version you just need to make sure the `B
 
 Make sure you rebuild the whole project when switching SDKs by executing `make clean` and then `make load`.
 
-Since we are switching a lot between SDK's, it would be a good practice to specify BOLOS_SDK when compiling, so the compile command would me `make BOLOS_SDK=PATH_TO_SOME_SDK`
+For example to build for the Nano X the compile command would be `BOLOS_SDK=$NANOX_SDK make`
 
 ### Avoid Numeric Underflow
 
@@ -48,18 +54,25 @@ so please review carefully all substraction operations.
 
 ### Zero Tolerance for Compilation Warnings
 
-No compilation warnings in committed code please! 
+Ledger requires no compilation warnings anywhere in the code.
 
-You can ignore warnings coming out of OS library files, `curve25519_i64.c`, `curveConversion.c` and the `aes` folder
-since they are externally imported.
+It's also required to pass the Clang static analyzer. The analyzer is included on the `ledger-app-builder` docker image so, once there, you just issue the following commands:
+
+    make clean
+    scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default
+
+### CI using Github Actions
+
+The project uses Github Actions to run the Clang static analyzer and the unit tests on each commit and pull request.
+
+The CI is configured on the `.github/workflows/ci-workflow.yml` with inspiration from the [`app-boilerplate`](https://github.com/LedgerHQ/app-boilerplate) and the [`app-xrp`](https://github.com/LedgerHQ/app-xrp).
 
 ### State Cleaning
 
 Since we use a union data type for command handlers state (`states_t` in `ardor.h`) to save memory, make sure to **clear this state**
-to avoid some attack vectors. 
+to avoid some attack vectors.
 
-This is done by passing `true` in the `isLastCommandDifferent` parameter of the handler function. In this case the handler has 
-to clear the state before using it.
+This is done by passing `true` in the `isLastCommandDifferent` parameter of the handler function. In this case the handler has to clear the state before using it.
 
 In addition state must be cleared whenever we get an error in a handler function which manages state.
 
@@ -79,7 +92,7 @@ Changes to the `txtypes.txt` should be picked up by the make process and a new `
 
 ### Code Flow
 
-The code flow starts at ardor_main (`main.c`) which uses a global try/catch to prevent the app from crashing on error. 
+The code flow starts at ardor_main (`main.c`) which uses a global try/catch to prevent the app from crashing on error.
 The code loops on io_exchange waiting for the next command buffer, then calling the appropriate handler function implemented in the different .c files.
 
 ## APDU Protocol
@@ -98,11 +111,11 @@ returnValues.h lists all the return statuses
 
 To compile call
 
-	make
+    make
 
 To compile and upload to the ledger device
 
-	make load
+    make load
 
 ### Stack Overflow Canary
 
@@ -111,13 +124,12 @@ To get the amount of memory used in the app call the following command
     readelf -s bin/app.elf | grep app_stack_canary 
 
 This will output the canary (which is at the end of the memory space) location then subtract `0x20001800` (Nano S) or
-`0xda7a0000` (Nano X) to get the actual used up space for the app. 
+`0xda7a0000` (Nano X) to get the actual used up space for the app.
 The NanoS device has 4k of memory for the app and stack.
 
 The app uses the SDK's built in app_stack_canary, it's activated in the makefile by the define `HAVE_BOLOS_APP_STACK_CANARY`
 We advise to keep this flag always on, it just gives extra security and doesn't take up much CPU.
-The way this works is it defines an int at the end of the stack, initializes it at startup and then check's against it every 
-call to io_exchange, if it changes it throws an `EXCEPTION_IO_RESET`, which should reset the app.
+The way this works is it defines an int at the end of the stack, initializes it at startup and then check's against it every call to io_exchange, if it changes it throws an `EXCEPTION_IO_RESET`, which should reset the app.
 In order to debug a stack overflow, call check_canary() add different parts of the code to check if you have overflowed the stack.
 
 ### Error Handling
@@ -133,18 +145,15 @@ Ardor signatures are based on the EC-KCDSA over Curve25519 algorithm which is no
 
 To support standard BIP32 key derivation we implemented curve conversion for Ardor using the protocol [Yaffe-Bender HD key derivation for EC-KCDSA](https://www.jelurida.com/sites/default/files/kcdsa.pdf), it's a derivation scheme that rides on top of the BIP32-Ed25519 HD key derivation scheme.
 
-
-
 Technically a public key is a Point (X,Y) on a curve C. X,Y are integers modulo some field F with a base point on the curve G.
 The tuple (C, F, G) defines a "curve", in this paper we are dealing with the twisted edwards curve (ed25519) and curve25519.
 
-We are using a morph function between ed25519 and curve25519 so that if Apoint = Knumber * BasePointED25519 on ed25519 then 
-morph(Apoint) = Knumber * BasePointECKCDSA on curve25119
+We are using a morph function between ed25519 and curve25519 so that if `Apoint = Knumber * BasePointED25519` on ed25519 then `morph(Apoint) = Knumber * BasePointECKCDSA` on curve25119
 Implementation for this function can be found in curveConversion.c
 
 ed25519 public key is defined as `PublicKeyED25519Point = CLAMP(SHA512(privateKey)[:32]) * ED25519BasePoint`
 
-Let's refer to CLAMP(SHA512(privateKey)[:32]) as KL
+Let's refer to `CLAMP(SHA512(privateKey)[:32])` as KL
 
 The derivation composition flow for path P is:
 
@@ -153,8 +162,7 @@ The derivation composition flow for path P is:
 3. PubleyKeyED25519YLE = convert(YBigEndian) - just reverse the bytes
 4. PublicKeyCurve25519X = morph(PublicKeyEED25519YLE)
 
-Points on Curve25519 can be defined by the X coordinate (since each X coordinate has only one matching Y coordinate) 
-so PublicKeyCurve25519X and KL should hold PublicKeyCurve25519X = KL * Curve25519BasePoint = Morphe(KL * ED25519BasePoint)
+Points on Curve25519 can be defined by the X coordinate (since each X coordinate has only one matching Y coordinate) so PublicKeyCurve25519X and KL should hold `PublicKeyCurve25519X = KL * Curve25519BasePoint = Morphe(KL * ED25519BasePoint)`
 
 In EC-KCDSA publickey = privatekey^-1 * BasePoint, privateKey^-1 is referred to as the key seed, so KL is the key seed for the PublicKeyCurve25519X public key for path P.
 
