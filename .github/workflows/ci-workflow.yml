@@ -33,3 +33,20 @@ jobs:
         run: |
           cd tests
           cmake -Bbuild -H. && make -C build && make -C build test
+
+  job_clang_scan_build:
+    name: Clang scan-build
+    needs: job_build_debug
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+      
+      - name: Run static analyzer
+        run: |
+          make clean
+          scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default

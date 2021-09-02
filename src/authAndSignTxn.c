@@ -570,11 +570,13 @@ uint8_t parseMainTxnData() {
 
     snprintf(state.txnAuth.feeText + ret - 1, sizeof(state.txnAuth.feeText) - ret - 1, " %s", chainName(state.txnAuth.chainId));
 
+    /* Comment unnecessary pointer movement over the last fields. Keeping for future reference.
     ptr += sizeof(uint64_t);
 
     ptr += 64;  //Skip the sig
     ptr += 4;   //Skip the block height
     ptr += 8;   //Skip the block Id
+    */
 
     addToFunctionStack(6);
 

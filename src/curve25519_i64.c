@@ -668,7 +668,7 @@ int sign25519(k25519 v, const k25519 h, const priv25519 x, const spriv25519 s) {
 
 	memset(v, 0, 32);
 
-	i = mula_small(v, x1, 0, h1, 32, -1);
+	mula_small(v, x1, 0, h1, 32, -1);
 	mula_small(v, v, 0, order25519, 32, (15-(int8_t) v[31])/16);
 
 	memset(tmp, 0, sizeof(tmp));
