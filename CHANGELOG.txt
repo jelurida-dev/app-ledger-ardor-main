@@ -1,0 +1,16 @@
+2021-01-06 v1.0.3
+Support for latest Ledger devices firmware.
+
+2020-10-26 v1.0.2
+- user confirmation UI required for token signing
+- more detailed appendages screen when signing a transaction
+- support for GPS child chain
+- specific UI for assetTransfer transaction type
+- support for new transaction types
+- minor changes and fixes
+
+2020-04-05 v1.0.1
+Support for Nano X.
+
+2020-04-01 v1.0.0
+Initial public version.
