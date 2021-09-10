@@ -89,7 +89,9 @@ jobs:
           ./compile.sh --skip-desktop
 
       - name: Run tests
-        run: ./run-unit-tests.sh com.jelurida.ardor.integration.wallet.ledger.application.ArdorAppBridgeHeadlessTest
+        run: |
+          cd /ardor
+          ./run-unit-tests.sh com.jelurida.ardor.integration.wallet.ledger.application.ArdorAppBridgeHeadlessTest
 
       - name: Kill speculos
         run: kill -9 $(cat /tmp/speculos.pid)
