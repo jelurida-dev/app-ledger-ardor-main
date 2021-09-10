@@ -17,6 +17,12 @@ jobs:
       - name: Build
         run: make DEBUG=1
 
+      - name: Upload app binary
+        uses: actions/upload-artifact@v2
+        with:
+          name: app-bin
+          path: bin
+
   job_unit_test:
     name: Unit test
     needs: job_build_debug
@@ -50,3 +56,40 @@ jobs:
         run: |
           make clean
           scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default
+  
+  job_functional_test:
+    name: Functional test
+    needs: job_build_debug
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ledgerhq/speculos:latest
+      options: --entrypoint /bin/bash
+    
+    steps:
+      - name: Install dependencies
+        run: apt update && apt install -qy openjdk-11-jdk-headless git
+
+      - name: Download app binary
+        uses: actions/download-artifact@v2
+        with:
+          name: app-bin
+          path: /tmp/app
+
+      - name: Run speculos in the background
+        run: |
+          python ./speculos.py --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" /tmp/app/bin/app.elf 2>/tmp/speculos.log &
+          echo $! >/tmp/speculos.pid
+
+# The ardor-ledger-test repository is a temporary solution until the next version is made public with the Speculos driver
+      - name: Install and compile Ardor
+        run: |
+          git clone https://sargue@bitbucket.org/sargue/ardor-ledger-test.git /ardor
+          cd /ardor
+          ./compile.sh --skip-desktop
+
+      - name: Run tests
+        run: ./run-unit-tests.sh com.jelurida.ardor.integration.wallet.ledger.application.ArdorAppBridgeHeadlessTest
+
+      - name: Kill speculos
+        run: kill -9 $(cat /tmp/speculos.pid)
