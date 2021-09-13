@@ -95,3 +95,15 @@ jobs:
 
       - name: Kill speculos
         run: kill -9 $(cat /tmp/speculos.pid)
+
+      - name: Upload Speculos log
+        uses: actions/upload-artifact@v2
+        with:
+          name: speculos-log
+          path: /tmp/speculos.log
+
+      - name: Upload Ardor log
+        uses: actions/upload-artifact@v2
+        with:
+          name: ardor-log
+          path: /ardor/logs/ardor.0.log
