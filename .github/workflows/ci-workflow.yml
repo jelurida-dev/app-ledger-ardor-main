@@ -78,7 +78,7 @@ jobs:
 
       - name: Run speculos in the background
         run: |
-          python ./speculos.py --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" /tmp/app/bin/app.elf 2>/tmp/speculos.log &
+          /speculos/speculos.py --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" /tmp/app/bin/app.elf 2>/tmp/speculos.log &
           echo $! >/tmp/speculos.pid
 
 # The ardor-ledger-test repository is a temporary solution until the next version is made public with the Speculos driver
