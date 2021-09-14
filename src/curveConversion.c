@@ -7,6 +7,7 @@
 
 
 #include <os.h>
+#include <string.h>
 
 #define F25519_SIZE  32
 
@@ -17,7 +18,7 @@ extern const uint8_t f25519_one[F25519_SIZE];
 /* Copy two points */
 static inline void f25519_copy(uint8_t *x, const uint8_t *a)
 {
-	os_memcpy(x, a, F25519_SIZE);
+	memcpy(x, a, F25519_SIZE);
 }
 
 

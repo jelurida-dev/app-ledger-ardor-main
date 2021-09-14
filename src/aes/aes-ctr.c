@@ -30,7 +30,7 @@ int aes_128_ctr_encrypt(const aes_uchar *key, const aes_uchar *nonce,
 	ctx = aes_encrypt_init(key, 16);
 	if (ctx == NULL)
 		return -1;
-	os_memcpy(counter, nonce, AES_BLOCK_SIZE);
+	memcpy(counter, nonce, AES_BLOCK_SIZE);
 
 	while (left > 0) {
 		aes_encrypt(ctx, counter, buf);

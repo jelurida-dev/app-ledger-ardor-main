@@ -34,7 +34,7 @@ static void aes_ccm_auth_start(void *aes, size_t M, size_t L, const aes_uchar *n
 	b[0] = aad_len ? 0x40 : 0 /* Adata */;
 	b[0] |= (((M - 2) / 2) /* M' */ << 3);
 	b[0] |= (L - 1) /* L' */;
-	os_memcpy(&b[1], nonce, 15 - L);
+	memcpy(&b[1], nonce, 15 - L);
 	AES_PUT_BE16(&b[AES_BLOCK_SIZE - L], plain_len);
 
 	aes_hexdump_key(MSG_EXCESSIVE, "CCM B_0", b, AES_BLOCK_SIZE);
@@ -44,7 +44,7 @@ static void aes_ccm_auth_start(void *aes, size_t M, size_t L, const aes_uchar *n
 		return;
 
 	AES_PUT_BE16(aad_buf, aad_len);
-	os_memcpy(aad_buf + 2, aad, aad_len);
+	memcpy(aad_buf + 2, aad, aad_len);
 	memset(aad_buf + 2 + aad_len, 0, sizeof(aad_buf) - 2 - aad_len);
 
 	xor_aes_block(aad_buf, x);
@@ -82,11 +82,11 @@ static void aes_ccm_encr_start(size_t L, const aes_uchar *nonce, aes_uchar *a)
 {
 	/* A_i = Flags | Nonce N | Counter i */
 	a[0] = L - 1; /* Flags = L' */
-	os_memcpy(&a[1], nonce, 15 - L);
+	memcpy(&a[1], nonce, 15 - L);
 }
 
 
-static void aes_ccm_encr(void *aes, size_t L, const aes_uchar *in, size_t len, aes_uchar *out,
+static void aes_ccm_encr(void *aes, const aes_uchar *in, size_t len, aes_uchar *out,
 			 aes_uchar *a)
 {
 	size_t last = len % AES_BLOCK_SIZE;
@@ -162,7 +162,7 @@ int aes_ccm_ae(const aes_uchar *key, size_t key_len, const aes_uchar *nonce,
 
 	/* Encryption */
 	aes_ccm_encr_start(L, nonce, a);
-	aes_ccm_encr(aes, L, plain, plain_len, crypt, a);
+	aes_ccm_encr(aes, plain, plain_len, crypt, a);
 	aes_ccm_encr_auth(aes, M, x, a, auth);
 
 	aes_encrypt_deinit(aes);
@@ -193,7 +193,7 @@ int aes_ccm_ad(const aes_uchar *key, size_t key_len, const aes_uchar *nonce,
 	aes_ccm_decr_auth(aes, M, a, auth, t);
 
 	/* plaintext = msg XOR (S_1 | S_2 | ... | S_n) */
-	aes_ccm_encr(aes, L, crypt, crypt_len, plain, a);
+	aes_ccm_encr(aes, crypt, crypt_len, plain, a);
 
 	aes_ccm_auth_start(aes, M, L, nonce, aad, aad_len, crypt_len, x);
 	aes_ccm_auth(aes, plain, crypt_len, x);

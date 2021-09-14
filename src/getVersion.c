@@ -34,7 +34,7 @@ void getVersionHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const
 	G_io_apdu_buffer[(*tx)++] = APPVERSION_P;
 	G_io_apdu_buffer[(*tx)++] = VERSION_FLAGS;
 
-	os_memmove(G_io_apdu_buffer + (*tx), ARDOR_SPECIAL_IDENTIFIER, ARDOR_SPECIAL_IDENTIFIER_LEN);
+	memmove(G_io_apdu_buffer + (*tx), ARDOR_SPECIAL_IDENTIFIER, ARDOR_SPECIAL_IDENTIFIER_LEN);
 	*tx += ARDOR_SPECIAL_IDENTIFIER_LEN;
 
 	G_io_apdu_buffer[(*tx)++] = 0x90;

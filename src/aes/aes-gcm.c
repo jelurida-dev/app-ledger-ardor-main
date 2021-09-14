@@ -65,7 +65,7 @@ static void gf_mult(const aes_uchar *x, const aes_uchar *y, aes_uchar *z)
 	int i, j;
 
 	memset(z, 0, 16); /* Z_0 = 0^128 */
-	os_memcpy(v, y, 16); /* V_0 = Y */
+	memcpy(v, y, 16); /* V_0 = Y */
 
 	for (i = 0; i < 16; i++) {
 		for (j = 0; j < 8; j++) {
@@ -114,13 +114,13 @@ static void ghash(const aes_uchar *h, const aes_uchar *x, size_t xlen, aes_uchar
 		 * multiplication operation for binary Galois (finite) field of
 		 * 2^128 elements */
 		gf_mult(y, h, tmp);
-		os_memcpy(y, tmp, 16);
+		memcpy(y, tmp, 16);
 	}
 
 	if (x + xlen > xpos) {
 		/* Add zero padded last block */
 		size_t last = x + xlen - xpos;
-		os_memcpy(tmp, xpos, last);
+		memcpy(tmp, xpos, last);
 		memset(tmp + last, 0, sizeof(tmp) - last);
 
 		/* Y_i = (Y^(i-1) XOR X_i) dot H */
@@ -130,7 +130,7 @@ static void ghash(const aes_uchar *h, const aes_uchar *x, size_t xlen, aes_uchar
 		 * multiplication operation for binary Galois (finite) field of
 		 * 2^128 elements */
 		gf_mult(y, h, tmp);
-		os_memcpy(y, tmp, 16);
+		memcpy(y, tmp, 16);
 	}
 
 	/* Return Y_m */
@@ -149,7 +149,7 @@ static void aes_gctr(void *aes, const aes_uchar *icb, const aes_uchar *x, size_t
 
 	n = xlen / 16;
 
-	os_memcpy(cb, icb, AES_BLOCK_SIZE);
+	memcpy(cb, icb, AES_BLOCK_SIZE);
 	/* Full blocks */
 	for (i = 0; i < n; i++) {
 		aes_encrypt(aes, cb, ypos);
@@ -191,7 +191,7 @@ static void aes_gcm_prepare_j0(const aes_uchar *iv, size_t iv_len, const aes_uch
 
 	if (iv_len == 12) {
 		/* Prepare block J_0 = IV || 0^31 || 1 [len(IV) = 96] */
-		os_memcpy(J0, iv, iv_len);
+		memcpy(J0, iv, iv_len);
 		memset(J0 + iv_len, 0, AES_BLOCK_SIZE - iv_len);
 		J0[AES_BLOCK_SIZE - 1] = 0x01;
 	} else {
@@ -216,7 +216,7 @@ static void aes_gcm_gctr(void *aes, const aes_uchar *J0, const aes_uchar *in, si
 	if (len == 0)
 		return;
 
-	os_memcpy(J0inc, J0, AES_BLOCK_SIZE);
+	memcpy(J0inc, J0, AES_BLOCK_SIZE);
 	inc32(J0inc);
 	aes_gctr(aes, J0inc, in, len, out);
 }

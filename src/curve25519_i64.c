@@ -6,6 +6,7 @@
  */
 
 #include <stdint.h>
+#include <string.h>
 #include "curve25519_i64.h"
 
 
@@ -89,7 +90,7 @@ static int mula32(dstptr p, srcptr x, srcptr y, unsigned t, int z) {
  * requires t > 0 && d[t-1] != 0
  * requires that r[-1] and d[-1] are valid memory locations
  * q may overlap with r+t */
-static void divmod(dstptr q, dstptr r, int n, dstptr d, int t) {
+static void divmod(dstptr q, dstptr r, int n, srcptr d, int t) {
   int rn = 0;
   int dt = ((d[t - 1] & 0xFF) << 8);
   if (t > 1) {
@@ -654,19 +655,23 @@ int sign25519(k25519 v, const k25519 h, const priv25519 x, const spriv25519 s) {
 	uint8_t tmp[65];
 	unsigned w;
 	int i;
+  k25519 h1, x1;
 
-	os_memset(tmp, 0, 32);
-	divmod(tmp, h, 32, order25519, 32);
+  cpy32(h1, h);
+  cpy32(x1, x);
 
-	os_memset(tmp, 0, 32);
-	divmod(tmp, x, 32, order25519, 32);
+	memset(tmp, 0, 32);
+	divmod(tmp, h1, 32, order25519, 32);
 
-	os_memset(v, 0, sizeof(v));
+	memset(tmp, 0, 32);
+	divmod(tmp, x1, 32, order25519, 32);
 
-	i = mula_small(v, x, 0, h, 32, -1);
+	memset(v, 0, 32);
+
+	mula_small(v, x1, 0, h1, 32, -1);
 	mula_small(v, v, 0, order25519, 32, (15-(int8_t) v[31])/16);
 
-	os_memset(tmp, 0, sizeof(tmp));
+	memset(tmp, 0, sizeof(tmp));
 
 	mula32(tmp, v, s, 32, 1);
 	divmod(tmp+32, tmp, 64, order25519, 32);

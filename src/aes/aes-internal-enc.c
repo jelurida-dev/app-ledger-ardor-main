@@ -209,6 +209,6 @@ void aes_encrypt(void *ctx, const aes_uchar *plain, aes_uchar *crypt)
 
 void aes_encrypt_deinit(void *ctx)
 {
-	os_memset(ctx, 0, AES_PRIV_SIZE);
+	memset(ctx, 0, AES_PRIV_SIZE);
 }
 

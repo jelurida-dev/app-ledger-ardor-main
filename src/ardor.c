@@ -40,7 +40,7 @@ states_t state;
 void sha256TwoBuffers(const uint8_t * const bufferTohash1, const uint16_t sizeOfBuffer1, const uint8_t * const bufferTohash2, const uint16_t sizeOfBuffer2, uint8_t * const output) {
     cx_sha256_t shaContext;
 
-    os_memset(output, 0, 32);
+    memset(output, 0, 32);
     cx_sha256_init(&shaContext); //return value has no info
 
     cx_hash(&shaContext.header, 0, bufferTohash1, sizeOfBuffer1, output, 32);
@@ -63,23 +63,23 @@ void sha256Buffer(const uint8_t * const bufferTohash, const uint16_t sizeOfBuffe
 //@param out: sig should point to 64 bytes allocated to hold the signiture of the message
 void signMsg(uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_t * const sig) {
 
-    uint8_t publicKeyX[32], privateKey[32]; os_memset(publicKeyX, 0, sizeof(publicKeyX)); os_memset(privateKey, 0, sizeof(privateKey));
+    uint8_t publicKeyX[32], privateKey[32]; memset(publicKeyX, 0, sizeof(publicKeyX)); memset(privateKey, 0, sizeof(privateKey));
 
     keygen25519(publicKeyX, privateKey, keySeedBfr);
 
-    uint8_t x[32]; os_memset(x, 0, sizeof(x));
+    uint8_t x[32]; memset(x, 0, sizeof(x));
 
     sha256TwoBuffers(msgSha256, 32, privateKey, sizeof(privateKey), x);
 
-    uint8_t Y[32]; os_memset(Y, 0, sizeof(Y));
+    uint8_t Y[32]; memset(Y, 0, sizeof(Y));
 
     keygen25519(Y, 0, x);
 
-    uint8_t h[32]; os_memset(h, 0, sizeof(h));
+    uint8_t h[32]; memset(h, 0, sizeof(h));
 
     sha256TwoBuffers(msgSha256, 32, Y, sizeof(Y), h);
 
-    os_memmove(sig + 32, h, 32);
+    memmove(sig + 32, h, 32);
 
     sign25519(sig, h, x, privateKey);
 }
@@ -102,8 +102,8 @@ void morph25519_e2m(uint8_t *montgomery, const uint8_t *y);
 uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivationPathLengthInUints32, 
                     uint8_t * const keySeedBfrOut, uint8_t * const publicKeyCurveXout, uint8_t * const publicKeyEd25519YLEWithXParityOut, uint8_t * const chainCodeOut, uint16_t * const exceptionOut) {
     
-    uint8_t publicKeyYLE[32]; os_memset(publicKeyYLE, 0, sizeof(publicKeyYLE)); //declaring here although used later, so it can be acessable to the finally statement
-    uint8_t KLKR[64]; os_memset(KLKR, 0, sizeof(KLKR));
+    uint8_t publicKeyYLE[32]; memset(publicKeyYLE, 0, sizeof(publicKeyYLE)); //declaring here although used later, so it can be acessable to the finally statement
+    uint8_t KLKR[64]; memset(KLKR, 0, sizeof(KLKR));
     struct cx_ecfp_256_private_key_s privateKey; //Don't need to init, since the ->d is copied into from some other palce, this key is 32 bytes in size
 
     uint32_t bipPrefix[] = PATH_PREFIX; //defined in Makefile
@@ -112,8 +112,8 @@ uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivation
         return R_WRONG_SIZE_ERR;
 
     //os_perso_derive_node_bip32 doesn't accept derivation paths located on the input buffer, so we make a local stack copy
-    uint32_t copiedDerivationPath[MAX_DERIVATION_LENGTH]; os_memset(copiedDerivationPath, 0, sizeof(copiedDerivationPath));
-    os_memmove(copiedDerivationPath, derivationPath, derivationPathLengthInUints32 * sizeof(uint32_t));
+    uint32_t copiedDerivationPath[MAX_DERIVATION_LENGTH]; memset(copiedDerivationPath, 0, sizeof(copiedDerivationPath));
+    memmove(copiedDerivationPath, derivationPath, derivationPathLengthInUints32 * sizeof(uint32_t));
 
     for (uint8_t i = 0; i < sizeof(bipPrefix) / sizeof(bipPrefix[0]); i++) {
         if (copiedDerivationPath[i] != bipPrefix[i])
@@ -127,12 +127,12 @@ uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivation
                     // weird custom initilization, code copied from Cardano's EdDSA implementaion
                     privateKey.curve = CX_CURVE_Ed25519;
                     privateKey.d_len = 64; //don't know why the length is 64 instead of 32, it just works
-                    os_memmove(privateKey.d, KLKR, 32); //Copy just the KL part
+                    memmove(privateKey.d, KLKR, 32); //Copy just the KL part
                     
                     //KL is the keeyseed, KR is used for key derivation
                     if (0 != keySeedBfrOut) {
-                        //os_memmove(keySeedBfrOut, KLKR, 64); used for testing - DO NOT COMMIT THIS LINE! DO NOT COMMIT THIS LINE!, most functions expect a 32 private key and they will get stack overwtite
-                        os_memmove(keySeedBfrOut, KLKR, 32);
+                        //memmove(keySeedBfrOut, KLKR, 64); used for testing - DO NOT COMMIT THIS LINE! DO NOT COMMIT THIS LINE!, most functions expect a 32 private key and they will get stack overwtite
+                        memmove(keySeedBfrOut, KLKR, 32);
                     }
                     
                     if ((0 != publicKeyCurveXout) || (0 != publicKeyEd25519YLEWithXParityOut)) {
@@ -161,7 +161,7 @@ uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivation
                             publicKeyYLE[31] |= 0x80;
 
                         if (0 != publicKeyEd25519YLEWithXParityOut)
-                            os_memmove(publicKeyEd25519YLEWithXParityOut, publicKeyYLE, 32);
+                            memmove(publicKeyEd25519YLEWithXParityOut, publicKeyYLE, 32);
                     }
             }
             CATCH_OTHER(exception) {
@@ -169,9 +169,9 @@ uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivation
                 return R_KEY_DERIVATION_EX;
             }
             FINALLY {
-                os_memset(privateKey.d, 0, privateKey.d_len);
-                os_memset(KLKR, 0, sizeof(KLKR));
-                os_memset(publicKeyYLE, 0, sizeof(publicKeyYLE));
+                memset(privateKey.d, 0, privateKey.d_len);
+                memset(KLKR, 0, sizeof(KLKR));
+                memset(publicKeyYLE, 0, sizeof(publicKeyYLE));
             }
         }
         END_TRY;
@@ -186,14 +186,14 @@ uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivation
 uint8_t getSharedEncryptionKey(const uint8_t * const derivationPath, const uint8_t derivationPathLengthInUints32, const uint8_t* const targetPublicKey, 
                                 const uint8_t * const nonce, uint16_t * const exceptionOut, uint8_t * const aesKeyOut) {
     
-    uint8_t keySeed[32]; os_memset(keySeed, 0, sizeof(keySeed));
+    uint8_t keySeed[32]; memset(keySeed, 0, sizeof(keySeed));
 
     uint8_t ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, exceptionOut);
 
     if (R_SUCCESS != ret)
         return ret;
 
-    uint8_t sharedKey[32]; os_memset(sharedKey, 0, sizeof(sharedKey));
+    uint8_t sharedKey[32]; memset(sharedKey, 0, sizeof(sharedKey));
 
 
     curve25519(sharedKey, keySeed, targetPublicKey); //should use only the first 32 bytes of keyseed

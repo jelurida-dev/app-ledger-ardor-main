@@ -82,17 +82,17 @@ void getPublicKeyAndChainCodeHandlerHelper(const uint8_t p1, const uint8_t p2, c
 
     if (R_SUCCESS == ret) {
         
-        os_memmove(G_io_apdu_buffer + *tx, publicKeyCurve, sizeof(publicKeyCurve));
+        memmove(G_io_apdu_buffer + *tx, publicKeyCurve, sizeof(publicKeyCurve));
         *tx += sizeof(publicKeyCurve);
 
         if (P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY == p1) {
-            os_memmove(G_io_apdu_buffer + *tx, publicKeyEd25519YLE, sizeof(publicKeyEd25519YLE));
+            memmove(G_io_apdu_buffer + *tx, publicKeyEd25519YLE, sizeof(publicKeyEd25519YLE));
             *tx += sizeof(publicKeyEd25519YLE);
 
-            os_memmove(G_io_apdu_buffer + *tx, chainCode, sizeof(chainCode));
+            memmove(G_io_apdu_buffer + *tx, chainCode, sizeof(chainCode));
             *tx += sizeof(chainCode);
 
-            //os_memmove(G_io_apdu_buffer + *tx, K, sizeof(K)); //DO NOT COMMIT THIS LINE!!! DO NOT COMMIT THIS LINE!!!!, used for testing only, to send the privatekey to the client, private key should never be released
+            //memmove(G_io_apdu_buffer + *tx, K, sizeof(K)); //DO NOT COMMIT THIS LINE!!! DO NOT COMMIT THIS LINE!!!!, used for testing only, to send the privatekey to the client, private key should never be released
             //*tx += sizeof(K); //DO NOT COMMIT THIS LINE!!! DO NOT COMMIT THIS LINE!!!!, used for testing only, to send the privatekey to the client, private key should never be released
         }
 
