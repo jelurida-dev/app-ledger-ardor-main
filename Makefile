@@ -36,22 +36,22 @@ ifeq ($(COIN),ardor)
     DEFINES += "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
     PATH_PREFIX = "44'/16754'"
     DEFINES += APP_PREFIX=\"ARDOR-\"
-    
-    ifeq ($(TARGET_NAME),TARGET_NANOX)
-    	ICONNAME = ArdorIconNanoX.gif
-    else
+
+    ifeq ($(TARGET_NAME),TARGET_NANOS)
     	ICONNAME = ArdorIconNanoS.gif
+    else
+    	ICONNAME = ArdorIconNanoX.gif
     endif
 else ifeq ($(COIN),nxt)
     APPNAME = NXT
     DEFINES += "PATH_PREFIX={44|0x80000000,29|0x80000000}"
     PATH_PREFIX = "44'/29'"
     DEFINES += APP_PREFIX=\"NXT-\"
-    
-    ifeq ($(TARGET_NAME),TARGET_NANOX)
-        ICONNAME = NXTIconNanoX.gif
-    else
+
+    ifeq ($(TARGET_NAME),TARGET_NANOS)
         ICONNAME = NXTIconNanoS.gif
+    else
+        ICONNAME = NXTIconNanoX.gif
     endif
 else
     $(error /!\ Coin "$(COIN)" not in list of allowed variants! Type "make listvariants" for variants list. Build non-default variant with "make COIN=<variant>")
@@ -64,7 +64,7 @@ $(info Building $(APPNAME) app...)
 
 #This inits the SDK_SOURCE_PATH variable, moving this will screw up the build, because the next if does +=
 SDK_SOURCE_PATH = lib_stusb lib_stusb_impl lib_u2f lib_ux
-APP_LOAD_PARAMS = --curve ed25519 $(COMMON_LOAD_PARAMS) 
+APP_LOAD_PARAMS = --curve ed25519 $(COMMON_LOAD_PARAMS)
 
 # Ledger: add the "Pending security review" disclaimer
 APP_LOAD_PARAMS += --tlvraw 9F:01
@@ -72,26 +72,24 @@ DEFINES += HAVE_PENDING_REVIEW_SCREEN
 
 ifeq ($(TARGET_NAME),TARGET_NANOX)
     SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
-    
     # The --appFlags param gives permision to open bluetooth
     APP_LOAD_PARAMS += --appFlags 0x0200
-    
-    DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
-    DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
     DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
     DEFINES += HAVE_BLE_APDU # basic ledger apdu transport over BLE
-    
+endif
+
+ifeq ($(TARGET_NAME),TARGET_NANOS)
+    # Since we don't have bluetooth in NanoS we set --appFlags to 0
+    APP_LOAD_PARAMS += --appFlags 0x0000
+    DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128
+else
+    DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
     DEFINES += HAVE_GLO096
     DEFINES += BAGL_WIDTH=128 BAGL_HEIGHT=64
-	DEFINES += HAVE_BAGL_ELLIPSIS # long label truncation feature
+    DEFINES += HAVE_BAGL_ELLIPSIS # long label truncation feature
     DEFINES += HAVE_BAGL_FONT_OPEN_SANS_REGULAR_11PX
     DEFINES += HAVE_BAGL_FONT_OPEN_SANS_EXTRABOLD_11PX
     DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
-else
-    # Since we don't have bluetooth in NanoS we set --appFlags to 0
-    APP_LOAD_PARAMS += --appFlags 0x0000
-    
-    DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128
 endif
 
 DEFINES += HAVE_UX_FLOW
@@ -131,10 +129,10 @@ DEFINES += BLAKE_SDK
 # Enabling debug PRINTF
 ifeq ($(DEVEL), 1)
     DEFINES += DEVEL HAVE_PRINTF
-    ifeq ($(TARGET_NAME),TARGET_NANOX)
-        DEFINES += PRINTF=mcu_usb_printf
-    else
+    ifeq ($(TARGET_NAME),TARGET_NANOS)
         DEFINES += PRINTF=screen_printf
+    else
+        DEFINES += PRINTF=mcu_usb_printf
     endif
 else
     DEFINES += PRINTF\(...\)=
