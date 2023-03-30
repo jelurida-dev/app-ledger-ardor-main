@@ -60,10 +60,13 @@ typedef struct {
     uint64_t recipientId;                                  //the recipient address ID
     uint64_t amount;                                       //the amount to be sent in the txn, note that every chain parses this number differently, it dives this number by some 10^X
     uint64_t fee;                                          //What it says it is
-                                 //What it says it is
 
-   	int32_t attachmentTempInt32Num1, attachmentTempInt32Num2;    //Different attachments parse in different ways, they all need space in state, so this is how it's defined
-   	int64_t attachmentTempInt64Num1, attachmentTempInt64Num2, attachmentTempInt64Num3; 
+    //Different attachments parse in different ways, they all need space in state, so this is how it's defined
+   	uint32_t attachmentTempInt32Num1;    // chainId for FxtCoinExchangeOrderIssue,CoinExchangeOrderIssue
+    uint32_t attachmentTempInt32Num2;    // chainId for FxtCoinExchangeOrderIssue,CoinExchangeOrderIssue
+   	uint64_t attachmentTempInt64Num1;    // amountQNT for FxtCoinExchangeOrderIssue,CoinExchangeOrderIssue, assetId for AssetTransfer,AskOrderPlacement
+    uint64_t attachmentTempInt64Num2;    // price for FxtCoinExchangeOrderIssue,CoinExchangeOrderIssue, quantityQNT for AssetTransfer,AskOrderPlacement
+    uint64_t attachmentTempInt64Num3;    // price for AskOrderPlacement
 
    	uint16_t txnSizeBytes;                                 //The decalred Txn size
 

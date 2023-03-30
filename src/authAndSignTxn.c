@@ -662,7 +662,7 @@ uint8_t parseIngoreBytesUntilTheEnd() {
 //Parses a specific type of attachment
 uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
     
-    state.txnAuth.attachmentTempInt32Num1 = 0; //chaidId
+    state.txnAuth.attachmentTempInt32Num1 = 0; //chainId
     state.txnAuth.attachmentTempInt32Num2 = 0; //exchangeChain
     state.txnAuth.attachmentTempInt64Num1 = 0; //quantity
     state.txnAuth.attachmentTempInt64Num2 = 0; //price
@@ -679,13 +679,13 @@ uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
     memmove(&state.txnAuth.attachmentTempInt32Num1, ptr, sizeof(state.txnAuth.attachmentTempInt32Num1));
     ptr += sizeof(state.txnAuth.attachmentTempInt32Num1);
 
-    if (NUM_CHAINS < state.txnAuth.attachmentTempInt32Num1)
+    if (NUM_CHAINS < state.txnAuth.attachmentTempInt32Num1 || 1 > state.txnAuth.attachmentTempInt32Num1)
         return R_BAD_CHAIN_ID_ERR;
 
     memmove(&state.txnAuth.attachmentTempInt32Num2, ptr, sizeof(state.txnAuth.attachmentTempInt32Num2));
     ptr += sizeof(state.txnAuth.attachmentTempInt32Num2);
 
-    if (NUM_CHAINS < state.txnAuth.attachmentTempInt32Num2)
+    if (NUM_CHAINS < state.txnAuth.attachmentTempInt32Num2 || 1 > state.txnAuth.attachmentTempInt32Num2)
         return R_BAD_CHAIN_ID_ERR;
 
     memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
@@ -699,9 +699,9 @@ uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
 //Parses a specific type of attachment
 uint8_t parseAskOrderPlacementAttachment() {
     
-    state.txnAuth.attachmentTempInt64Num1 = 0;
-    state.txnAuth.attachmentTempInt64Num2 = 0;
-    state.txnAuth.attachmentTempInt64Num3 = 0;
+    state.txnAuth.attachmentTempInt64Num1 = 0;  // assetId
+    state.txnAuth.attachmentTempInt64Num2 = 0;  // quantityQNT
+    state.txnAuth.attachmentTempInt64Num3 = 0;  // priceNQT
 
     uint8_t * ptr = readFromBuffer(sizeof(state.txnAuth.attachmentTempInt64Num1) * 3);
     if (0 == ptr)
