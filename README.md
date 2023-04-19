@@ -27,6 +27,22 @@ Unit tests are under the `tests` directory. You can build and run them with the 
 
 To clean the tests build just delete the `tests/build` directory.
 
+### End to end tests
+
+End to end tests are run from an Ardor node and the Speculos emulator. The Ardor node has some unit tests that use the Speculos emulator to test the Ledger app. Those tests also use the Speculos API to assert screen texts and send button press commands.
+
+These tests require Docker (or a local Speculos installation) and Java 8 or newer.
+
+To run the tests you need to build the app, load it into the Speculos emulator and run the tests from the Ardor node.
+
+1. Build the Ledger app.
+2. Run the app on the Speculos emulator using Docker. As an alternative you can use a locally installed Speculos emulator. In this case you will need to run the emulator on port 9999 and the API server on port 5000. The following command will run the emulator on Docker:
+
+    docker run --rm -it -v $(pwd):/speculos/apps -p 9999:9999 -p 5000:5000 ghcr.io/ledgerhq/speculos --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" --model nanos apps/bin/app.elf
+
+3. Clone the Ardor node repository with the Ledger unit tests: `git clone https://sargue@bitbucket.org/sargue/ardor-ledger-test.git`
+4. Run tests: `./run-unit-tests.sh com.jelurida.ardor.integration.wallet.ledger.application.LedgerSpeculosSuite`
+
 ### Enable Log Messages
 
 To turn on logging on the Ledger app
