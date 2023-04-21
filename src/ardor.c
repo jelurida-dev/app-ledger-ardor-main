@@ -82,6 +82,12 @@ void signMsg(uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_
     memmove(sig + 32, h, 32);
 
     sign25519(sig, h, x, privateKey);
+
+    // clean buffers
+    memset(privateKey, 0, sizeof(privateKey));
+    memset(x, 0, sizeof(x));
+    memset(Y, 0, sizeof(Y));
+    memset(h, 0, sizeof(h));
 }
 
 
@@ -195,13 +201,16 @@ uint8_t getSharedEncryptionKey(const uint8_t * const derivationPath, const uint8
 
     uint8_t sharedKey[32]; memset(sharedKey, 0, sizeof(sharedKey));
 
-
     curve25519(sharedKey, keySeed, targetPublicKey); //should use only the first 32 bytes of keyseed
     
     for (uint8_t i = 0; i < sizeof(sharedKey); i++)
         sharedKey[i] ^= nonce[i];
 
     sha256Buffer(sharedKey, sizeof(sharedKey), aesKeyOut);
+
+    // clean up buffers
+    memset(keySeed, 0, sizeof(keySeed));
+    memset(sharedKey, 0, sizeof(sharedKey));
 
     return R_SUCCESS;
 }

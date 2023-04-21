@@ -165,6 +165,8 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
             *tx+= 32;
         }
 
+        memset(encryptionKey, 0, sizeof(encryptionKey)); //cleaning the key from memory
+
     } else if (P1_AES_ENCRYPT_DECRYPT == p1) {
 
         if (isLastCommandDifferent) {
