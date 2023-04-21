@@ -182,7 +182,7 @@ static void ardor_main(void) {
 					continue;
 				}
 
-				PRINTF("\n canery check %d last command number %d \n", check_canary(), lastCmdNumber);
+				PRINTF("canary check %d last command number %d\n", check_canary(), lastCmdNumber);
 
 				uint8_t lastCommandSaver = G_io_apdu_buffer[OFFSET_INS]; //the handler is going to write over the buffer, so the command needs to be put aside
 
@@ -345,9 +345,6 @@ __attribute__((section(".boot"))) int main(void) {
 				USB_power(0);
 				USB_power(1);
 				ui_idle();
-
-				PRINTF("aasdasd ardor");
-				
 
 				#ifdef HAVE_BLE
             		BLE_power(0, NULL);

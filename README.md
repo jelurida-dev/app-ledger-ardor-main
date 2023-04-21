@@ -17,15 +17,21 @@ Then you can switch to this repository and launch the `ledger-app-builder` docke
     $ docker run --rm -ti -v "$(realpath .):/app" ledger-app-builder:latest
     root@656be163fe84:/app# make
 
-### Unit test
+### Unit tests
 
-Unit tests are under the `tests` directory. You can build and run them with the following commands:
+Tests are written using the Ragger framework. The tests are located in the `tests` folder.
 
-    cd tests
-    cmake -Bbuild -H. && make -C build
-    CTEST_OUTPUT_ON_FAILURE=1 make -C build clean test
+#### Install ragger and dependencies
 
-To clean the tests build just delete the `tests/build` directory.
+    pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
+    sudo apt-get update && sudo apt-get install qemu-user-static
+
+#### Run tests
+
+To run all tests just issue the following commands:
+
+    pytest --device nanos -v --tb=short tests/
+    pytest --device nanox -v --tb=short tests/
 
 ### End to end tests
 
