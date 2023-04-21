@@ -110,7 +110,7 @@ extern states_t state;
 //used to list txn types
 typedef struct {
     uint16_t id;
-    char * name;
+    const char * name;
     uint8_t attachmentParsingFunctionNumber;
 } txnType;
 

@@ -607,14 +607,14 @@ uint8_t parseReferencedTxn() {
  */
 uint8_t parseAppendagesFlags() {
     
-    uint8_t * ptr = readFromBuffer(sizeof(uint32_t));
+    uint8_t * buffPtr = readFromBuffer(sizeof(uint32_t));
     
-    if (0 == ptr)
+    if (0 == buffPtr)
         return R_SEND_MORE_BYTES;
 
     uint32_t appendages = 0;
 
-    memmove(&appendages, ptr, sizeof(appendages));
+    memmove(&appendages, buffPtr, sizeof(appendages));
 
     if (0 != appendages) {
         state.txnAuth.uiFlowBitfeild |= 1; //turn on the first bit

@@ -5,12 +5,12 @@
 
 typedef struct {
     uint32_t chainId;
-    char * name;
+    const char * name;
     uint8_t numDecimalsBeforePoint;
 } chainType;
 
 typedef struct {
-    char * name;
+    const char * name;
 } appendageType;
 
 extern const chainType CHAINS[];
