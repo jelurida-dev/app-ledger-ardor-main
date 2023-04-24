@@ -27,34 +27,15 @@ endif
 
 include $(BOLOS_SDK)/Makefile.defines
 
-ifndef COIN
-COIN=ardor
-endif
+APPNAME = Ardor
+DEFINES += "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
+PATH_PREFIX = "44'/16754'"
+DEFINES += APP_PREFIX=\"ARDOR-\"
 
-ifeq ($(COIN),ardor)
-    APPNAME = Ardor
-    DEFINES += "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
-    PATH_PREFIX = "44'/16754'"
-    DEFINES += APP_PREFIX=\"ARDOR-\"
-    
-    ifeq ($(TARGET_NAME),TARGET_NANOX)
-    	ICONNAME = ArdorIconNanoX.gif
-    else
-    	ICONNAME = ArdorIconNanoS.gif
-    endif
-else ifeq ($(COIN),nxt)
-    APPNAME = NXT
-    DEFINES += "PATH_PREFIX={44|0x80000000,29|0x80000000}"
-    PATH_PREFIX = "44'/29'"
-    DEFINES += APP_PREFIX=\"NXT-\"
-    
-    ifeq ($(TARGET_NAME),TARGET_NANOX)
-        ICONNAME = NXTIconNanoX.gif
-    else
-        ICONNAME = NXTIconNanoS.gif
-    endif
+ifeq ($(TARGET_NAME),TARGET_NANOX)
+    ICONNAME = ArdorIconNanoX.gif
 else
-    $(error /!\ Coin "$(COIN)" not in list of allowed variants! Type "make listvariants" for variants list. Build non-default variant with "make COIN=<variant>")
+    ICONNAME = ArdorIconNanoS.gif
 endif
 $(info Building $(APPNAME) app...)
 
@@ -199,6 +180,3 @@ include $(BOLOS_SDK)/Makefile.glyphs
 include $(BOLOS_SDK)/Makefile.rules
 
 dep/%.d: %.c Makefile
-
-listvariants:
-	@echo VARIANTS COIN ardor
