@@ -232,6 +232,77 @@ uint64_t publicKeyToId(const uint8_t * const publicKey) {
             (((uint64_t) tempSha[0] )));
 }
 
+//returns the chain name for a given chainId
+char * chainName(const uint8_t chainId) {
+    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
+    return (char*)PIC(((chainType*)PIC(&CHAINS[chainId - 1]))->name);
+}
+
+//the amount of digits on the right of the decimal dot for each chain
+uint8_t chainNumDecimalsBeforePoint(const uint8_t chainId) {
+    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
+    return ((chainType*)PIC(&CHAINS[chainId - 1]))->numDecimalsBeforePoint;
+}
+
+//this function formats amounts into string and most importantly add the dot where it's supposed to be
+//the way this is works is that amounts ints and then the dot is added after chainNumDecimalsBeforePoint() digits from right to left
+//for example, if the amount is 4200000000 and we are in the Ardor chain in which chainNumDecimalsBeforePoint() is 8 then the formated amount will be "42"
+//for 4210100000 it will be 42.101
+//@param outputString - does what it says
+//@param maxOutputLength - does what it says
+//@param numberToFormat - the input number to format, isn't const cuz we play with it in order to format the number
+//@param numDigitsBeforeDecimal - read first paragraph for info
+//@returns 0 iff some kind of error happend, else the length of the output string including the null terminator
+uint8_t formatAmount(char * const outputString, const uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDigitsBeforeDecimal) {
+    
+    uint16_t outputIndex = 0;
+    bool wasANumberWritten = false;
+    bool isDotWritten = false;
+    uint8_t numberIndex = 0;
+
+
+    while (true) {
+
+        uint8_t modulo = numberToFormat % 10;
+        numberToFormat -= modulo;
+        numberToFormat /= 10;
+
+        if (numDigitsBeforeDecimal == numberIndex) {
+            if (wasANumberWritten && (!isDotWritten) && (0 != numDigitsBeforeDecimal)) {
+                isDotWritten = true;
+                outputString[outputIndex++] = '.';
+            }
+
+            wasANumberWritten = true;
+        }
+
+        if (0 != modulo)
+            wasANumberWritten = true;
+
+        if (wasANumberWritten || (0 == numDigitsBeforeDecimal))
+            outputString[outputIndex++] = '0' + modulo;
+
+        if (outputIndex >= maxOutputLength)
+            return 0;
+
+        if ((0 == numberToFormat) && (numDigitsBeforeDecimal <= numberIndex))
+            break;
+
+        numberIndex++;
+
+    }
+
+
+    //reverse the string since we are creating it from left to right, and numbers are right to left
+    for (uint16_t i = 0; i < outputIndex - 1 - i; i++) {
+        uint8_t temp = outputString[i];
+        outputString[i] = outputString[outputIndex - i - 1];
+        outputString[outputIndex - i - 1] = temp;
+    }
+
+    outputString[outputIndex] = 0;
+    return outputIndex + 1;
+}
 
 //app_stack_canary is defined by the link script to be at the start of the user data or end of the stack, something like that
 //so if there is a stack overflow then it will be overwriten, this is how check_canary() works.

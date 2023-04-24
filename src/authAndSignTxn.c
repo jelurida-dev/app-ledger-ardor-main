@@ -29,12 +29,12 @@
 #include "returnValues.h"
 #include "config.h"
 #include "ardor.h"
-
+#include "reedSolomon.h"
+#include "transactionParser.h"
 
 #define P1_INIT 1
 #define P1_CONTINUE 2
 #define P1_SIGN 3
-
 
 // This is the code that parses the txn for signing, it parses streamed txn bytes into the state object while hashing the bytes to be signed later,
 // displays a dialog of screens which contain the parsed txn bytes from the state, 
@@ -50,7 +50,7 @@
 //
 // authAndSignTxnHandlerHelper is called with some of the txn bytes
 // => addToReadBuffer is called adds these bytes to the read buffer
-// => parseFromStack is called, which calls the first parse function on the stack which is parseMainTxnData
+// => parseTransaction is called, which calls the first parse function on the stack which is parseMainTxnData
 // => parseMainTxnData trys to pull 142 bytes from the buffer
 //      if there is are 142 bytes there:
 //          parseMainTxnData parses the main txn bytes and then adds more functions to parse stack depending on the appendages
@@ -92,8 +92,8 @@ void initTxnAuthState() {
     state.txnAuth.numBytesRead = 0;
 
     memset(state.txnAuth.functionStack, 0, sizeof(state.txnAuth.functionStack));
-    state.txnAuth.functionStack[0] = 1; //Add the first parse function on the stack
-    state.txnAuth.functionStack[1] = 2; //The appendages parse function
+    state.txnAuth.functionStack[0] = PARSE_FN_MAIN; //Add the first parse function on the stack
+    state.txnAuth.functionStack[1] = PARSE_FN_APPENDAGES_FLAGS; //The appendages parse function
     state.txnAuth.numFunctionsOnStack = 2;
 
     state.txnAuth.txnPassedAutherization = false;
@@ -129,100 +129,6 @@ void initTxnAuthState() {
 
     state.txnAuth.uiFlowBitfeild = 0;
 }
-
-
-//Does what it says
-txnType * txnTypeAtIndex(const uint8_t index) {
-    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
-    return (txnType*)PIC(&TXN_TYPES[index]);
-}
-
-//does what it says
-char * txnTypeNameAtIndex(const uint8_t index) {
-    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
-    return (char*)PIC(((txnType*)PIC(&TXN_TYPES[index]))->name);
-}
-
-//does what is says
-char * chainName(const uint8_t chainId) {
-    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
-    return (char*)PIC(((chainType*)PIC(&CHAINS[chainId - 1]))->name);
-}
-
-char * appendageTypeName(const uint8_t index) {
-    return (char*)PIC(((appendageType*)PIC(&APPENDAGE_TYPES[index]))->name);
-}
-
-//the amount of digits on the right of the decimal dot for each chain
-uint8_t chainNumDecimalsBeforePoint(const uint8_t chainId) {
-    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
-    return ((chainType*)PIC(&CHAINS[chainId - 1]))->numDecimalsBeforePoint;
-}
-
-
-//this function formats amounts into string and most importantly add the dot where it's supposed to be
-//the way this is works is that amounts ints and then the dot is added after chainNumDecimalsBeforePoint() digits from right to left
-//for example, if the amount is 4200000000 and we are in the Ardor chain in which chainNumDecimalsBeforePoint() is 8 then the formated amount will be "42"
-//for 4210100000 it will be 42.101
-
-//@param outputString - does what it says
-//@param maxOutputLength - does what it says
-//@param numberToFormat - the input number to format, isn't const cuz we play with it in order to format the number
-//@param numDigitsBeforeDecimal - read first paragraph for info
-//@returns 0 iff some kind of error happend, else the length of the output string including the null terminator
-uint8_t formatAmount(char * const outputString, const uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDigitsBeforeDecimal) {
-    
-    uint16_t outputIndex = 0;
-    bool wasANumberWritten = false;
-    bool isDotWritten = false;
-    uint8_t numberIndex = 0;
-
-
-    while (42) {
-
-        uint8_t modulo = numberToFormat % 10;
-        numberToFormat -= modulo;
-        numberToFormat /= 10;
-
-        if (numDigitsBeforeDecimal == numberIndex) {
-            if (wasANumberWritten && (!isDotWritten) && (0 != numDigitsBeforeDecimal)) {
-                isDotWritten = true;
-                outputString[outputIndex++] = '.';
-            }
-
-            wasANumberWritten = true;
-        }
-
-        if (0 != modulo)
-            wasANumberWritten = true;
-
-        if (wasANumberWritten || (0 == numDigitsBeforeDecimal))
-            outputString[outputIndex++] = '0' + modulo;
-
-        if (outputIndex >= maxOutputLength)
-            return 0;
-
-        if ((0 == numberToFormat) && (numDigitsBeforeDecimal <= numberIndex))
-            break;
-
-        numberIndex++;
-
-    }
-
-
-    //reverse the string since we are creating it from left to right, and numbers are right to left
-    for (uint16_t i = 0; i < outputIndex - 1 - i; i++) {
-        uint8_t temp = outputString[i];
-        outputString[i] = outputString[outputIndex - i - 1];
-        outputString[outputIndex - i - 1] = temp;
-    }
-
-    outputString[outputIndex] = 0;
-    return outputIndex + 1;
-}
-
-//defined in readSolomon.c
-void reedSolomonEncode(const uint64_t inp, const char * output);
 
 //Accept click callback
 unsigned int txn_autherized(const bagl_element_t *e) {
@@ -482,354 +388,6 @@ uint8_t setScreenTexts() {
     return R_SUCCESS;
 }
 
-//Does what is says
-uint8_t addToFunctionStack(const uint8_t functionNum) {
-    if (sizeof(state.txnAuth.functionStack) == state.txnAuth.numFunctionsOnStack)
-        return R_FUNCTION_STACK_FULL;
-
-    state.txnAuth.functionStack[state.txnAuth.numFunctionsOnStack++] = functionNum;
-
-    return R_SUCCESS;
-}
-
-//Takes bytes away from the buffer, returns 0 if there aren't enough bytes
-uint8_t * readFromBuffer(const uint8_t size) {
-
-    if (state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset < size)
-        return 0;
-
-    uint8_t * ret = state.txnAuth.readBuffer + state.txnAuth.readBufferReadOffset;
-    state.txnAuth.readBufferReadOffset += size;
-    state.txnAuth.numBytesRead += size;
-
-    return ret;
-}
-
-//This is the main parse function, it parses the main txn body and adds more function to the parse stack if needed
-uint8_t parseMainTxnData() {
-    
-    uint8_t * ptr = readFromBuffer(145);
-
-    if (0 == ptr)
-        return R_SEND_MORE_BYTES;
-
-    memmove(&(state.txnAuth.chainId), ptr, sizeof(state.txnAuth.chainId));
-
-    ptr += sizeof(state.txnAuth.chainId);
-
-    if ((0 == state.txnAuth.chainId) || (NUM_CHAINS < state.txnAuth.chainId)) //note: we do +1 here because ardor start with index 1
-        return R_BAD_CHAIN_ID_ERR;
-
-
-    memmove(&(state.txnAuth.txnTypeAndSubType), ptr, sizeof(state.txnAuth.txnTypeAndSubType));
-
-    ptr += sizeof(state.txnAuth.txnTypeAndSubType);
-
-    txnType * currentTxnType = 0;
-
-    for (state.txnAuth.txnTypeIndex = 0; state.txnAuth.txnTypeIndex < LEN_TXN_TYPES; state.txnAuth.txnTypeIndex++) {
-
-        currentTxnType = txnTypeAtIndex(state.txnAuth.txnTypeIndex);
-
-        if (currentTxnType->id == state.txnAuth.txnTypeAndSubType)
-            break;
-    }
-
-    if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) //goto check if the index in range before accessing the array
-        if (0 != currentTxnType->attachmentParsingFunctionNumber)
-            addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
-
-    if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
-        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s\n%s", chainName(state.txnAuth.chainId), txnTypeNameAtIndex(state.txnAuth.txnTypeIndex));
-    } else {
-        snprintf(state.txnAuth.chainAndTxnTypeText, sizeof(state.txnAuth.chainAndTxnTypeText), "%s\nUnknownTxnType", chainName(state.txnAuth.chainId));
-    }
-
-    if (SUPPORTED_TXN_VERSION != *((uint8_t*)ptr))
-        return R_WRONG_VERSION_ERR;
-
-    ptr += sizeof(uint8_t);
-
-    ptr += 4;   // Skip the timestamp
-    ptr += 2;   // Skip the deadline
-    ptr += 32;  // Skip the sender publickey
-
-    memmove(&(state.txnAuth.recipientId), ptr, sizeof(state.txnAuth.recipientId));
-    ptr += sizeof(state.txnAuth.recipientId);
-
-    memmove(&(state.txnAuth.amount), ptr, sizeof(state.txnAuth.amount));
-    ptr += sizeof(state.txnAuth.amount);
-
-    uint64_t fee = 0;
-    memmove(&fee, ptr, sizeof(fee));
-
-    uint8_t ret = formatAmount(state.txnAuth.feeText, sizeof(state.txnAuth.feeText), fee, chainNumDecimalsBeforePoint(state.txnAuth.chainId));
-
-    if (0 == ret)
-        return R_FORMAT_FEE_ERR;
-
-    snprintf(state.txnAuth.feeText + ret - 1, sizeof(state.txnAuth.feeText) - ret - 1, " %s", chainName(state.txnAuth.chainId));
-
-    /* Comment unnecessary pointer movement over the last fields. Keeping for future reference.
-    ptr += sizeof(uint64_t);
-
-    ptr += 64;  //Skip the sig
-    ptr += 4;   //Skip the block height
-    ptr += 8;   //Skip the block Id
-    */
-
-    addToFunctionStack(6);
-
-    return R_SUCCESS;
-}
-
-//Parses a txn reference, by just skiping over the bytes :)
-uint8_t parseReferencedTxn() {
-
-    if (0 == readFromBuffer(sizeof(uint32_t) + 32))
-        return R_SEND_MORE_BYTES;
-
-    return R_SUCCESS;
-}
-
-/**
- * Parses the appendage type flag and prepares the text to show the user.
- * This function is added to the function stack on init.
- * 
- * Current known appendages types:
- *      MessageAppendix = 1
- *      EncryptedMessageAppendix = 2
- *      EncryptToSelfMessageAppendix = 4
- *      PrunablePlainMessageAppendix = 8
- *      PrunableEncryptedMessageAppendix = 16
- *      PublicKeyAnnouncementAppendix = 32
- *      PhasingAppendix = 64
- */
-uint8_t parseAppendagesFlags() {
-    
-    uint8_t * buffPtr = readFromBuffer(sizeof(uint32_t));
-    
-    if (0 == buffPtr)
-        return R_SEND_MORE_BYTES;
-
-    uint32_t appendages = 0;
-
-    memmove(&appendages, buffPtr, sizeof(appendages));
-
-    if (0 != appendages) {
-        state.txnAuth.uiFlowBitfeild |= 1; //turn on the first bit
-
-        // fallback to hex string if we found unknown appendages
-        if (appendages >= 1 << NUM_APPENDAGE_TYPES) {
-            snprintf(state.txnAuth.appendagesText, sizeof(state.txnAuth.appendagesText), "0x%08X", appendages);
-        } else {
-            char * ptr = state.txnAuth.appendagesText;
-            size_t free = sizeof(state.txnAuth.appendagesText);
-            for (uint8_t j = 0; j < NUM_APPENDAGE_TYPES; j++) {
-                if ((appendages & 1 << j) != 0) {
-                    size_t len = strlen(appendageTypeName(j));
-
-                    // special case: not enough space to show the text for all appendages, revert to bitmap
-                    if (len + 2 > free) { // +2 for separator and null terminator
-                        for (uint8_t i = 0; i < NUM_APPENDAGE_TYPES; i++) {
-                            state.txnAuth.appendagesText[i] = (appendages & 1 << i) != 0 ? '1' + i : '_';
-                        }
-                        state.txnAuth.appendagesText[NUM_APPENDAGE_TYPES] = '\0';
-                        return R_SUCCESS;                        
-                    }
-
-                    snprintf(ptr, free, ptr == state.txnAuth.appendagesText ? "%s" : "\n%s", appendageTypeName(j));
-                    ptr += ptr == state.txnAuth.appendagesText ? len : len + 1;
-                    free -= ptr == state.txnAuth.appendagesText ? len : len + 1;
-                }
-            }
-        }
-    }
-
-    return R_SUCCESS;
-}
-
-//Parses all the bytes until the endof the txn, since we don't parse the specifics of all the types, sometimes this is needed
-uint8_t parseIngoreBytesUntilTheEnd() {
-    while (state.txnAuth.numBytesRead != state.txnAuth.txnSizeBytes) {
-        if (0 == readFromBuffer(1))
-            return R_SEND_MORE_BYTES;
-    }
-
-    return R_SUCCESS;
-}
-
-//Parses a specific type of attachment
-uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
-    
-    state.txnAuth.attachmentTempInt32Num1 = 0; //chainId
-    state.txnAuth.attachmentTempInt32Num2 = 0; //exchangeChain
-    state.txnAuth.attachmentTempInt64Num1 = 0; //quantity
-    state.txnAuth.attachmentTempInt64Num2 = 0; //price
-
-    uint8_t * ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachmentTempInt32Num1) * 2 + sizeof(state.txnAuth.attachmentTempInt64Num1) * 2);
-    if (0 == ptr)
-        return R_SEND_MORE_BYTES;
-
-    if (1 != *ptr)
-        return R_UNSUPPORTED_ATTACHMENT_VERSION;
-
-    ptr += 1;
-
-    memmove(&state.txnAuth.attachmentTempInt32Num1, ptr, sizeof(state.txnAuth.attachmentTempInt32Num1));
-    ptr += sizeof(state.txnAuth.attachmentTempInt32Num1);
-
-    if (NUM_CHAINS < state.txnAuth.attachmentTempInt32Num1 || 1 > state.txnAuth.attachmentTempInt32Num1)
-        return R_BAD_CHAIN_ID_ERR;
-
-    memmove(&state.txnAuth.attachmentTempInt32Num2, ptr, sizeof(state.txnAuth.attachmentTempInt32Num2));
-    ptr += sizeof(state.txnAuth.attachmentTempInt32Num2);
-
-    if (NUM_CHAINS < state.txnAuth.attachmentTempInt32Num2 || 1 > state.txnAuth.attachmentTempInt32Num2)
-        return R_BAD_CHAIN_ID_ERR;
-
-    memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
-    ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
-    
-    memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
-
-    return R_SUCCESS;
-}
-
-//Parses a specific type of attachment
-uint8_t parseAskOrderPlacementAttachment() {
-    
-    state.txnAuth.attachmentTempInt64Num1 = 0;  // assetId
-    state.txnAuth.attachmentTempInt64Num2 = 0;  // quantityQNT
-    state.txnAuth.attachmentTempInt64Num3 = 0;  // priceNQT
-
-    uint8_t * ptr = readFromBuffer(sizeof(state.txnAuth.attachmentTempInt64Num1) * 3);
-    if (0 == ptr)
-        return R_SEND_MORE_BYTES;
-
-    memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
-    ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
-
-    memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
-    ptr += sizeof(state.txnAuth.attachmentTempInt64Num2);
-
-    memmove(&state.txnAuth.attachmentTempInt64Num3, ptr, sizeof(state.txnAuth.attachmentTempInt64Num3));
-
-    return R_SUCCESS;
-}
-
-uint8_t parseAssetTransferAttachment() {
-
-    state.txnAuth.attachmentTempInt64Num1 = 0; //asset id
-    state.txnAuth.attachmentTempInt64Num2 = 0; //quantity
-
-    uint8_t * ptr = readFromBuffer(sizeof(state.txnAuth.attachmentTempInt64Num1) * 2);
-    if (0 == ptr)
-        return R_SEND_MORE_BYTES;
-
-    if (1 != *ptr)
-        return R_UNSUPPORTED_ATTACHMENT_VERSION;
-
-    ptr += 1; //skip version byte
-
-    memmove(&state.txnAuth.attachmentTempInt64Num1, ptr, sizeof(state.txnAuth.attachmentTempInt64Num1));
-    ptr += sizeof(state.txnAuth.attachmentTempInt64Num1);
-
-    memmove(&state.txnAuth.attachmentTempInt64Num2, ptr, sizeof(state.txnAuth.attachmentTempInt64Num2));
-
-    return R_SUCCESS;
-}
-
-//Addes bytes to the read buffer
-//@param newData: ptr to the data
-//@param numBytes: number of bytes in the data
-//return R_SUCCESS on success, R_NO_SPACE_BUFFER_TOO_SMALL othereize
-uint8_t addToReadBuffer(const uint8_t * const newData, const uint8_t numBytes) {
-
-    for (uint16_t i = 0; i < state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset; i++)
-        state.txnAuth.readBuffer[i] = state.txnAuth.readBuffer[i + state.txnAuth.readBufferReadOffset];
-
-    memset(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset, 0, state.txnAuth.readBufferReadOffset); //set to 0, just for saftey
-
-    state.txnAuth.readBufferEndPos -= state.txnAuth.readBufferReadOffset;
-    state.txnAuth.readBufferReadOffset = 0;
-
-    if (state.txnAuth.readBufferEndPos + numBytes > sizeof(state.txnAuth.readBuffer))
-        return R_NO_SPACE_BUFFER_TOO_SMALL;
-
-    cx_hash(&state.txnAuth.hashstate.header, 0, newData, numBytes, 0, 0);
-
-    memcpy(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos, newData, numBytes);
-    state.txnAuth.readBufferEndPos += numBytes;
-
-    return R_SUCCESS;
-}
-
-//Since we can't store function pointers in the functionstack, we store number and then call the following function
-//to make a call to the corresponding function
-uint8_t callFunctionNumber(const uint8_t functionNum) {
-
-    switch (functionNum) {
-        case 1:
-            return parseMainTxnData();
-        case 2:
-            return parseAppendagesFlags();
-        case 3:
-            return parseReferencedTxn();
-        case 4:
-            return parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment();
-        case 5:
-            return parseAskOrderPlacementAttachment();
-        case 6:
-            return parseIngoreBytesUntilTheEnd();
-        case 7:
-            return parseAssetTransferAttachment();
-    }
-
-    return R_PARSE_FUNCTION_NOT_FOUND;
-}
-
-//This function manages the parsing of the readBuffer with functionStack functions
-//If there aren't enough bytes in the read buffer it returns R_SEND_MORE_BYTES
-//which will be sent back to the user
-uint8_t parseFromStack() {
-    
-    while (true) {
-
-        if (0 == state.txnAuth.numFunctionsOnStack) {
-
-            if (state.txnAuth.readBufferEndPos != state.txnAuth.readBufferReadOffset)
-                return R_NOT_ALL_BYTES_READ;
-
-            uint8_t ret = setScreenTexts();
-
-            if (R_SUCCESS != ret)
-                return ret;
-
-            showScreen();
-
-            return R_SHOW_DISPLAY;
-        }
-
-        uint8_t ret = callFunctionNumber(state.txnAuth.functionStack[0]);
-
-        if (R_SEND_MORE_BYTES == ret)
-            return ret;
-
-        uint8_t tempBuffer[FUNCTION_STACK_SIZE - 1];
-        memmove(tempBuffer, state.txnAuth.functionStack + 1, sizeof(tempBuffer));
-        memmove(state.txnAuth.functionStack, tempBuffer, sizeof(tempBuffer));
-        state.txnAuth.functionStack[sizeof(state.txnAuth.functionStack) - 1] = 0;
-        state.txnAuth.numFunctionsOnStack--;
-
-        if (R_SUCCESS == ret)
-            continue;
-
-        return ret;
-    }
-}
-
-
 //This is the function used to sign the hash of the txn
 //@param txnSha256 -                     ptr to 32 byte sha256 of the txn
 //@param derivationPath -                ptr to the derivation path buffer
@@ -862,7 +420,7 @@ uint8_t signTxn(const uint8_t * const derivationPath, const uint8_t derivationPa
 }
 
 //This is the main command handler, it checks that params are in the right size,
-//and manages calls to initTxnAuthState(), signTxn(), addToReadBuffer(), parseFromStack()
+//and manages calls to initTxnAuthState(), signTxn(), addToReadBuffer(), parseTransaction()
 
 //Since this is a callback function, and this handler manages state, it's this function's reposibility to call initTxnAuthState
 //Every time we get some sort of an error
@@ -958,7 +516,7 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
             return;
         }
 
-        ret = parseFromStack();
+        ret = parseTransaction(&setScreenTexts, &showScreen);
 
         if (!((R_SEND_MORE_BYTES == ret) || (R_FINISHED == ret) || (R_SHOW_DISPLAY == ret)))
             initTxnAuthState();

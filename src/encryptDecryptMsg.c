@@ -165,7 +165,7 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
             return;
         }
 
-        if (0 != dataLength % 16) {
+        if (0 != dataLength % CX_AES_BLOCK_SIZE) {
             cleanEncryptionState();
             G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;
             return;
