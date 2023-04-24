@@ -746,7 +746,7 @@ uint8_t parseAssetTransferAttachment() {
 //return R_SUCCESS on success, R_NO_SPACE_BUFFER_TOO_SMALL othereize
 uint8_t addToReadBuffer(const uint8_t * const newData, const uint8_t numBytes) {
 
-    for (uint8_t i = 0; i < state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset; i++)
+    for (uint16_t i = 0; i < state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset; i++)
         state.txnAuth.readBuffer[i] = state.txnAuth.readBuffer[i + state.txnAuth.readBufferReadOffset];
 
     memset(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset, 0, state.txnAuth.readBufferReadOffset); //set to 0, just for saftey
