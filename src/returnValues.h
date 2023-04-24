@@ -15,6 +15,8 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#pragma once
+
 enum returnValues {
 	R_SUCCESS = 0,
 	R_REJECT = 1,

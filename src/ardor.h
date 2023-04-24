@@ -15,6 +15,8 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#pragma once
+
 #include "ux.h"
 #include "cx.h"
 #include "os.h"

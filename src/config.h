@@ -1,4 +1,4 @@
-
+#pragma once
 
 
 //This is the header for different types of consts and configurations, the actual values are set in config.c
