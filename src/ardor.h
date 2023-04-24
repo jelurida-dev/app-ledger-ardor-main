@@ -88,7 +88,7 @@ typedef struct {
 typedef struct {
     uint8_t mode;                           //Modes are described in the .C file
     uint8_t cbc[16];                        //Something to do with AES state
-    unsigned int ctx[(4 * 4 * 15 + 4) / sizeof(unsigned int)];      //This is the encryption key, unsigned int is the type it uses aes_uint *
+    cx_aes_key_t aesKey;                    //This is the encryption key
 } encyptionState_t;
 
 //State of the sign token handler

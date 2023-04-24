@@ -23,8 +23,6 @@
 #include <os_io_seproxyhal.h>
 #include "ux.h"
 
-#include "aes/aes.h"
-
 #include "returnValues.h"
 #include "config.h"
 #include "ardor.h"

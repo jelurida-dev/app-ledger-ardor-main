@@ -23,8 +23,6 @@
 #include <os_io_seproxyhal.h>
 #include "ux.h"
 
-#include "aes/aes.h"
-
 #include "returnValues.h"
 #include "config.h"
 #include "ardor.h"
@@ -63,14 +61,6 @@
 void cleanEncryptionState() {
     state.encryption.mode = 0;
 }
-
-
-//declerations of all AES functions, not including the h file to avoid mess of types
-bool aes_decrypt_init_fixed(const aes_uchar *key, size_t len, aes_uint * rk);
-void aes_decrypt(void *ctx, const aes_uchar *crypt, aes_uchar *plain);
-bool aes_encrypt_init_fixed(const aes_uchar *key, size_t len, aes_uint *rk);
-void aes_encrypt(void *ctx, const aes_uchar *plain, aes_uchar *crypt);
-
 
 //Since this is a callback function, and the handler manages state, it's this function's reposibility to clean the state
 //Every time we get some sort of an error
@@ -133,21 +123,13 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
             return;
         }
 
-        if (P1_INIT_ENCRYPT == p1) {
-            if (!aes_encrypt_init_fixed(encryptionKey, 32, state.encryption.ctx)) {
-                cleanEncryptionState();
-                G_io_apdu_buffer[0] = R_AES_ERROR;
-                *tx = 1;
-                return;
-            }
-        } else {
-            if (!aes_decrypt_init_fixed(encryptionKey, 32, state.encryption.ctx)) {
-                cleanEncryptionState();
-                G_io_apdu_buffer[0] = R_AES_ERROR;
-                *tx = 1;
-                return;
-            }
-
+        if (CX_OK != cx_aes_init_key_no_throw(encryptionKey, sizeof(encryptionKey), &state.encryption.aesKey)) {
+            cleanEncryptionState();
+            G_io_apdu_buffer[0] = R_AES_ERROR;
+            *tx = 1;
+            return;
+        }
+        if (P1_INIT_ENCRYPT != p1) {
             memcpy(state.encryption.cbc, dataBuffer + dataLength - sizeof(state.encryption.cbc), sizeof(state.encryption.cbc)); //Copying the IV into the CBC
         }
         
@@ -190,26 +172,26 @@ void encryptDecryptMessageHandlerHelper(const uint8_t p1, const uint8_t p2, cons
         }
 
         uint8_t * pos = G_io_apdu_buffer + OFFSET_CDATA;
-        uint8_t tmp[AES_BLOCK_SIZE];
+        uint8_t tmp[CX_AES_BLOCK_SIZE];
 
         while (pos < dataBuffer + dataLength) {
             if (P1_INIT_ENCRYPT == state.encryption.mode) { //if we are doing encryption:
 
-                for (uint8_t j = 0; j < AES_BLOCK_SIZE; j++)
+                for (uint8_t j = 0; j < CX_AES_BLOCK_SIZE; j++)
                     state.encryption.cbc[j] ^= pos[j];
 
-                aes_encrypt(state.encryption.ctx, state.encryption.cbc, state.encryption.cbc);
-                memcpy(pos, state.encryption.cbc, AES_BLOCK_SIZE);
+                cx_aes_enc_block(&state.encryption.aesKey, state.encryption.cbc, state.encryption.cbc);
+                memcpy(pos, state.encryption.cbc, CX_AES_BLOCK_SIZE);
             } else {
-                memcpy(tmp, pos, AES_BLOCK_SIZE);
-                aes_decrypt(state.encryption.ctx, pos, pos);
-                for (uint8_t j = 0; j < AES_BLOCK_SIZE; j++)
+                memcpy(tmp, pos, CX_AES_BLOCK_SIZE);
+                cx_aes_dec_block(&state.encryption.aesKey, pos, pos);
+                for (uint8_t j = 0; j < CX_AES_BLOCK_SIZE; j++)
                     pos[j] ^= state.encryption.cbc[j];
 
-                memcpy(state.encryption.cbc, tmp, AES_BLOCK_SIZE);
+                memcpy(state.encryption.cbc, tmp, CX_AES_BLOCK_SIZE);
             }
 
-            pos += AES_BLOCK_SIZE;
+            pos += CX_AES_BLOCK_SIZE;
         }
 
         *tx = 1 + dataLength;
