@@ -164,7 +164,7 @@ uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivation
 
                         //We encode the pairty of X into the MSB of Y, since it's never used because of the feild size
                         //This allows us to compress X,Y into 32 bytes
-                        if ((publicKey.W[32] & 1) != 0)
+                        if (0 != (publicKey.W[32] & 1))
                             publicKeyYLE[31] |= 0x80;
 
                         if (0 != publicKeyEd25519YLEWithXParityOut)

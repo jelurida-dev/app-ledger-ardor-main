@@ -56,7 +56,7 @@ uint8_t addToFunctionStack(const uint8_t functionNum) {
 //Takes bytes away from the buffer, returns 0 if there aren't enough bytes
 uint8_t * readFromBuffer(const uint8_t size) {
 
-    if (state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset < size)
+    if (size > state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset)
         return 0;
 
     uint8_t * ret = state.txnAuth.readBuffer + state.txnAuth.readBufferReadOffset;
@@ -180,11 +180,11 @@ uint8_t parseAppendagesFlags() {
             char * ptr = state.txnAuth.appendagesText;
             size_t free = sizeof(state.txnAuth.appendagesText);
             for (uint8_t j = 0; j < NUM_APPENDAGE_TYPES; j++) {
-                if ((appendages & 1 << j) != 0) {
+                if (0 != (appendages & 1 << j)) {
                     size_t len = strlen(appendageTypeName(j));
 
                     // special case: not enough space to show the text for all appendages, revert to bitmap
-                    if (len + 2 > free) { // +2 for separator and null terminator
+                    if (free < len + 2) { // +2 for separator and null terminator
                         for (uint8_t i = 0; i < NUM_APPENDAGE_TYPES; i++) {
                             state.txnAuth.appendagesText[i] = (appendages & 1 << i) != 0 ? '1' + i : '_';
                         }
@@ -322,7 +322,7 @@ uint8_t addToReadBuffer(const uint8_t * const newData, const uint8_t numBytes) {
     state.txnAuth.readBufferEndPos -= state.txnAuth.readBufferReadOffset;
     state.txnAuth.readBufferReadOffset = 0;
 
-    if (state.txnAuth.readBufferEndPos + numBytes > sizeof(state.txnAuth.readBuffer))
+    if (sizeof(state.txnAuth.readBuffer) < state.txnAuth.readBufferEndPos + numBytes)
         return R_NO_SPACE_BUFFER_TOO_SMALL;
 
     cx_hash(&state.txnAuth.hashstate.header, 0, newData, numBytes, 0, 0);

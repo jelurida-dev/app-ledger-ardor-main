@@ -428,7 +428,7 @@ uint8_t signTxn(const uint8_t * const derivationPath, const uint8_t derivationPa
 void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
         uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
 
-    if (dataLength < 1) {
+    if (1 > dataLength) {
         initTxnAuthState();
         G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;    
         return;
