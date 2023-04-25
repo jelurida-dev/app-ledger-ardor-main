@@ -22,7 +22,6 @@
 #include "returnValues.h"
 #include "transactionParser.h"
 
-#define BASE_TRANSACTION_SIZE 145
 #define TX_TIMESTAMP_SIZE 4
 #define TX_TIMESTAMP_DEADLINE 2
 #define TX_PUBLIC_KEY_SIZE 32

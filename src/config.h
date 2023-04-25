@@ -48,6 +48,7 @@ extern const uint8_t VERSION_FLAGS;
 #define MAX_DERIVATION_LENGTH 20
 
 #define FUNCTION_STACK_SIZE 30
+#define BASE_TRANSACTION_SIZE 145
 
 // transaction types and subtypes definition
 //note: you have to write the type and subtype in reverse, because of little endian buffer representation an big endian C code representation

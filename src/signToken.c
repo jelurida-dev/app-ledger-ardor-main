@@ -160,6 +160,59 @@ void showSignTokenScreen() {
     ux_flow_init(0, stFlow, NULL);
 }
 
+void p1TokenInitHandler(uint8_t * const tx) {
+    cleanTokenCreationState();
+    state.tokenCreation.mode = STATE_MODE_INITED;
+    cx_sha256_init(&state.tokenCreation.sha256);
+    G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+}
+
+void p1TokenMsgBytesHandler(const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const tx, const bool isLastCommandDifferent) {
+    if (isLastCommandDifferent || (STATE_INVAILD == state.tokenCreation.mode)) {
+        cleanTokenCreationState();
+        G_io_apdu_buffer[(*tx)++] = R_WRONG_STATE;
+        return;
+    }
+
+    state.tokenCreation.mode = STATE_BYTES_RECIEVED;
+
+    cx_hash(&state.tokenCreation.sha256.header, 0, dataBuffer, dataLength, 0, 0);
+
+    G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+}
+
+void p1TokenSignHandler(const uint8_t dataLength, uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
+    if (isLastCommandDifferent || (STATE_BYTES_RECIEVED != state.tokenCreation.mode)) {
+        cleanTokenCreationState();
+        G_io_apdu_buffer[(*tx)++] = R_WRONG_STATE;
+        return;
+    }
+
+    if (dataLength < 4) {
+        cleanTokenCreationState();
+        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
+        return;
+    }
+
+    if (0 != (dataLength - 4) % sizeof(uint32_t)) {
+        cleanTokenCreationState();
+        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;
+        return;
+    }
+
+    //underflow was checked against above above
+    uint8_t derivationPathLengthInUints32 = (dataLength - 4) / sizeof(uint32_t);
+
+    if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32)) {
+        cleanTokenCreationState();
+        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
+        return;
+    }
+
+    showSignTokenScreen();
+    *flags |= IO_ASYNCH_REPLY;
+}
+
 //Since this is a callback function, and this handler manages state, it's this function's reposibility to clear the state
 //Every time we get some sort of an error
 void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
@@ -172,52 +225,11 @@ void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uin
         cleanTokenCreationState(); 
 
     if (P1_INIT == p1) {
-        cleanTokenCreationState();
-        state.tokenCreation.mode = STATE_MODE_INITED;
-        cx_sha256_init(&state.tokenCreation.sha256);
-        G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+        p1TokenInitHandler(tx);
     } else if (P1_MSG_BYTES == p1) {
-        if (isLastCommandDifferent || (STATE_INVAILD == state.tokenCreation.mode)) {
-            cleanTokenCreationState();
-            G_io_apdu_buffer[(*tx)++] = R_WRONG_STATE;
-            return;
-        }
-
-        state.tokenCreation.mode = STATE_BYTES_RECIEVED;
-
-        cx_hash(&state.tokenCreation.sha256.header, 0, dataBuffer, dataLength, 0, 0);
-
-        G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+        p1TokenMsgBytesHandler(dataBuffer, dataLength, tx, isLastCommandDifferent);
     } else if (P1_SIGN == p1) {
-        if (isLastCommandDifferent || (STATE_BYTES_RECIEVED != state.tokenCreation.mode)) {
-            cleanTokenCreationState();
-            G_io_apdu_buffer[(*tx)++] = R_WRONG_STATE;
-            return;
-        }
-
-        if (dataLength < 4) {
-            cleanTokenCreationState();
-            G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
-            return;
-        }
-
-        if (0 != (dataLength - 4) % sizeof(uint32_t)) {
-            cleanTokenCreationState();
-            G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;
-            return;
-        }
-
-        //underflow was checked against above above
-        uint8_t derivationPathLengthInUints32 = (dataLength - 4) / sizeof(uint32_t);
-
-        if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32)) {
-            cleanTokenCreationState();
-            G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
-            return;
-        }
-
-        showSignTokenScreen();
-        *flags |= IO_ASYNCH_REPLY;
+        p1TokenSignHandler(dataLength, flags, tx, isLastCommandDifferent);
     } else {
         cleanTokenCreationState();
         G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;

@@ -323,8 +323,6 @@ uint8_t setScreenTexts() {
 
         switch (state.txnAuth.txnTypeAndSubType) {
 
-            //note: you have to write the type and subtype in reverse, because of little endian buffer representation an big endian C code representation
-
             case TX_TYPE_ORDINARY_PAYMENT:
             case TX_TYPE_FXT_PAYMENT:
 
@@ -420,9 +418,109 @@ uint8_t signTxn(const uint8_t * const derivationPath, const uint8_t derivationPa
     return R_SUCCESS;
 }
 
+//// HANDLER MAIN FUNCTIONS
+
+void p1InitContinueCommon(const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const flags, uint8_t * const tx) {
+    state.txnAuth.isClean = false;
+
+    uint8_t ret = addToReadBuffer(dataBuffer, dataLength);
+
+    if (R_SUCCESS != ret) {
+        G_io_apdu_buffer[(*tx)++] = ret;
+        return;
+    }
+
+    ret = parseTransaction(&setScreenTexts, &showScreen);
+
+    if (!((R_SEND_MORE_BYTES == ret) || (R_FINISHED == ret) || (R_SHOW_DISPLAY == ret)))
+        initTxnAuthState();
+
+    if (R_SHOW_DISPLAY == ret) {
+        *flags |= IO_ASYNCH_REPLY;
+    } else {
+        G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+        G_io_apdu_buffer[(*tx)++] = ret;
+    }
+}
+
+void p1InitHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const flags, uint8_t * const tx) {
+    initTxnAuthState();
+
+    state.txnAuth.txnSizeBytes = ((p1 & 0b11111100) << 6) + p2;
+
+    if (BASE_TRANSACTION_SIZE > state.txnAuth.txnSizeBytes) {
+        G_io_apdu_buffer[(*tx)++] = R_TXN_SIZE_TOO_SMALL;
+        return;
+    }
+
+    p1InitContinueCommon(dataBuffer, dataLength, flags, tx);
+}
+
+void p1ContinueHandler(const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
+    if (isLastCommandDifferent) {
+        initTxnAuthState();
+        G_io_apdu_buffer[(*tx)++] = R_ERR_NO_INIT_CANT_CONTINUE;
+        return;
+    }
+
+    if (state.txnAuth.txnPassedAutherization) {
+        initTxnAuthState();
+        G_io_apdu_buffer[(*tx)++] = R_NOT_ALL_BYTES_USED;
+        return;
+    }
+
+    if (state.txnAuth.isClean) {
+        initTxnAuthState();
+        G_io_apdu_buffer[(*tx)++] = R_ERR_NO_INIT_CANT_CONTINUE;
+        return;
+    }
+
+    p1InitContinueCommon(dataBuffer, dataLength, flags, tx);
+}
+
+void p1SignHandler(const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const tx, const bool isLastCommandDifferent) {
+    if (isLastCommandDifferent) {
+        initTxnAuthState();
+        G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
+        return;
+    }
+
+    // dataLength is the derivation path length in bytes
+    if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > dataLength) || (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < dataLength) || (0 != dataLength % sizeof(uint32_t))) {
+        initTxnAuthState();
+        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
+        return; 
+    }
+
+    if (!state.txnAuth.txnPassedAutherization) {
+        initTxnAuthState();
+        G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
+        return;
+    }
+
+    uint16_t exception = 0;
+
+    G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+
+    uint8_t ret = signTxn(dataBuffer, dataLength / 4, G_io_apdu_buffer + 1, &exception);
+
+    initTxnAuthState();
+
+    if (R_SUCCESS == ret) {
+        *tx += 64;
+    } else {
+        *tx -= 1;
+        G_io_apdu_buffer[(*tx)++] = ret;
+
+        if (R_KEY_DERIVATION_EX == ret) {
+            G_io_apdu_buffer[(*tx)++] = exception >> 8;
+            G_io_apdu_buffer[(*tx)++] = exception & 0xFF;   
+        }
+    }
+}
+
 //This is the main command handler, it checks that params are in the right size,
 //and manages calls to initTxnAuthState(), signTxn(), addToReadBuffer(), parseTransaction()
-
 //Since this is a callback function, and this handler manages state, it's this function's reposibility to call initTxnAuthState
 //Every time we get some sort of an error
 void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
@@ -430,104 +528,13 @@ void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8
 
     if (1 > dataLength) {
         initTxnAuthState();
-        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;    
-        return;
-    }
-
-
-    if (P1_SIGN == (p1 & 0x03)) {
-
-        if (isLastCommandDifferent) {
-            initTxnAuthState();
-            G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
-            return;
-        }
-
-        uint8_t derivationParamLengthInBytes = dataLength;
-    
-        if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > dataLength) || (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < dataLength) || (0 != derivationParamLengthInBytes % sizeof(uint32_t))) {
-            initTxnAuthState();
-            G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
-            return; 
-        }
-
-        if (!state.txnAuth.txnPassedAutherization) {
-            initTxnAuthState();
-            G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
-            return;
-        }
-
-        uint16_t exception = 0;
-
-        G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
-
-        uint8_t ret = signTxn(dataBuffer, derivationParamLengthInBytes / 4, G_io_apdu_buffer + 1, &exception);
-
-        initTxnAuthState();
-
-        if (R_SUCCESS == ret) {
-            *tx += 64;
-        } else {
-            *tx -= 1;
-            G_io_apdu_buffer[(*tx)++] = ret;
-
-            if (R_KEY_DERIVATION_EX == ret) {
-                G_io_apdu_buffer[(*tx)++] = exception >> 8;
-                G_io_apdu_buffer[(*tx)++] = exception & 0xFF;   
-            }
-        }
-    } else if ((P1_INIT == (p1 & 0x03)) || (P1_CONTINUE == (p1 & 0x03))) {
-
-        if (P1_INIT != (p1 & 0x03)) {
-
-            if (isLastCommandDifferent) {
-                initTxnAuthState();
-                G_io_apdu_buffer[(*tx)++] = R_ERR_NO_INIT_CANT_CONTINUE;
-                return;
-            }
-
-            if (state.txnAuth.txnPassedAutherization) {
-                initTxnAuthState();
-                G_io_apdu_buffer[(*tx)++] = R_NOT_ALL_BYTES_USED;
-                return;
-            }
-
-            if (state.txnAuth.isClean) {
-                initTxnAuthState();
-                G_io_apdu_buffer[(*tx)++] = R_ERR_NO_INIT_CANT_CONTINUE;
-                return;
-            }
-        } else {
-            initTxnAuthState();
-
-            state.txnAuth.txnSizeBytes = ((p1 & 0b11111100) << 6) + p2;
-
-            if (145 > state.txnAuth.txnSizeBytes) {
-                G_io_apdu_buffer[(*tx)++] = R_TXN_SIZE_TOO_SMALL;
-                return;
-            }
-        }
-
-        state.txnAuth.isClean = false;
-
-        uint8_t ret = addToReadBuffer(dataBuffer, dataLength);
-
-        if (R_SUCCESS != ret) {
-            G_io_apdu_buffer[(*tx)++] = ret;
-            return;
-        }
-
-        ret = parseTransaction(&setScreenTexts, &showScreen);
-
-        if (!((R_SEND_MORE_BYTES == ret) || (R_FINISHED == ret) || (R_SHOW_DISPLAY == ret)))
-            initTxnAuthState();
-
-        if (R_SHOW_DISPLAY == ret) {
-            *flags |= IO_ASYNCH_REPLY;
-        } else {
-            G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
-            G_io_apdu_buffer[(*tx)++] = ret;
-        }
+        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
+    } else if (P1_INIT == (p1 & 0x03)) {
+        p1InitHandler(p1, p2, dataBuffer, dataLength, flags, tx);
+    } else if (P1_CONTINUE == (p1 & 0x03)) {
+        p1ContinueHandler(dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
+    } else if (P1_SIGN == (p1 & 0x03)) {
+        p1SignHandler(dataBuffer, dataLength, tx, isLastCommandDifferent);
     } else {
         G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
     }
