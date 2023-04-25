@@ -325,8 +325,8 @@ uint8_t setScreenTexts() {
 
             //note: you have to write the type and subtype in reverse, because of little endian buffer representation an big endian C code representation
 
-            case 0x0000: //OrdinaryPayment
-            case 0x00fe: //FxtPayment
+            case TX_TYPE_ORDINARY_PAYMENT:
+            case TX_TYPE_FXT_PAYMENT:
 
                     state.txnAuth.uiFlowBitfeild |= 2; //turn on the second bit for optional 1 & 2
 
@@ -341,8 +341,8 @@ uint8_t setScreenTexts() {
 
                     break;
 
-            case 0x00fc: //FxtCoinExchangeOrderIssue
-            case 0x000b: //CoinExchangeOrderIssue
+            case TX_TYPE_FXT_COIN_EXCHANGE_ORDER_ISSUE:
+            case TX_TYPE_COIN_EXCHANGE_ORDER_ISSUE:
                     
                     state.txnAuth.uiFlowBitfeild |= 2; //turn on the second bit for optional 1 & 2
 
@@ -369,7 +369,7 @@ uint8_t setScreenTexts() {
 
                     break;
 
-            case 0x0102: // Asset Transfer
+            case TX_TYPE_ASSET_TRANSFER:
 
                     state.txnAuth.uiFlowBitfeild |= 6; // turn bits 2&3 for all three optional screens
 

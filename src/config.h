@@ -48,4 +48,11 @@ extern const uint8_t VERSION_FLAGS;
 #define MAX_DERIVATION_LENGTH 20
 
 #define FUNCTION_STACK_SIZE 30
-#define IV_SIZE 16
+
+// transaction types and subtypes definition
+//note: you have to write the type and subtype in reverse, because of little endian buffer representation an big endian C code representation
+#define TX_TYPE_ORDINARY_PAYMENT 0x0000
+#define TX_TYPE_FXT_PAYMENT 0x00fe
+#define TX_TYPE_FXT_COIN_EXCHANGE_ORDER_ISSUE 0x00fc
+#define TX_TYPE_COIN_EXCHANGE_ORDER_ISSUE 0x000b
+#define TX_TYPE_ASSET_TRANSFER 0x0102
