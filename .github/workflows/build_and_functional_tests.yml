@@ -51,7 +51,7 @@ jobs:
 
       - name: Run speculos in the background
         run: |
-          /speculos/speculos.py --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" /tmp/app/app.elf 2>/tmp/speculos.log &
+          /speculos/speculos.py --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" /tmp/app/build/nanos/bin/app.elf 2>/tmp/speculos.log &
           echo $! >/tmp/speculos.pid
 
       - name: Run tests with Ardor node
