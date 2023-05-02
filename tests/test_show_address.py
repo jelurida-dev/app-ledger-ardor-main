@@ -7,6 +7,8 @@ def show_address_test(backend, navigator, firmware, path, test_name):
         num_screens = 2
     elif firmware.device == 'nanox':
         num_screens = 1
+    elif firmware.device == 'nanosp':
+        num_screens = 1
     else:
         assert False
 

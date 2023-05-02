@@ -32,6 +32,7 @@ To run all tests just issue the following commands:
 
     pytest --device nanos -v --tb=short tests/
     pytest --device nanox -v --tb=short tests/
+    pytest --device nanosp -v --tb=short tests/
 
 ### End to end tests
 
