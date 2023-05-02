@@ -4,7 +4,16 @@ on: [push, pull_request]
 
 jobs:
   job_build_debug:
-    name: Build debug
+    name: Build app in debug mode
+    strategy:
+      matrix:
+        include:
+          - SDK: "$NANOS_SDK"
+            artifact: ardor-app-nanos
+          - SDK: "$NANOX_SDK"
+            artifact: ardor-app-nanox
+          - SDK: "$NANOSP_SDK"
+            artifact: ardor-app-nanosp
     runs-on: ubuntu-latest
 
     container:
@@ -15,34 +24,16 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build
-        run: make DEBUG=1
+        run: make DEBUG=1 BOLOS_SDK=${{ matrix.SDK }}
 
       - name: Upload app binary
         uses: actions/upload-artifact@v2
         with:
-          name: app-bin
+          name: ${{ matrix.artifact }}
           path: bin
 
-  job_unit_test:
-    name: Unit test
-    needs: job_build_debug
-    runs-on: ubuntu-latest
-
-    container:
-      image: ghcr.io/ledgerhq/ledger-app-builder/ledger-app-builder:latest
-
-    steps:
-      - name: Clone
-        uses: actions/checkout@v2
-
-      - name: Build and run unit tests
-        run: |
-          cd tests
-          cmake -Bbuild -H. && make -C build && make -C build test
-
-  job_clang_scan_build:
-    name: Clang scan-build
-    needs: job_build_debug
+  job_scan_build:
+    name: Clang Static Analyzer
     runs-on: ubuntu-latest
 
     container:
@@ -57,7 +48,42 @@ jobs:
           make clean
           scan-build --use-cc=clang -analyze-headers -enable-checker security -enable-checker unix -enable-checker valist -o scan-build --status-bugs make default
   
-  job_functional_test:
+      - name: Upload scan result
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: scan-build
+          path: scan-build
+
+  job_functional_tests:
+    name: Functional tests with Speculos emulator
+    strategy:
+      matrix:
+        include:
+          - model: nanos
+          - model: nanox
+          - model: nanosp
+    needs: job_build_debug
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v2
+      - name: Download app binary
+        uses: actions/download-artifact@v2
+        with:
+          name: ardor-app-${{matrix.model}}
+          path: bin
+      - name: Install tests dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y qemu-user-static
+          pip install --extra-index-url https://test.pypi.org/simple/ -r tests/requirements.txt
+      - name: Run tests
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
+        run: pytest tests/ --device ${{ matrix.model }}
+
+  job_e2e_tests:
     name: Functional test
     needs: job_build_debug
     runs-on: ubuntu-latest
@@ -73,7 +99,7 @@ jobs:
       - name: Download app binary
         uses: actions/download-artifact@v2
         with:
-          name: app-bin
+          name: ardor-app-nanos
           path: /tmp/app
 
       - name: Run speculos in the background
@@ -81,17 +107,11 @@ jobs:
           /speculos/speculos.py --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" /tmp/app/app.elf 2>/tmp/speculos.log &
           echo $! >/tmp/speculos.pid
 
-# The ardor-ledger-test repository is a temporary solution until the next version is made public with the Speculos driver
-      - name: Install and compile Ardor
+      - name: Run tests with Ardor node
         run: |
-          git clone https://sargue@bitbucket.org/sargue/ardor-ledger-test.git /ardor
+          git clone --branch ledger-test https://sargue@bitbucket.org/sargue/ardor-ledger-test.git /ardor
           cd /ardor
-          ./compile.sh --skip-desktop
-
-      - name: Run tests
-        run: |
-          cd /ardor
-          ./run-unit-tests.sh com.jelurida.ardor.integration.wallet.ledger.application.ArdorAppBridgeHeadlessTest
+          ./run-unit-tests.sh com.jelurida.ardor.integration.wallet.ledger.application.LedgerSpeculosSuite
 
       - name: Kill speculos
         run: kill -9 $(cat /tmp/speculos.pid)
