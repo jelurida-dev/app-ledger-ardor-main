@@ -34,6 +34,7 @@ jobs:
     name: E2E test
     needs: build_application
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     container:
       image: ghcr.io/ledgerhq/speculos:latest
