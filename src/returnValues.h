@@ -1,5 +1,6 @@
 /*******************************************************************************
 *  (c) 2019 Haim Bender
+*  (c) 2021-2023 Jelurida IP B.V.
 *
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +15,8 @@
 *  See the License for the specific language governing permissions and
 *  limitations under the License.
 ********************************************************************************/
+
+#pragma once
 
 enum returnValues {
 	R_SUCCESS = 0,

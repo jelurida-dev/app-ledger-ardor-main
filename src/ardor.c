@@ -1,5 +1,6 @@
 /*******************************************************************************
 *  (c) 2019 Haim Bender
+*  (c) 2021-2023 Jelurida IP B.V.
 *
 *
 *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -82,6 +83,12 @@ void signMsg(uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_
     memmove(sig + 32, h, 32);
 
     sign25519(sig, h, x, privateKey);
+
+    // clean buffers
+    memset(privateKey, 0, sizeof(privateKey));
+    memset(x, 0, sizeof(x));
+    memset(Y, 0, sizeof(Y));
+    memset(h, 0, sizeof(h));
 }
 
 
@@ -157,7 +164,7 @@ uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivation
 
                         //We encode the pairty of X into the MSB of Y, since it's never used because of the feild size
                         //This allows us to compress X,Y into 32 bytes
-                        if ((publicKey.W[32] & 1) != 0)
+                        if (0 != (publicKey.W[32] & 1))
                             publicKeyYLE[31] |= 0x80;
 
                         if (0 != publicKeyEd25519YLEWithXParityOut)
@@ -195,13 +202,16 @@ uint8_t getSharedEncryptionKey(const uint8_t * const derivationPath, const uint8
 
     uint8_t sharedKey[32]; memset(sharedKey, 0, sizeof(sharedKey));
 
-
     curve25519(sharedKey, keySeed, targetPublicKey); //should use only the first 32 bytes of keyseed
     
     for (uint8_t i = 0; i < sizeof(sharedKey); i++)
         sharedKey[i] ^= nonce[i];
 
     sha256Buffer(sharedKey, sizeof(sharedKey), aesKeyOut);
+
+    // clean up buffers
+    memset(keySeed, 0, sizeof(keySeed));
+    memset(sharedKey, 0, sizeof(sharedKey));
 
     return R_SUCCESS;
 }
@@ -223,6 +233,77 @@ uint64_t publicKeyToId(const uint8_t * const publicKey) {
             (((uint64_t) tempSha[0] )));
 }
 
+//returns the chain name for a given chainId
+char * chainName(const uint8_t chainId) {
+    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
+    return (char*)PIC(((chainType*)PIC(&CHAINS[chainId - 1]))->name);
+}
+
+//the amount of digits on the right of the decimal dot for each chain
+uint8_t chainNumDecimalsBeforePoint(const uint8_t chainId) {
+    //Because static memory is weird and might be reclocated in ledger we have to use the PIC macro in order to access it
+    return ((chainType*)PIC(&CHAINS[chainId - 1]))->numDecimalsBeforePoint;
+}
+
+//this function formats amounts into string and most importantly add the dot where it's supposed to be
+//the way this is works is that amounts ints and then the dot is added after chainNumDecimalsBeforePoint() digits from right to left
+//for example, if the amount is 4200000000 and we are in the Ardor chain in which chainNumDecimalsBeforePoint() is 8 then the formated amount will be "42"
+//for 4210100000 it will be 42.101
+//@param outputString - does what it says
+//@param maxOutputLength - does what it says
+//@param numberToFormat - the input number to format, isn't const cuz we play with it in order to format the number
+//@param numDigitsBeforeDecimal - read first paragraph for info
+//@returns 0 iff some kind of error happend, else the length of the output string including the null terminator
+uint8_t formatAmount(char * const outputString, const uint16_t maxOutputLength, uint64_t numberToFormat, const uint8_t numDigitsBeforeDecimal) {
+    
+    uint16_t outputIndex = 0;
+    bool wasANumberWritten = false;
+    bool isDotWritten = false;
+    uint8_t numberIndex = 0;
+
+
+    while (true) {
+
+        uint8_t modulo = numberToFormat % 10;
+        numberToFormat -= modulo;
+        numberToFormat /= 10;
+
+        if (numDigitsBeforeDecimal == numberIndex) {
+            if (wasANumberWritten && (!isDotWritten) && (0 != numDigitsBeforeDecimal)) {
+                isDotWritten = true;
+                outputString[outputIndex++] = '.';
+            }
+
+            wasANumberWritten = true;
+        }
+
+        if (0 != modulo)
+            wasANumberWritten = true;
+
+        if (wasANumberWritten || (0 == numDigitsBeforeDecimal))
+            outputString[outputIndex++] = '0' + modulo;
+
+        if (outputIndex >= maxOutputLength)
+            return 0;
+
+        if ((0 == numberToFormat) && (numDigitsBeforeDecimal <= numberIndex))
+            break;
+
+        numberIndex++;
+
+    }
+
+
+    //reverse the string since we are creating it from left to right, and numbers are right to left
+    for (uint16_t i = 0; i < outputIndex - 1 - i; i++) {
+        uint8_t temp = outputString[i];
+        outputString[i] = outputString[outputIndex - i - 1];
+        outputString[outputIndex - i - 1] = temp;
+    }
+
+    outputString[outputIndex] = 0;
+    return outputIndex + 1;
+}
 
 //app_stack_canary is defined by the link script to be at the start of the user data or end of the stack, something like that
 //so if there is a stack overflow then it will be overwriten, this is how check_canary() works.
