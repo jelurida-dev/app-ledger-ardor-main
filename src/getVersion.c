@@ -20,6 +20,7 @@
 #include <os.h>
 #include <os_io_seproxyhal.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "config.h"
 
