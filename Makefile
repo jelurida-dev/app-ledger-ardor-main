@@ -180,3 +180,6 @@ include $(BOLOS_SDK)/Makefile.glyphs
 include $(BOLOS_SDK)/Makefile.rules
 
 dep/%.d: %.c Makefile
+
+listvariants:
+	@echo VARIANTS COIN ardor
