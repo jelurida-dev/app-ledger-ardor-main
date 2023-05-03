@@ -32,10 +32,10 @@ DEFINES += "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
 PATH_PREFIX = "44'/16754'"
 DEFINES += APP_PREFIX=\"ARDOR-\"
 
-ifeq ($(TARGET_NAME),TARGET_NANOX)
-    ICONNAME = ArdorIconNanoX.gif
-else
+ifeq ($(TARGET_NAME),TARGET_NANOS)
     ICONNAME = ArdorIconNanoS.gif
+else
+    ICONNAME = ArdorIconNanoX.gif
 endif
 $(info Building $(APPNAME) app...)
 
@@ -55,7 +55,7 @@ ifeq ($(TARGET_NAME),TARGET_NANOX)
     SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
     
     # The --appFlags param gives permision to open bluetooth
-    APP_LOAD_PARAMS += --appFlags 0x0200
+    APP_LOAD_PARAMS += --appFlags 0x200
     
     DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
     DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
@@ -70,7 +70,7 @@ ifeq ($(TARGET_NAME),TARGET_NANOX)
     DEFINES += HAVE_BAGL_FONT_OPEN_SANS_LIGHT_16PX
 else
     # Since we don't have bluetooth in NanoS we set --appFlags to 0
-    APP_LOAD_PARAMS += --appFlags 0x0000
+    APP_LOAD_PARAMS += --appFlags 0x000
     
     DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=128
 endif
