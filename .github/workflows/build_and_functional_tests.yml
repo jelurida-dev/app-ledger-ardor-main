@@ -15,14 +15,14 @@ on:
 
 jobs:
   build_application:
-    name: Build application using the reusable workflow
+    name: Build application
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_build.yml@v1
     with:
       upload_app_binaries_artifact: "compiled_app_binaries"
       run_for_devices: '["nanos", "nanox", "nanosp"]'
 
   ragger_tests:
-    name: Run ragger tests using the reusable workflow
+    name: Run ragger tests
     needs: build_application
     uses: LedgerHQ/ledger-app-workflows/.github/workflows/reusable_ragger_tests.yml@v1
     with:
@@ -31,7 +31,7 @@ jobs:
       run_for_devices: '["nanos", "nanox", "nanosp"]'
 
   job_e2e_tests:
-    name: E2E test
+    name: E2E tests
     needs: build_application
     runs-on: ubuntu-latest
     timeout-minutes: 10
