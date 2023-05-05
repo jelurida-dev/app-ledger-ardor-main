@@ -19,10 +19,10 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include <os.h>
 #include <os_io_seproxyhal.h>
-#include "ux.h"
 
 #include "returnValues.h"
 #include "config.h"

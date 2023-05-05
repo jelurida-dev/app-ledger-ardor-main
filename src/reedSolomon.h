@@ -16,6 +16,8 @@
 *  limitations under the License.
 ********************************************************************************/
 
+#pragma once
+
 #include <os.h>
 
 //@inp in - the buffer to encode, it's not const, cuz it's edited while converting

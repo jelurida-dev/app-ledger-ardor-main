@@ -19,14 +19,16 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include <os.h>
 #include <os_io_seproxyhal.h>
-#include "ux.h"
 
 #include "returnValues.h"
 #include "config.h"
 #include "ardor.h"
+#include "ui/menu.h"
+#include "ui/display.h"
 
 #define P1_INIT         0
 #define P1_MSG_BYTES    1
@@ -59,9 +61,7 @@ void cleanTokenCreationState() {
 }
 
 // UI callbacks
-unsigned int txn_authorized(const bagl_element_t *e) {
-    UNUSED(e);
-    
+void txn_authorized() {
     uint8_t *dataBuffer = G_io_apdu_buffer + OFFSET_CDATA;
     uint8_t dataLength = G_io_apdu_buffer[OFFSET_LC];
     uint8_t derivationPathLengthInUints32 = (dataLength - 4) / sizeof(uint32_t);
@@ -114,13 +114,10 @@ unsigned int txn_authorized(const bagl_element_t *e) {
 
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
     
-    ui_idle();  // redraw ui
-    return 0; // DO NOT REDRAW THE BUTTON
+    ui_menu_main();
 }
 
-unsigned int txn_cancelled(const bagl_element_t *e) {
-    UNUSED(e);
-    
+void txn_cancelled() {
     cleanTokenCreationState();
 
     G_io_apdu_buffer[0] = R_SUCCESS;
@@ -129,35 +126,7 @@ unsigned int txn_cancelled(const bagl_element_t *e) {
     G_io_apdu_buffer[3] = 0x00;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 4);
     
-    ui_idle();  // redraw ui
-    return 0; // DO NOT REDRAW THE BUTTON
-}
-
-// UI definitions
-UX_STEP_CB(stFlowPage1,
-           pb,
-           txn_authorized(NULL),
-           {
-               &C_icon_validate_14,
-               "Sign token",
-           });
-
-UX_STEP_CB(stFlowPage2,
-           pb,
-           txn_cancelled(NULL),
-           {
-               &C_icon_crossmark,
-               "Reject",
-           });
-UX_FLOW(stFlow,
-        &stFlowPage1,
-        &stFlowPage2);
-
-void showSignTokenScreen() {
-    if(0 == G_ux.stack_count)
-        ux_stack_push();
-
-    ux_flow_init(0, stFlow, NULL);
+    ui_menu_main();
 }
 
 void p1TokenInitHandler(uint8_t * const tx) {
@@ -209,7 +178,7 @@ void p1TokenSignHandler(const uint8_t dataLength, uint8_t * const flags, uint8_t
         return;
     }
 
-    showSignTokenScreen();
+    showSignTokenScreen(&txn_authorized, &txn_cancelled);
     *flags |= IO_ASYNCH_REPLY;
 }
 
