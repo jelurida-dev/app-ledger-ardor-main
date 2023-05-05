@@ -2,10 +2,32 @@
 
 #include <stdint.h> // uint64_t
 
-typedef void (*ui_callback)(void);
+///////// show address UI //////////
 
-void showAddressScreen(const uint64_t publicKey, ui_callback callback);
+void showAddressScreen(const uint64_t publicKey);
 
-void showSignTokenScreen(ui_callback cb_accept, ui_callback cb_reject);
+// callback for when the user accepts the address
+void showAddressConfirm(void);
 
-void showSignTransactionScreen(ui_callback cb_accept, ui_callback cb_reject);
+// callback for when the user cancels the address display
+void showAddressCancel(void);
+
+///////// sign token UI //////////
+
+void signTokenScreen();
+
+// callback for when the user signs the token
+void signTokenConfirm(void);
+
+// callback for when the user cancels the token signing
+void signTokenCancel(void);
+
+///////// sign transaction UI //////////
+
+void signTransactionScreen();
+
+// callback for when the user signs the transaction
+void signTransactionConfirm(void);
+
+// callback for when the user cancels the transaction signing
+void signTransactionCancel(void);

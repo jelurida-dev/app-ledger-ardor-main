@@ -4,8 +4,6 @@
 #include "display.h"
 #include "ardor.h"
 
-ui_callback sign_tx_callback_accept, sign_tx_callback_reject;
-
 UX_STEP_NOCB(aasFlowPage1, 
     pnn, 
     {
@@ -52,7 +50,7 @@ UX_STEP_NOCB(aasFlowPage3,
     });
 UX_STEP_CB(aasFlowPage4, 
     pbb, 
-    sign_tx_callback_accept(),
+    signTransactionConfirm(),
     {
       &C_icon_validate_14,
       "Accept",
@@ -60,7 +58,7 @@ UX_STEP_CB(aasFlowPage4,
     });
 UX_STEP_CB(aasFlowPage5, 
     pb, 
-    sign_tx_callback_reject(),
+    signTransactionCancel(),
     {
       &C_icon_crossmark,
       "Reject",
@@ -127,10 +125,7 @@ UX_FLOW(ux_flow_111,
   &aasFlowPage5
 );
 
-void showSignTransactionScreen(ui_callback cb_accept, ui_callback cb_reject) {
-    sign_tx_callback_accept = cb_accept;
-    sign_tx_callback_reject = cb_reject;
-    
+void signTransactionScreen() {
     if(0 == G_ux.stack_count)
         ux_stack_push();
 

@@ -30,8 +30,17 @@
 #include "ui/menu.h"
 #include "ui/display.h"
 
-void doneButton(void) {
+void showAddressConfirm(void) {
     G_io_apdu_buffer[0] = R_SUCCESS;
+    G_io_apdu_buffer[1] = 0x90;
+    G_io_apdu_buffer[2] = 0x00;
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 3);
+    
+    ui_menu_main();
+}
+
+void showAddressCancel(void) {
+    G_io_apdu_buffer[0] = R_REJECT;
     G_io_apdu_buffer[1] = 0x90;
     G_io_apdu_buffer[2] = 0x00;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 3);
@@ -65,7 +74,7 @@ void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t 
     uint8_t ret = ardorKeys(dataBuffer, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKey, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
     if (R_SUCCESS == ret) {
-        showAddressScreen(publicKeyToId(publicKey), &doneButton);
+        showAddressScreen(publicKeyToId(publicKey));
         *flags |= IO_ASYNCH_REPLY;
     } else if (R_KEY_DERIVATION_EX == ret) {
         G_io_apdu_buffer[0] = ret;

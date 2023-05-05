@@ -133,7 +133,7 @@ void initTxnAuthState() {
 }
 
 //Accept click callback
-void txn_autherized() {
+void signTransactionConfirm() {
     state.txnAuth.txnPassedAutherization = true;
     G_io_apdu_buffer[0] = R_SUCCESS;
     G_io_apdu_buffer[1] = R_FINISHED;
@@ -145,7 +145,7 @@ void txn_autherized() {
 }
 
 //Canceled click callback
-void txn_canceled() {  
+void signTransactionCancel() {  
     initTxnAuthState();
 
     G_io_apdu_buffer[0] = R_SUCCESS;
@@ -264,10 +264,6 @@ uint8_t signTxn(const uint8_t * const derivationPath, const uint8_t derivationPa
 
 //// HANDLER MAIN FUNCTIONS
 
-void showSignTransaction() {
-    showSignTransactionScreen(&txn_autherized, &txn_canceled);
-}
-
 void p1InitContinueCommon(const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const flags, uint8_t * const tx) {
     state.txnAuth.isClean = false;
 
@@ -278,7 +274,7 @@ void p1InitContinueCommon(const uint8_t * const dataBuffer, const uint8_t dataLe
         return;
     }
 
-    ret = parseTransaction(&setScreenTexts, &showSignTransaction);
+    ret = parseTransaction(&setScreenTexts, &signTransactionScreen);
 
     if (!((R_SEND_MORE_BYTES == ret) || (R_FINISHED == ret) || (R_SHOW_DISPLAY == ret)))
         initTxnAuthState();

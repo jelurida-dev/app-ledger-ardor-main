@@ -2,6 +2,7 @@
 
 #include "ux.h"
 #include "menu.h"
+#include "glyphs.h"
 
 UX_STEP_NOCB(
     ux_idle_flow_1_step, 

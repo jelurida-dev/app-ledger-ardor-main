@@ -61,7 +61,7 @@ void cleanTokenCreationState() {
 }
 
 // UI callbacks
-void txn_authorized() {
+void signTokenConfirm() {
     uint8_t *dataBuffer = G_io_apdu_buffer + OFFSET_CDATA;
     uint8_t dataLength = G_io_apdu_buffer[OFFSET_LC];
     uint8_t derivationPathLengthInUints32 = (dataLength - 4) / sizeof(uint32_t);
@@ -117,7 +117,7 @@ void txn_authorized() {
     ui_menu_main();
 }
 
-void txn_cancelled() {
+void signTokenCancel() {
     cleanTokenCreationState();
 
     G_io_apdu_buffer[0] = R_SUCCESS;
@@ -178,7 +178,7 @@ void p1TokenSignHandler(const uint8_t dataLength, uint8_t * const flags, uint8_t
         return;
     }
 
-    showSignTokenScreen(&txn_authorized, &txn_cancelled);
+    signTokenScreen();
     *flags |= IO_ASYNCH_REPLY;
 }
 
