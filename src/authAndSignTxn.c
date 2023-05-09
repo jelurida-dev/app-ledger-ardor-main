@@ -140,8 +140,6 @@ void signTransactionConfirm() {
     G_io_apdu_buffer[2] = 0x90;
     G_io_apdu_buffer[3] = 0x00;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 4);
-    
-    ui_menu_main();
 }
 
 //Canceled click callback
@@ -153,8 +151,6 @@ void signTransactionCancel() {
     G_io_apdu_buffer[2] = 0x90;
     G_io_apdu_buffer[3] = 0x00;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 4);
-
-    ui_menu_main();
 }
 
 //This function formats trxn data into text memebers of the state which the UI flow will read from

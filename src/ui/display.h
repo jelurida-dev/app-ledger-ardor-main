@@ -4,7 +4,7 @@
 
 ///////// show address UI //////////
 
-void showAddressScreen(const uint64_t publicKey);
+void showAddressScreen(const uint64_t accountId);
 
 // callback for when the user accepts the address
 void showAddressConfirm(void);

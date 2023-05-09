@@ -112,9 +112,7 @@ void signTokenConfirm() {
 
     cleanTokenCreationState();
 
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
-    
-    ui_menu_main();
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);    
 }
 
 void signTokenCancel() {
@@ -125,8 +123,6 @@ void signTokenCancel() {
     G_io_apdu_buffer[2] = 0x90;
     G_io_apdu_buffer[3] = 0x00;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 4);
-    
-    ui_menu_main();
 }
 
 void p1TokenInitHandler(uint8_t * const tx) {

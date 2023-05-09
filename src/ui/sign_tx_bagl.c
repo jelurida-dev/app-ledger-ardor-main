@@ -4,6 +4,16 @@
 #include "display.h"
 #include "ardor.h"
 
+static void signTxConfirmation() {
+    signTransactionConfirm();
+    ui_menu_main();
+}
+
+static void signTxCancellation() {
+    signTransactionCancel();
+    ui_menu_main();
+}
+
 UX_STEP_NOCB(aasFlowPage1, 
     pnn, 
     {
@@ -50,7 +60,7 @@ UX_STEP_NOCB(aasFlowPage3,
     });
 UX_STEP_CB(aasFlowPage4, 
     pbb, 
-    signTransactionConfirm(),
+    signTxConfirmation(),
     {
       &C_icon_validate_14,
       "Accept",
@@ -58,7 +68,7 @@ UX_STEP_CB(aasFlowPage4,
     });
 UX_STEP_CB(aasFlowPage5, 
     pb, 
-    signTransactionCancel(),
+    signTxCancellation(),
     {
       &C_icon_crossmark,
       "Reject",

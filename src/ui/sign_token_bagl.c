@@ -2,10 +2,21 @@
 
 #include "ux.h"
 #include "display.h"
+#include "menu.h"
+
+static void signTokenConfirmation() {
+    signTokenConfirm();
+    ui_menu_main();
+}
+
+static void signTokenCancellation() {
+    signTokenCancel();
+    ui_menu_main();
+}
 
 UX_STEP_CB(stFlowPage1,
            pb,
-           signTokenConfirm(),
+           signTokenConfirmation(),
            {
                &C_icon_validate_14,
                "Sign token",
@@ -13,7 +24,7 @@ UX_STEP_CB(stFlowPage1,
 
 UX_STEP_CB(stFlowPage2,
            pb,
-           signTokenCancel(),
+           signTokenCancellation(),
            {
                &C_icon_crossmark,
                "Reject",
