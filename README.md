@@ -17,14 +17,14 @@ Then you can switch to this repository and launch the `ledger-app-builder` docke
     $ docker run --rm -ti -v "$(realpath .):/app" ledger-app-builder:latest
     root@656be163fe84:/app# make
 
-### Unit tests
+### Functional tests
 
-Tests are written using the Ragger framework. The tests are located in the `tests` folder.
+Functional tests are written using the Ragger framework. The tests are located in the `tests` folder.
 
 #### Install ragger and dependencies
 
     pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
-    sudo apt-get update && sudo apt-get install qemu-user-static
+    sudo apt-get update && sudo apt-get install qemu-user-static tesseract-ocr libtesseract-dev
 
 #### Run tests
 
@@ -33,6 +33,7 @@ To run all tests just issue the following commands:
     pytest --device nanos -v --tb=short tests/
     pytest --device nanox -v --tb=short tests/
     pytest --device nanosp -v --tb=short tests/
+    pytest --device stax -v --tb=short tests/
 
 ### End to end tests
 

@@ -18,14 +18,9 @@
 
 #pragma once
 
-#include "ux.h"
 #include "cx.h"
 #include "os.h"
 #include "config.h"
-
-#if defined(TARGET_NANOS)
-    unsigned int makeTextGoAround_preprocessor(bagl_element_t * const element);
-#endif
 
 uint64_t publicKeyToId(const uint8_t * const publicKey);
 uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivationPathLengthInUints32,
@@ -34,7 +29,6 @@ char * chainName(const uint8_t chainId);
 
 void signMsg(uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_t * const sig);
 
-void ui_idle();
 bool check_canary();
 
 uint8_t getSharedEncryptionKey(const uint8_t * const derivationPath, const uint8_t derivationPathLengthInUints32, const uint8_t* const targetPublicKey,

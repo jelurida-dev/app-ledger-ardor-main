@@ -19,60 +19,34 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include <os.h>
 #include <os_io_seproxyhal.h>
-#include "ux.h"
 
 #include "returnValues.h"
 #include "config.h"
 #include "ardor.h"
+#include "ui/menu.h"
+#include "ui/display.h"
 
-
-//done button callback
-unsigned int doneButton(const bagl_element_t *e) {
-    
-    UNUSED(e);
-
+void showAddressConfirm(void) {
     G_io_apdu_buffer[0] = R_SUCCESS;
     G_io_apdu_buffer[1] = 0x90;
     G_io_apdu_buffer[2] = 0x00;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 3);
     
-    ui_idle();  // redraw ui
-    return 0; // DO NOT REDRAW THE BUTTON
+    ui_menu_main();
 }
 
-//Defenition of the UI for this handler
-char screenContent[27];
-UX_STEP_VALID(saFlowPage1, 
-    bnnn_paging,
-    doneButton(NULL),
-    {
-      .title = "Your Address",
-      .text = screenContent,
-    });
-UX_STEP_VALID(saFlowPage2, 
-    pb, 
-    doneButton(NULL),
-    {
-      &C_icon_validate_14,
-      "Done"
-    });
-UX_FLOW(saFlow,
-  &saFlowPage1,
-  &saFlowPage2
-);
-
-void showScreen() {
-    if(0 == G_ux.stack_count)
-        ux_stack_push();
-
-    ux_flow_init(0, saFlow, NULL);
+void showAddressCancel(void) {
+    G_io_apdu_buffer[0] = R_REJECT;
+    G_io_apdu_buffer[1] = 0x90;
+    G_io_apdu_buffer[2] = 0x00;
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 3);
+    
+    ui_menu_main();
 }
-
-//defined in reedSolomon.c
-void reedSolomonEncode(const uint64_t inp, char * const output);
 
 void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
         uint8_t * const flags, uint8_t * const tx) {
@@ -100,10 +74,7 @@ void showAddressHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t 
     uint8_t ret = ardorKeys(dataBuffer, derivationParamLengthInBytes / sizeof(uint32_t), 0, publicKey, 0, 0, &exception); //derivationParamLengthInBytes should devied by 4, it's checked above
 
     if (R_SUCCESS == ret) {
-        memset(screenContent, 0, sizeof(screenContent));
-        snprintf(screenContent, sizeof(screenContent), APP_PREFIX);
-        reedSolomonEncode(publicKeyToId(publicKey), screenContent + strlen(screenContent));
-        showScreen();
+        showAddressScreen(publicKeyToId(publicKey));
         *flags |= IO_ASYNCH_REPLY;
     } else if (R_KEY_DERIVATION_EX == ret) {
         G_io_apdu_buffer[0] = ret;

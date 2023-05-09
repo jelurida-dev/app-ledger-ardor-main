@@ -20,55 +20,11 @@
 ********************************************************************************/
 
 #include <stdint.h>
-#include <stdbool.h>
-#include <os_io_seproxyhal.h>
-#include "glyphs.h"
-#include "ux.h"
 
 #include "config.h"
 #include "ardor.h"
 #include "returnValues.h"
-
-UX_STEP_NOCB(
-    ux_idle_flow_1_step, 
-    bn, 
-    {
-      "Application",
-      "is ready",
-    });
-UX_STEP_NOCB(
-    ux_idle_flow_2_step, 
-    bn, 
-    {
-      "Version",
-      APPVERSION,
-    });
-UX_STEP_VALID(
-    ux_idle_flow_3_step,
-    pb,
-    os_sched_exit(-1),
-    {
-      &C_icon_dashboard,
-      "Quit",
-    });
-const ux_flow_step_t * const ux_idle_flow [] = {
-  &ux_idle_flow_1_step,
-  &ux_idle_flow_2_step,
-  &ux_idle_flow_3_step,
-  FLOW_END_STEP,
-};
-
-
-// ui_idle displays the main menu. Note that your app isn't required to use a
-// menu as its idle screen; you can define your own completely custom screen.
-void ui_idle() {
-    // reserve a display stack slot if none yet
-    if(G_ux.stack_count == 0) {
-        ux_stack_push();
-    }
-    ux_flow_init(0, ux_idle_flow, NULL);
-}
-
+#include "ui/menu.h"
 
 // The APDU protocol uses a single-byte instruction code (INS) to specify
 // which command should be executed. We'll use this code to dispatch on a
@@ -135,7 +91,7 @@ void fillBufferWithAnswerAndEnding(const uint8_t answer, uint8_t * const tx) {
 // and sent in the next io_exchange call.
 void app_main(void) {
 
-	ui_idle();
+	ui_menu_main();
 
 	lastCmdNumber = 0;
 
@@ -152,7 +108,7 @@ void app_main(void) {
 		// This TRY block serves to catch any thrown exceptions
 		// and convert them to response codes, which are then sent in APDUs.
 		// However, EXCEPTION_IO_RESET will be re-thrown and caught by the
-		// "true" main function defined at the bottom of this file.
+		// "true" main function defined in the SDK.
 		
 
 		BEGIN_TRY {

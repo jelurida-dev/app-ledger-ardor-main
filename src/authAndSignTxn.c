@@ -24,7 +24,6 @@
 
 #include <cx.h>
 #include <os.h>
-#include "ux.h"
 
 #include "glyphs.h"
 #include "returnValues.h"
@@ -32,6 +31,8 @@
 #include "ardor.h"
 #include "reedSolomon.h"
 #include "transactionParser.h"
+#include "ui/menu.h"
+#include "ui/display.h"
 
 #define P1_INIT 1
 #define P1_CONTINUE 2
@@ -132,24 +133,17 @@ void initTxnAuthState() {
 }
 
 //Accept click callback
-unsigned int txn_autherized(const bagl_element_t *e) {
-    UNUSED(e);
-    
+void signTransactionConfirm() {
     state.txnAuth.txnPassedAutherization = true;
     G_io_apdu_buffer[0] = R_SUCCESS;
     G_io_apdu_buffer[1] = R_FINISHED;
     G_io_apdu_buffer[2] = 0x90;
     G_io_apdu_buffer[3] = 0x00;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 4);
-    
-    ui_idle();  // redraw ui
-    return 0; // DO NOT REDRAW THE BUTTON
 }
 
 //Canceled click callback
-unsigned int txn_canceled(const bagl_element_t *e) {  
-    UNUSED(e);
-
+void signTransactionCancel() {  
     initTxnAuthState();
 
     G_io_apdu_buffer[0] = R_SUCCESS;
@@ -157,160 +151,6 @@ unsigned int txn_canceled(const bagl_element_t *e) {
     G_io_apdu_buffer[2] = 0x90;
     G_io_apdu_buffer[3] = 0x00;
     io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 4);
-
-    ui_idle(); // redraw ui
-    return 0; // DO NOT REDRAW THE BUTTON
-}
-
-//Defenition of the UI for the handler
-UX_STEP_NOCB(aasFlowPage1, 
-    pnn, 
-    {
-      &C_icon_eye,
-      "Authorize",
-      "transaction",
-    });
-UX_STEP_NOCB(aasFlowPage2, 
-    bnnn_paging, 
-    {
-      .title = "Chain&TxnType",
-      .text = state.txnAuth.chainAndTxnTypeText,
-    });
-
-UX_STEP_NOCB(aasFlowOptional1,
-    bnnn_paging, 
-    {
-      .title = state.txnAuth.optionalWindow1Title,
-      .text = state.txnAuth.optionalWindow1Text,
-    });
-UX_STEP_NOCB(aasFlowOptional2, 
-    bnnn_paging, 
-    {
-      .title = state.txnAuth.optionalWindow2Title,
-      .text = state.txnAuth.optionalWindow2Text,
-    });
-UX_STEP_NOCB(aasFlowOptional3, 
-    bnnn_paging, 
-    {
-        .title = state.txnAuth.optionalWindow3Title,
-        .text = state.txnAuth.optionalWindow3Text,
-    });
-UX_STEP_NOCB(aasFlowAppendages, 
-    bnnn_paging, 
-    {
-      .title = "Appendages",
-      .text = state.txnAuth.appendagesText,
-    });
-UX_STEP_NOCB(aasFlowPage3, 
-    bnnn_paging, 
-    {
-      .title = "Fees",
-      .text = state.txnAuth.feeText,
-    });
-UX_STEP_VALID(aasFlowPage4, 
-    pbb, 
-    txn_autherized(NULL),
-    {
-      &C_icon_validate_14,
-      "Accept",
-      "and send",
-    });
-UX_STEP_VALID(aasFlowPage5, 
-    pb, 
-    txn_canceled(NULL),
-    {
-      &C_icon_crossmark,
-      "Reject",
-    });
-
-UX_FLOW(ux_flow_000,
-  &aasFlowPage1,
-  &aasFlowPage2,
-  &aasFlowPage3,
-  &aasFlowPage4,
-  &aasFlowPage5
-);
-
-UX_FLOW(ux_flow_001,
-  &aasFlowPage1,
-  &aasFlowPage2,
-  &aasFlowAppendages,
-  &aasFlowPage3,
-  &aasFlowPage4,
-  &aasFlowPage5
-);
-
-UX_FLOW(ux_flow_010,
-  &aasFlowPage1,
-  &aasFlowPage2,
-  &aasFlowOptional1,
-  &aasFlowOptional2,
-  &aasFlowPage3,
-  &aasFlowPage4,
-  &aasFlowPage5
-);
-
-UX_FLOW(ux_flow_011,
-  &aasFlowPage1,
-  &aasFlowPage2,
-  &aasFlowOptional1,
-  &aasFlowOptional2,
-  &aasFlowAppendages,
-  &aasFlowPage3,
-  &aasFlowPage4,
-  &aasFlowPage5
-);
-
-UX_FLOW(ux_flow_110,
-  &aasFlowPage1,
-  &aasFlowPage2,
-  &aasFlowOptional1,
-  &aasFlowOptional2,
-  &aasFlowOptional3,
-  &aasFlowPage3,
-  &aasFlowPage4,
-  &aasFlowPage5
-);
-
-UX_FLOW(ux_flow_111,
-  &aasFlowPage1,
-  &aasFlowPage2,
-  &aasFlowOptional1,
-  &aasFlowOptional2,
-  &aasFlowOptional3,
-  &aasFlowAppendages,
-  &aasFlowPage3,
-  &aasFlowPage4,
-  &aasFlowPage5
-);
-
-//Just switches between based of the uiFlowBitfeild
-static void showScreen() {
-    
-    if(0 == G_ux.stack_count)
-        ux_stack_push();
-
-    switch (state.txnAuth.uiFlowBitfeild) {
-
-        case 0x00:
-            ux_flow_init(0, ux_flow_000, NULL);
-            break;
-        case 0x01:
-            ux_flow_init(0, ux_flow_001, NULL);
-            break;
-        case 0x02:
-            ux_flow_init(0, ux_flow_010, NULL);
-            break;
-        case 0x03:
-            ux_flow_init(0, ux_flow_011, NULL);
-            break;
-        case 0x06:
-            ux_flow_init(0, ux_flow_110, NULL);
-            break;
-        case 0x07:
-            ux_flow_init(0, ux_flow_111, NULL);
-            break;
-    }
 }
 
 //This function formats trxn data into text memebers of the state which the UI flow will read from
@@ -430,7 +270,7 @@ void p1InitContinueCommon(const uint8_t * const dataBuffer, const uint8_t dataLe
         return;
     }
 
-    ret = parseTransaction(&setScreenTexts, &showScreen);
+    ret = parseTransaction(&setScreenTexts, &signTransactionScreen);
 
     if (!((R_SEND_MORE_BYTES == ret) || (R_FINISHED == ret) || (R_SHOW_DISPLAY == ret)))
         initTxnAuthState();
