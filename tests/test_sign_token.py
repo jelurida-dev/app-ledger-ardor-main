@@ -20,9 +20,14 @@ def test_sign_token(backend, navigator, firmware):
     assert rapdu.status == RESPONSE_SUFFIX
     assert len(rapdu.data) == 1
     assert rapdu.data[0] == R_SUCCESS
+
+    if firmware.device == 'stax':
+        instructions = [NavInsID.USE_CASE_REVIEW_CONFIRM]
+    else:
+        instructions = [NavInsID.BOTH_CLICK]
     
     with client.sign_token_sign(PATH_STR_0, timestamp):
-        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, "test_sign_token", instructions=[NavInsID.BOTH_CLICK])
+        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, "test_sign_token", instructions)
     
     rapdu = client.get_async_response()
     assert rapdu is not None

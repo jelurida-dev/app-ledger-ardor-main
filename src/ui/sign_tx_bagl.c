@@ -2,6 +2,7 @@
 
 #include "ux.h"
 #include "display.h"
+#include "menu.h"
 #include "ardor.h"
 
 static void signTxConfirmation() {

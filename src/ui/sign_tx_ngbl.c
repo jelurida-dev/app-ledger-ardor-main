@@ -8,12 +8,12 @@
 
 static void signTxConfirmation() {
     signTransactionConfirm();
-    nbgl_useCaseStatus("TRANSACTION SIGNATURE\nSUCCESSFUL", true, ui_menu_main);
+    nbgl_useCaseStatus("SIGNATURE\nSUCCESSFUL", true, ui_menu_main);
 }
 
 static void signTxCancellation() {
     signTransactionCancel();
-    nbgl_useCaseStatus("Transaction signature\ncancelled", false, ui_menu_main);
+    nbgl_useCaseStatus("Signature\ncancelled", false, ui_menu_main);
 }
 
 static void askTransactionRejectionConfirmation(void) {
@@ -67,7 +67,7 @@ static void reviewContinue() {
 
     nbgl_pageInfoLongPress_t infoLongPress = {
         .icon = &C_ArdorIcon64px,
-        .text = "Confirm\nSign token",
+        .text = "Confirm\nSign transaction",
         .longPressText = "Hold to sign"
     };
     PRINTF("nbgl_useCaseStaticReview\n");

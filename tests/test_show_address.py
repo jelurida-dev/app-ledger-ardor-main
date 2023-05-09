@@ -4,17 +4,17 @@ from ragger.navigator import NavInsID
 
 def show_address_test(backend, navigator, firmware, path, test_name):
     if firmware.device == 'nanos':
-        num_screens = 2
-    elif firmware.device == 'nanox':
-        num_screens = 1
-    elif firmware.device == 'nanosp':
-        num_screens = 1
+        instructions=[NavInsID.RIGHT_CLICK] * 2 + [NavInsID.BOTH_CLICK]
+    elif firmware.device == 'nanox' or firmware.device == 'nanosp':
+        instructions=[NavInsID.RIGHT_CLICK] * 1 + [NavInsID.BOTH_CLICK]
+    elif firmware.device == 'stax':
+        instructions=[NavInsID.USE_CASE_REVIEW_TAP, NavInsID.USE_CASE_CHOICE_CONFIRM]
     else:
         assert False
 
     client = ArdorCommandSender(backend)
     with client.show_address(path):
-        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, instructions=[NavInsID.RIGHT_CLICK] * num_screens + [NavInsID.BOTH_CLICK])
+        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, instructions)
 
 def test_show_address0(backend, navigator, firmware):
     show_address_test(backend, navigator, firmware, PATH_STR_0, "test_show_address0")
