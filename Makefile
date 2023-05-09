@@ -45,7 +45,7 @@ DEFINES += APP_PREFIX=\"ARDOR-\"
 ifeq ($(TARGET_NAME),TARGET_NANOS)
     ICONNAME = icons/ArdorIconNanoS.gif
 else ifeq ($(TARGET_NAME),TARGET_STAX)
-    ICONNAME = icons/ArdorIcon32px.png
+    ICONNAME = icons/ArdorIcon32px.gif
 else
     ICONNAME = icons/ArdorIconNanoX.gif
 endif
