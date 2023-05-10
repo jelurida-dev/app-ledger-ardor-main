@@ -22,7 +22,7 @@ def test_sign_token(backend, navigator, firmware):
     assert rapdu.data[0] == R_SUCCESS
 
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_REVIEW_CONFIRM]
+        instructions = [NavInsID.USE_CASE_REVIEW_CONFIRM, NavInsID.USE_CASE_STATUS_DISMISS]
     else:
         instructions = [NavInsID.BOTH_CLICK]
     
