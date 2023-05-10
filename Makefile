@@ -61,19 +61,15 @@ ENABLE_BLUETOOTH = 1
 
 APP_SOURCE_PATH += src
 
-AUTOGEN_SRC := src/txnTypeLists.c
-AUTOGEN_OBJ := $(AUTOGEN_SRC:src/%.c=obj/%.o)
+GEN_TX_TYPE_LIST_SRC := src/txnTypeLists.c
 
-SOURCE_FILES += $(AUTOGEN_SRC)
+SOURCE_FILES += $(GEN_TX_TYPE_LIST_SRC)
 
-.PHONY: realclean
-
-$(AUTOGEN_OBJ): $(AUTOGEN_SRC)
-
-$(AUTOGEN_SRC): createTxnTypes.py txtypes.txt
+$(GEN_TX_TYPE_LIST_SRC): createTxnTypes.py txtypes.txt
 	python ./createTxnTypes.py > $@
 
+.PHONY: realclean
 realclean: clean
-	rm -f $(AUTOGEN_SRC)
+	rm -f $(GEN_TX_TYPE_LIST_SRC)
 
 include $(BOLOS_SDK)/Makefile.standard_app
