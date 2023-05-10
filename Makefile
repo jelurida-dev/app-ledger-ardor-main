@@ -42,16 +42,13 @@ DEFINES += "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
 PATH_PREFIX = "44'/16754'"
 DEFINES += APP_PREFIX=\"ARDOR-\"
 
-ifeq ($(TARGET_NAME),TARGET_NANOS)
-    ICONNAME = icons/ArdorIconNanoS.gif
-else ifeq ($(TARGET_NAME),TARGET_STAX)
-    ICONNAME = icons/ArdorIcon32px.gif
-else
-    ICONNAME = icons/ArdorIconNanoX.gif
-endif
+ICON_NANOS = icons/ArdorIconNanoS.gif
+ICON_NANOX = icons/ArdorIconNanoX.gif
+ICON_NANOSP = icons/ArdorIconNanoX.gif
+ICON_STAX = icons/ArdorIcon32px.gif
 
-APP_LOAD_PARAMS += --curve ed25519
-APP_LOAD_PARAMS += --path $(PATH_PREFIX)
+CURVE_APP_LOAD_PARAMS = ed25519
+PATH_APP_LOAD_PARAMS = $(PATH_PREFIX)
 
 # Ledger: add the "Pending security review" disclaimer
 APP_LOAD_PARAMS += --tlvraw 9F:01
