@@ -85,51 +85,19 @@
 //      returns:    1 bytes status | 64 byte signiture
 
 
-//This function cleans the txnAuth part of the state, its important to call it before starting to load a txn
-//also whenever there is an error you should call it so that no one can exploit an error state for some sort of attack,
-//the cleaner the state is, the better, allways clean when you can
+//This function cleans the state, its important to call it before starting to load a txn
+//also whenever there is an error you should call it so that no one can exploit an error state for 
+//some sort of attack, the cleaner the state is, the better, always clean when you can
 void initTxnAuthState() {
+    memset(&state, 0, sizeof(state));
 
-    state.txnAuth.txnSizeBytes = 0;
-    state.txnAuth.numBytesRead = 0;
-
-    memset(state.txnAuth.functionStack, 0, sizeof(state.txnAuth.functionStack));
     state.txnAuth.functionStack[0] = PARSE_FN_MAIN; //Add the first parse function on the stack
     state.txnAuth.functionStack[1] = PARSE_FN_APPENDAGES_FLAGS; //The appendages parse function
     state.txnAuth.numFunctionsOnStack = 2;
 
-    state.txnAuth.txnPassedAutherization = false;
     state.txnAuth.isClean = true;
     
     cx_sha256_init(&state.txnAuth.hashstate);
-
-    memset(state.txnAuth.readBuffer, 0, sizeof(state.txnAuth.readBuffer));
-    state.txnAuth.readBufferReadOffset = 0;
-    state.txnAuth.readBufferEndPos = 0;
-
-    state.txnAuth.chainId = 0;
-    state.txnAuth.txnTypeAndSubType = 0;
-    state.txnAuth.txnTypeIndex = 0;
-    state.txnAuth.recipientId = 0;
-    state.txnAuth.amount = 0;
-
-    state.txnAuth.attachmentTempInt32Num1 = 0;
-    state.txnAuth.attachmentTempInt32Num2 = 0;
-    state.txnAuth.attachmentTempInt64Num1 = 0;
-    state.txnAuth.attachmentTempInt64Num2 = 0;
-    state.txnAuth.attachmentTempInt64Num3 = 0;
-
-    memset(state.txnAuth.feeText, 0, sizeof(state.txnAuth.feeText));    
-    memset(state.txnAuth.chainAndTxnTypeText, 0, sizeof(state.txnAuth.chainAndTxnTypeText));    
-    memset(state.txnAuth.optionalWindow1Title, 0, sizeof(state.txnAuth.optionalWindow1Title));
-    memset(state.txnAuth.optionalWindow1Text, 0, sizeof(state.txnAuth.optionalWindow1Text));    
-    memset(state.txnAuth.optionalWindow2Title, 0, sizeof(state.txnAuth.optionalWindow2Title));    
-    memset(state.txnAuth.optionalWindow2Text, 0, sizeof(state.txnAuth.optionalWindow2Text));
-    memset(state.txnAuth.optionalWindow3Title, 0, sizeof(state.txnAuth.optionalWindow3Title));
-    memset(state.txnAuth.optionalWindow3Text, 0, sizeof(state.txnAuth.optionalWindow3Text));
-    memset(state.txnAuth.appendagesText, 0, sizeof(state.txnAuth.appendagesText));
-
-    state.txnAuth.uiFlowBitfeild = 0;
 }
 
 //Accept click callback
