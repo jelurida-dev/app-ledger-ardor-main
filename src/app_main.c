@@ -127,6 +127,7 @@ void app_main(void) {
 				if (CLA != G_io_apdu_buffer[OFFSET_CLA]) {
 					lastCmdNumber = 0; //forces the next handler call to clean the state
 					fillBufferWithAnswerAndEnding(R_BAD_CLA, &tx);
+					CLOSE_TRY;
 					continue;
 				}
 
@@ -135,6 +136,7 @@ void app_main(void) {
 				if (!handlerFn) {
 					lastCmdNumber = 0; //force the next handler call to clean the state
 					fillBufferWithAnswerAndEnding(R_UNKOWN_CMD, &tx);
+					CLOSE_TRY;
 					continue;
 				}
 
@@ -164,8 +166,8 @@ void app_main(void) {
 				fillBufferWithAnswerAndEnding(e & 0xFF, &tx);
 			}
 			FINALLY {
+				// intentionally blank
 			}
-		}
-		END_TRY;
+		} END_TRY;
 	}
 }
