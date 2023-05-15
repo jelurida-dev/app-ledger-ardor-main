@@ -120,7 +120,7 @@ uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivation
     if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32))
         return R_WRONG_SIZE_ERR;
 
-    //os_perso_derive_node_bip32 doesn't accept derivation paths located on the input buffer, so we make a local stack copy
+    //os_derive_bip32_no_throw doesn't accept derivation paths located on the input buffer, so we make a local stack copy
     uint32_t copiedDerivationPath[MAX_DERIVATION_LENGTH]; memset(copiedDerivationPath, 0, sizeof(copiedDerivationPath));
     memmove(copiedDerivationPath, derivationPath, derivationPathLengthInUints32 * sizeof(uint32_t));
 
@@ -130,7 +130,12 @@ uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivation
     }
 
     uint8_t KLKR[64]; memset(KLKR, 0, sizeof(KLKR));
-    os_perso_derive_node_bip32(CX_CURVE_Ed25519, copiedDerivationPath, derivationPathLengthInUints32, KLKR, chainCodeOut);
+    cx_err_t ret = os_derive_bip32_no_throw(CX_CURVE_Ed25519, copiedDerivationPath, derivationPathLengthInUints32, KLKR, chainCodeOut);
+    if (CX_OK != ret) {
+        memset(KLKR, 0, sizeof(KLKR));
+        *exceptionOut = (uint16_t)ret;
+        return R_KEY_DERIVATION_EX;
+    }
 
     // weird custom initilization, code copied from Cardano's EdDSA implementaion
     struct cx_ecfp_256_extended_private_key_s privateKey;
@@ -147,7 +152,7 @@ uint8_t ardorKeys(const uint8_t * const derivationPath, const uint8_t derivation
     if ((0 != publicKeyCurveXout) || (0 != publicKeyEd25519YLEWithXParityOut)) {
 
         cx_ecfp_public_key_t publicKey; 
-        cx_err_t ret = cx_ecfp_init_public_key_no_throw(CX_CURVE_Ed25519, 0, 0, &publicKey);
+        ret = cx_ecfp_init_public_key_no_throw(CX_CURVE_Ed25519, 0, 0, &publicKey);
         if (CX_OK != ret) {
             memset(privateKey.d, 0, sizeof(privateKey.d));
             memset(KLKR, 0, sizeof(KLKR));

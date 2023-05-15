@@ -181,7 +181,7 @@ Let's refer to `CLAMP(SHA512(privateKey)[:32])` as KL
 
 The derivation composition flow for path P is:
 
-1. os_perso_derive_node_bip32 derives KLKR and chaincode for P using SLIP10 initialization on 512 bits master seed from bip39/bip32 24 words
+1. os_derive_bip32_no_throw derives KLKR and chaincode for P using SLIP10 initialization on 512 bits master seed from bip39/bip32 24 words
 2. Derive PublicKeyED25519 using cx_eddsa_get_public_key and KL, the point is encoded as 65 bytes 0x04 XBigEndian YBigEndian
 3. PubleyKeyED25519YLE = convert(YBigEndian) - just reverse the bytes
 4. PublicKeyCurve25519X = morph(PublicKeyEED25519YLE)
