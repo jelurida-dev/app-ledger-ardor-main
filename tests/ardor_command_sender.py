@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from typing import Generator, List, Optional
 from ragger.backend.interface import BackendInterface, RAPDU
-from constants import CLA, RESPONSE_SUFFIX, R_SUCCESS
+from constants import CLA, RESPONSE_SUFFIX, R_SUCCESS, R_TXN_UNAUTHORIZED
 from bip_utils import Bip32Utils
 
 INS_AUTH_SIGN_TXN = 0x03
@@ -68,6 +68,13 @@ class ArdorCommandSender:
         assert len(rapdu.data) == 1 + SIGNATURE_LENGTH
         assert rapdu.data[0] == R_SUCCESS
         return rapdu.data[1:]
+    
+    def sign_tx_reject(self, path: str):
+        rapdu = self.backend.exchange(cla=CLA, ins=INS_AUTH_SIGN_TXN, p1=TX_P1_SIGN, data=pack_derivation_path(path))
+        assert rapdu is not None
+        assert rapdu.status == RESPONSE_SUFFIX
+        assert len(rapdu.data) == 1
+        assert rapdu.data[0] == R_TXN_UNAUTHORIZED
 
     @contextmanager
     def show_address(self, path: str) -> Generator[None, None, None]:

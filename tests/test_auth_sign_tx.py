@@ -2,7 +2,8 @@ from constants import RESPONSE_SUFFIX, R_SUCCESS, ROOT_SCREENSHOT_PATH, PATH_STR
 from ragger.navigator import NavInsID
 from ardor_command_sender import ArdorCommandSender
 
-RET_VAL_TRANSACTION_ACCEPTED = 8
+RET_VAL_TRANSACTION_ACCEPTED = 8 # R_FINISHED
+RET_VAL_TRANSACTION_REJECTED = 1 # R_REJECT
 
 def _sign_tx_test(backend, navigator, unsigned_bytes_hex: str, expected_signature: str, test_name: str, instructions):
     tx_bytes = bytes.fromhex(unsigned_bytes_hex)
@@ -19,6 +20,21 @@ def _sign_tx_test(backend, navigator, unsigned_bytes_hex: str, expected_signatur
 
     signature = client.sign_tx(PATH_STR_0)
     assert signature.hex() == expected_signature
+
+def _sign_tx_reject(backend, navigator, unsigned_bytes_hex: str, test_name: str, instructions):
+    tx_bytes = bytes.fromhex(unsigned_bytes_hex)
+    client = ArdorCommandSender(backend)
+    with client.load_tx(tx_bytes):
+        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, test_name, instructions)
+
+    rapdu = client.get_async_response()
+    assert rapdu is not None
+    assert rapdu.status == RESPONSE_SUFFIX
+    assert len(rapdu.data) == 2
+    assert rapdu.data[0] == R_SUCCESS
+    assert rapdu.data[1] == RET_VAL_TRANSACTION_REJECTED
+
+    client.sign_tx_reject(PATH_STR_0)
 
 def get_nano_instructions(firmware, nanos_screens: int, nanoxsp_screens: int):
     if firmware.device == 'nanos':
@@ -39,6 +55,14 @@ def test_send_money_tx(backend, navigator, firmware):
     else:
         instructions = get_nano_instructions(firmware, 7, 5)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_money_tx", instructions)
+
+def test_send_money_tx_reject(backend, navigator, firmware):
+    tx_bytes = "020000000000011d98fe090f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20eb6d36651b82d0eb00c2eb0b0000000000e1f505000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000191ee15a5fb74d1200000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    if firmware.device == 'stax':
+        instructions = [NavInsID.USE_CASE_REVIEW_TAP] * 3 + [NavInsID.USE_CASE_REVIEW_REJECT, NavInsID.USE_CASE_CHOICE_CONFIRM, NavInsID.USE_CASE_STATUS_DISMISS]
+    else:
+        instructions = get_nano_instructions(firmware, 8, 6)
+    _sign_tx_reject(backend, navigator, tx_bytes, "test_send_money_tx_reject", instructions)
 
 def test_send_ardr(backend, navigator, firmware):
     tx_bytes = "01000000fe0001ab77050a0f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20eb6d36651b82d0eb00c2eb0b0000000000e1f505000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000191ee15a5fb74d1200000000"
