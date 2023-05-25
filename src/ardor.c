@@ -22,7 +22,6 @@
 
 #include <os.h>
 #include <cx.h>
-#include <os_io_seproxyhal.h>
 
 #include "curve25519_i64.h"
 #include "returnValues.h"
@@ -60,9 +59,9 @@ void sha256Buffer(const uint8_t * const bufferTohash, const uint16_t sizeOfBuffe
 }
 
 //This is the EC-KCDSA siging implementation
-//@param in: keySeedBfr should point to a 32 byte keyseed (privateKey ^ -1) - note this function can edit keySeedBfr in the process
-//@parma in: msgSha256 should point to a 32 byte sha256 of the message we are signing
-//@param out: sig should point to 64 bytes allocated to hold the signiture of the message
+//@param[in] keySeedBfr should point to a 32 byte keyseed (privateKey ^ -1) - note this function can edit keySeedBfr in the process
+//@param[in] msgSha256 should point to a 32 byte sha256 of the message we are signing
+//@param[out] sig should point to 64 bytes allocated to hold the signiture of the message
 void signMsg(uint8_t * const keySeedBfr, const uint8_t * const msgSha256, uint8_t * const sig) {
 
     uint8_t publicKeyX[32], privateKey[32]; memset(publicKeyX, 0, sizeof(publicKeyX)); memset(privateKey, 0, sizeof(privateKey));

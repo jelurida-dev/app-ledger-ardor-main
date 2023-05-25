@@ -21,22 +21,23 @@
 #include <stdbool.h>
 #include <string.h>
 
-#include <os.h>
-#include <os_io_seproxyhal.h>
+#include "io.h" // io_send*
+#include "parser.h" // command_t
 
 #include "returnValues.h"
 #include "config.h"
 #include "ardor.h"
 #include "ui/menu.h"
 #include "ui/display.h"
+#include "io_helper.h"
 
 #define P1_INIT         0
 #define P1_MSG_BYTES    1
 #define P1_SIGN         2
 
-#define STATE_INVAILD           0
+#define STATE_INVALID           0
 #define STATE_MODE_INITED       1
-#define STATE_BYTES_RECIEVED    2
+#define STATE_BYTES_RECEIVED    2
 
 /*
     modes:
@@ -56,159 +57,123 @@
 */
 
 //does what it says :)
-void cleanTokenCreationState() {
-    state.tokenCreation.mode = STATE_INVAILD;
+static void cleanTokenSignState() {
+    memset(&state, 0, sizeof(state));
 }
 
 // UI callbacks
 void signTokenConfirm() {
-    uint8_t *dataBuffer = G_io_apdu_buffer + OFFSET_CDATA;
-    uint8_t dataLength = G_io_apdu_buffer[OFFSET_LC];
-    uint8_t derivationPathLengthInUints32 = (dataLength - 4) / sizeof(uint32_t);
-    uint8_t tx = 0;
     uint16_t exception = 0;
-    uint32_t timestamp = 0;
     uint8_t keySeed[32]; memset(keySeed, 0, sizeof(keySeed));
 
     //gotta do some space reuse
     uint8_t publicKeyAndFinalHash[32]; memset(publicKeyAndFinalHash, 0, sizeof(publicKeyAndFinalHash));
-    uint8_t ret = ardorKeys(dataBuffer + sizeof(timestamp), derivationPathLengthInUints32, keySeed, publicKeyAndFinalHash, 0, 0, &exception);
+    uint8_t ret = ardorKeys(state.tokenSign.ptrDerivationPath, 
+                            state.tokenSign.derivationPathLengthInUints32, keySeed, 
+                            publicKeyAndFinalHash, 0, 0, &exception);
 
     if (R_SUCCESS != ret) {
-        cleanTokenCreationState();
-
-        G_io_apdu_buffer[tx++] = ret;
-
-        if (R_KEY_DERIVATION_EX == ret) {
-            G_io_apdu_buffer[tx++] = exception >> 8;
-            G_io_apdu_buffer[tx++] = exception & 0xFF;
-        }
-    } else {
-        memcpy(&timestamp, dataBuffer, sizeof(timestamp));
-
-        G_io_apdu_buffer[tx++] = R_SUCCESS;
-
-        cx_hash(&state.tokenCreation.sha256.header, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash), 0, 0); //adding the public key to the hash
-        
-        //also make a copy to the output buffer, because of how a token is constructed
-        memcpy(G_io_apdu_buffer + tx, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
-        tx += sizeof(publicKeyAndFinalHash);
-
-        cx_hash(&state.tokenCreation.sha256.header, 0, (uint8_t*)&timestamp, sizeof(timestamp), 0, 0); //adding the timestamp to the hash
-
-        memcpy(G_io_apdu_buffer + tx, &timestamp, sizeof(timestamp));
-        tx += sizeof(timestamp);
-
-        cx_hash(&state.tokenCreation.sha256.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
-
-        signMsg(keySeed, publicKeyAndFinalHash, G_io_apdu_buffer + tx); //is a void function, no ret value to check against
-        memset(keySeed, 0, sizeof(keySeed));
-
-        tx += 64;
-
-        G_io_apdu_buffer[tx++] = 0x90;
-        G_io_apdu_buffer[tx++] = 0x00;
+        cleanTokenSignState();
+        io_send_return3(ret, exception >> 8, exception & 0xFF);
+        return;
     }
 
-    cleanTokenCreationState();
+    state.tokenSign.token[0] = R_SUCCESS;
+    size_t offset = 1;
 
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);    
+    cx_hash(&state.tokenSign.sha256.header, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash), 0, 0); //adding the public key to the hash
+    
+    //also make a copy to the output buffer, because of how a token is constructed
+    memcpy(state.tokenSign.token + offset, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
+    offset += sizeof(publicKeyAndFinalHash);
+
+    cx_hash(&state.tokenSign.sha256.header, 0, (uint8_t*)&state.tokenSign.timestamp, 
+            sizeof(state.tokenSign.timestamp), 0, 0); //adding the timestamp to the hash
+
+    memcpy(state.tokenSign.token + offset, &state.tokenSign.timestamp, sizeof(state.tokenSign.timestamp));
+    offset += sizeof(state.tokenSign.timestamp);
+
+    cx_hash(&state.tokenSign.sha256.header, CX_LAST, 0, 0, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
+
+    signMsg(keySeed, publicKeyAndFinalHash, state.tokenSign.token + offset);
+    memset(keySeed, 0, sizeof(keySeed));
+
+    io_send_response_pointer(state.tokenSign.token, sizeof(state.tokenSign.token), SW_OK);
+    cleanTokenSignState();
 }
 
 void signTokenCancel() {
-    cleanTokenCreationState();
-
-    G_io_apdu_buffer[0] = R_SUCCESS;
-    G_io_apdu_buffer[1] = R_REJECT;
-    G_io_apdu_buffer[2] = 0x90;
-    G_io_apdu_buffer[3] = 0x00;
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 4);
+    cleanTokenSignState();
+    io_send_return2(R_SUCCESS, R_REJECT);
 }
 
-void p1TokenInitHandler(uint8_t * const tx) {
-    cleanTokenCreationState();
-    state.tokenCreation.mode = STATE_MODE_INITED;
-    cx_sha256_init(&state.tokenCreation.sha256);
-    G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+static int p1TokenInitHandler() {
+    cleanTokenSignState();
+    state.tokenSign.mode = STATE_MODE_INITED;
+    cx_sha256_init(&state.tokenSign.sha256);
+    return io_send_return1(R_SUCCESS);
 }
 
-void p1TokenMsgBytesHandler(const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const tx, const bool isLastCommandDifferent) {
-    if (isLastCommandDifferent || (STATE_INVAILD == state.tokenCreation.mode)) {
-        cleanTokenCreationState();
-        G_io_apdu_buffer[(*tx)++] = R_WRONG_STATE;
-        return;
+static int p1TokenMsgBytesHandler(const command_t * const cmd, const bool isLastCommandDifferent) {
+    if (isLastCommandDifferent || (STATE_INVALID == state.tokenSign.mode)) {
+        cleanTokenSignState();
+        return io_send_return1(R_WRONG_STATE);
     }
 
-    state.tokenCreation.mode = STATE_BYTES_RECIEVED;
+    state.tokenSign.mode = STATE_BYTES_RECEIVED;
 
-    cx_hash(&state.tokenCreation.sha256.header, 0, dataBuffer, dataLength, 0, 0);
+    cx_hash(&state.tokenSign.sha256.header, 0, cmd->data, cmd->lc, 0, 0);
 
-    G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
+    return io_send_return1(R_SUCCESS);
 }
 
-void p1TokenSignHandler(const uint8_t dataLength, uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
-    if (isLastCommandDifferent || (STATE_BYTES_RECIEVED != state.tokenCreation.mode)) {
-        cleanTokenCreationState();
-        G_io_apdu_buffer[(*tx)++] = R_WRONG_STATE;
-        return;
+static int p1TokenSignHandler(const command_t * const cmd, const bool isLastCommandDifferent) {
+    if (isLastCommandDifferent || (STATE_BYTES_RECEIVED != state.tokenSign.mode)) {
+        cleanTokenSignState();
+        return io_send_return1(R_WRONG_STATE);
     }
 
-    if (dataLength < 4) {
-        cleanTokenCreationState();
-        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
-        return;
+    if (cmd->lc < 4) {
+        cleanTokenSignState();
+        return io_send_return1(R_WRONG_SIZE_ERR);
     }
 
-    if (0 != (dataLength - 4) % sizeof(uint32_t)) {
-        cleanTokenCreationState();
-        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_MODULO_ERR;
-        return;
+    if (0 != (cmd->lc - 4) % sizeof(uint32_t)) {
+        cleanTokenSignState();
+        return io_send_return1(R_WRONG_SIZE_MODULO_ERR);
     }
 
     //underflow was checked against above above
-    uint8_t derivationPathLengthInUints32 = (dataLength - 4) / sizeof(uint32_t);
+    state.tokenSign.derivationPathLengthInUints32 = (cmd->lc - 4) / sizeof(uint32_t);
 
-    if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) || (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32)) {
-        cleanTokenCreationState();
-        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
-        return;
+    if ((MIN_DERIVATION_LENGTH > state.tokenSign.derivationPathLengthInUints32) || 
+        (MAX_DERIVATION_LENGTH < state.tokenSign.derivationPathLengthInUints32)) 
+    {
+        cleanTokenSignState();
+        return io_send_return1(R_WRONG_SIZE_ERR);
     }
 
+    memcpy(&state.tokenSign.timestamp, cmd->data, sizeof(state.tokenSign.timestamp));
+    state.tokenSign.ptrDerivationPath = cmd->data + sizeof(state.tokenSign.timestamp);
+
     signTokenScreen();
-    *flags |= IO_ASYNCH_REPLY;
+    return 0;
 }
 
 //Since this is a callback function, and this handler manages state, it's this function's reposibility to clear the state
 //Every time we get some sort of an error
-void signTokenMessageHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
-
-    UNUSED(p2);
-    UNUSED(flags);
-
+int signTokenMessageHandler(const command_t * const cmd, const bool isLastCommandDifferent) {
     if (isLastCommandDifferent)
-        cleanTokenCreationState(); 
+        cleanTokenSignState(); 
 
-    if (P1_INIT == p1) {
-        p1TokenInitHandler(tx);
-    } else if (P1_MSG_BYTES == p1) {
-        p1TokenMsgBytesHandler(dataBuffer, dataLength, tx, isLastCommandDifferent);
-    } else if (P1_SIGN == p1) {
-        p1TokenSignHandler(dataLength, flags, tx, isLastCommandDifferent);
+    if (P1_INIT == cmd->p1) {
+        return p1TokenInitHandler();
+    } else if (P1_MSG_BYTES == cmd->p1) {
+        return p1TokenMsgBytesHandler(cmd, isLastCommandDifferent);
+    } else if (P1_SIGN == cmd->p1) {
+        return p1TokenSignHandler(cmd, isLastCommandDifferent);
     } else {
-        cleanTokenCreationState();
-        G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
-    }
-}
-
-
-void signTokenMessageHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-               uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
-
-    signTokenMessageHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
-    
-    if (0 == ((*flags) & IO_ASYNCH_REPLY)) {
-        G_io_apdu_buffer[(*tx)++] = 0x90;
-        G_io_apdu_buffer[(*tx)++] = 0x00;
+        cleanTokenSignState();
+        return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);
     }
 }

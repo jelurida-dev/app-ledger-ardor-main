@@ -17,28 +17,30 @@
 ********************************************************************************/
 
 #include <stdint.h>
-#include <os.h>
-#include <os_io_seproxyhal.h>
 #include <stdbool.h>
 #include <string.h>
 
+#include "io.h" // io_send*
+#include "parser.h" // command_t
+#include "os_helpers.h" // UNUSED
+
 #include "config.h"
+#include "returnValues.h"
 
 //function that returns the version, in order to see if this is actually the ardor app
-//returns VERSION 2 bytes | FLAGS 1 byte | ARDOR_SPECIAL_IDENTIFIER 3 bytes
-void getVersionHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
+//returns VERSION 3 bytes | FLAGS 1 byte | ARDOR_SPECIAL_IDENTIFIER 3 bytes
+int getVersionHandler(const command_t * const cmd, const bool isLastCommandDifferent) {
 
-	UNUSED(p1); UNUSED(p2); UNUSED(dataBuffer); UNUSED(dataLength); UNUSED(flags); UNUSED(isLastCommandDifferent);
+	UNUSED(cmd); UNUSED(isLastCommandDifferent);
 
-	G_io_apdu_buffer[(*tx)++] = APPVERSION_M;
-	G_io_apdu_buffer[(*tx)++] = APPVERSION_N;
-	G_io_apdu_buffer[(*tx)++] = APPVERSION_P;
-	G_io_apdu_buffer[(*tx)++] = VERSION_FLAGS;
-
-	memmove(G_io_apdu_buffer + (*tx), ARDOR_SPECIAL_IDENTIFIER, ARDOR_SPECIAL_IDENTIFIER_LEN);
-	*tx += ARDOR_SPECIAL_IDENTIFIER_LEN;
-
-	G_io_apdu_buffer[(*tx)++] = 0x90;
-	G_io_apdu_buffer[(*tx)++] = 0x00;
+	if (3 < ARDOR_SPECIAL_IDENTIFIER_LEN) {
+		return -1;
+	}
+	uint8_t data[7];
+	data[0] = APPVERSION_M;
+	data[1] = APPVERSION_N;
+	data[2] = APPVERSION_P;
+	data[3] = VERSION_FLAGS;
+	memmove(data + 4, ARDOR_SPECIAL_IDENTIFIER, ARDOR_SPECIAL_IDENTIFIER_LEN);
+	return io_send_response_pointer((const uint8_t *) data, 4 + ARDOR_SPECIAL_IDENTIFIER_LEN, SW_OK);
 }

@@ -98,24 +98,32 @@ typedef struct {
 
 } authTxn_t;
 
+#define MAX_CHUNK_SIZE_ENCRYPT 224
+
 //State for the encryptDecrypt handler
 typedef struct {
     uint8_t mode;                           //Modes are described in the .C file
     uint8_t cbc[CX_AES_BLOCK_SIZE];         //Something to do with AES state
     cx_aes_key_t aesKey;                    //This is the encryption key
+    uint8_t buffer[MAX_CHUNK_SIZE_ENCRYPT + 1]; // +1 for R_SUCCESS at position 0
 } encyptionState_t;
 
 //State of the sign token handler
 typedef struct {
-    uint8_t mode;                           //Modes descrived in the .C file
+    uint8_t mode;                           //Modes described in the .C file
     cx_sha256_t sha256;                     //The state of the token hash
+    uint32_t timestamp;                     //The timestamp of the token
+    uint8_t derivationPathLengthInUints32;  //The length of the derivation path
+    uint8_t *ptrDerivationPath;             //The derivation path
+    uint8_t token[101];                     //The 1 byte response code + token
+    //100-byte token consists of a 32-byte public key, a 4-byte timestamp, and a 64-byte signature
 } signTokenState_t;
 
 //This is the union states type, the actual object is defined in ardor.c
 typedef union {
     encyptionState_t encryption;
     authTxn_t txnAuth;
-    signTokenState_t tokenCreation;
+    signTokenState_t tokenSign;
 } states_t;
 
 //declared in ardor.c

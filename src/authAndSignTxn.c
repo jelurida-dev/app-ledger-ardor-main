@@ -20,10 +20,8 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include <os_io_seproxyhal.h>
-
-#include <cx.h>
-#include <os.h>
+#include "io.h" // io_send*
+#include "parser.h" // command_t
 
 #include "glyphs.h"
 #include "returnValues.h"
@@ -33,6 +31,7 @@
 #include "transactionParser.h"
 #include "ui/menu.h"
 #include "ui/display.h"
+#include "io_helper.h" // io_send_return*
 
 #define P1_INIT 1
 #define P1_CONTINUE 2
@@ -88,7 +87,7 @@
 //This function cleans the state, its important to call it before starting to load a txn
 //also whenever there is an error you should call it so that no one can exploit an error state for 
 //some sort of attack, the cleaner the state is, the better, always clean when you can
-void initTxnAuthState() {
+static void initTxnAuthState() {
     memset(&state, 0, sizeof(state));
 
     state.txnAuth.functionStack[0] = PARSE_FN_MAIN; //Add the first parse function on the stack
@@ -103,22 +102,13 @@ void initTxnAuthState() {
 //Accept click callback
 void signTransactionConfirm() {
     state.txnAuth.txnPassedAutherization = true;
-    G_io_apdu_buffer[0] = R_SUCCESS;
-    G_io_apdu_buffer[1] = R_FINISHED;
-    G_io_apdu_buffer[2] = 0x90;
-    G_io_apdu_buffer[3] = 0x00;
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 4);
+    io_send_return2(R_SUCCESS, R_FINISHED);
 }
 
 //Canceled click callback
 void signTransactionCancel() {  
     initTxnAuthState();
-
-    G_io_apdu_buffer[0] = R_SUCCESS;
-    G_io_apdu_buffer[1] = R_REJECT;
-    G_io_apdu_buffer[2] = 0x90;
-    G_io_apdu_buffer[3] = 0x00;
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 4);
+    io_send_return2(R_SUCCESS, R_REJECT);
 }
 
 //This function formats trxn data into text memebers of the state which the UI flow will read from
@@ -228,14 +218,13 @@ uint8_t signTxn(const uint8_t * const derivationPath, const uint8_t derivationPa
 
 //// HANDLER MAIN FUNCTIONS
 
-void p1InitContinueCommon(const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const flags, uint8_t * const tx) {
+static int p1InitContinueCommon(const command_t * const cmd) {
     state.txnAuth.isClean = false;
 
-    uint8_t ret = addToReadBuffer(dataBuffer, dataLength);
+    uint8_t ret = addToReadBuffer(cmd->data, cmd->lc);
 
     if (R_SUCCESS != ret) {
-        G_io_apdu_buffer[(*tx)++] = ret;
-        return;
+        return io_send_return1(ret);
     }
 
     ret = parseTransaction(&setScreenTexts, &signTransactionScreen);
@@ -243,86 +232,77 @@ void p1InitContinueCommon(const uint8_t * const dataBuffer, const uint8_t dataLe
     if (!((R_SEND_MORE_BYTES == ret) || (R_FINISHED == ret) || (R_SHOW_DISPLAY == ret)))
         initTxnAuthState();
 
-    if (R_SHOW_DISPLAY == ret) {
-        *flags |= IO_ASYNCH_REPLY;
-    } else {
-        G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
-        G_io_apdu_buffer[(*tx)++] = ret;
+    if (R_SHOW_DISPLAY != ret) {
+        return io_send_return2(R_SUCCESS, ret);
     }
+    return 0;
 }
 
-void p1InitHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const flags, uint8_t * const tx) {
+static int p1InitHandler(const command_t * const cmd) {
     initTxnAuthState();
 
-    state.txnAuth.txnSizeBytes = ((p1 & 0b11111100) << 6) + p2;
+    state.txnAuth.txnSizeBytes = ((cmd->p1 & 0b11111100) << 6) + cmd->p2;
 
     if (BASE_TRANSACTION_SIZE > state.txnAuth.txnSizeBytes) {
-        G_io_apdu_buffer[(*tx)++] = R_TXN_SIZE_TOO_SMALL;
-        return;
+        return io_send_response_pointer(&(const uint8_t){R_TXN_SIZE_TOO_SMALL}, 1, SW_OK);
     }
 
-    p1InitContinueCommon(dataBuffer, dataLength, flags, tx);
+    return p1InitContinueCommon(cmd);
 }
 
-void p1ContinueHandler(const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
+static int p1ContinueHandler(const command_t * const cmd, const bool isLastCommandDifferent) {
     if (isLastCommandDifferent) {
         initTxnAuthState();
-        G_io_apdu_buffer[(*tx)++] = R_ERR_NO_INIT_CANT_CONTINUE;
-        return;
+        return io_send_return1(R_ERR_NO_INIT_CANT_CONTINUE);
     }
 
     if (state.txnAuth.txnPassedAutherization) {
         initTxnAuthState();
-        G_io_apdu_buffer[(*tx)++] = R_NOT_ALL_BYTES_USED;
-        return;
+        return io_send_return1(R_NOT_ALL_BYTES_USED);
     }
 
     if (state.txnAuth.isClean) {
         initTxnAuthState();
-        G_io_apdu_buffer[(*tx)++] = R_ERR_NO_INIT_CANT_CONTINUE;
-        return;
+        return io_send_return1(R_ERR_NO_INIT_CANT_CONTINUE);
     }
 
-    p1InitContinueCommon(dataBuffer, dataLength, flags, tx);
+    return p1InitContinueCommon(cmd);
 }
 
-void p1SignHandler(const uint8_t * const dataBuffer, const uint8_t dataLength, uint8_t * const tx, const bool isLastCommandDifferent) {
+static int p1SignHandler(const command_t * const cmd, const bool isLastCommandDifferent) {
     if (isLastCommandDifferent) {
         initTxnAuthState();
-        G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
-        return;
+        return io_send_return1(R_TXN_UNAUTHORIZED);
     }
 
     // dataLength is the derivation path length in bytes
-    if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > dataLength) || (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < dataLength) || (0 != dataLength % sizeof(uint32_t))) {
+    if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > cmd->lc) || 
+        (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < cmd->lc) || 
+        (0 != cmd->lc % sizeof(uint32_t))) 
+    {
         initTxnAuthState();
-        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
-        return; 
+        return io_send_return1(R_WRONG_SIZE_ERR);
     }
 
     if (!state.txnAuth.txnPassedAutherization) {
         initTxnAuthState();
-        G_io_apdu_buffer[(*tx)++] = R_TXN_UNAUTHORIZED;
-        return;
+        return io_send_return1(R_TXN_UNAUTHORIZED);
     }
 
     uint16_t exception = 0;
-
-    G_io_apdu_buffer[(*tx)++] = R_SUCCESS;
-
-    uint8_t ret = signTxn(dataBuffer, dataLength / 4, G_io_apdu_buffer + 1, &exception);
+    uint8_t buffer[65];
+    buffer[0] = R_SUCCESS;
+    uint8_t ret = signTxn(cmd->data, cmd->lc / 4, buffer + 1, &exception);
 
     initTxnAuthState();
 
     if (R_SUCCESS == ret) {
-        *tx += 64;
+        return io_send_response_pointer(buffer, sizeof(buffer), SW_OK);
     } else {
-        *tx -= 1;
-        G_io_apdu_buffer[(*tx)++] = ret;
-
         if (R_KEY_DERIVATION_EX == ret) {
-            G_io_apdu_buffer[(*tx)++] = exception >> 8;
-            G_io_apdu_buffer[(*tx)++] = exception & 0xFF;   
+            return io_send_return3(ret, exception >> 8, exception & 0xFF);
+        } else {
+            return io_send_return1(ret);
         }
     }
 }
@@ -331,30 +311,17 @@ void p1SignHandler(const uint8_t * const dataBuffer, const uint8_t dataLength, u
 //and manages calls to initTxnAuthState(), signTxn(), addToReadBuffer(), parseTransaction()
 //Since this is a callback function, and this handler manages state, it's this function's reposibility to call initTxnAuthState
 //Every time we get some sort of an error
-void authAndSignTxnHandlerHelper(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
-
-    if (1 > dataLength) {
+int authAndSignTxnHandler(const command_t * const cmd, const bool isLastCommandDifferent) {
+    if (1 > cmd->lc) {
         initTxnAuthState();
-        G_io_apdu_buffer[(*tx)++] = R_WRONG_SIZE_ERR;
-    } else if (P1_INIT == (p1 & 0x03)) {
-        p1InitHandler(p1, p2, dataBuffer, dataLength, flags, tx);
-    } else if (P1_CONTINUE == (p1 & 0x03)) {
-        p1ContinueHandler(dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
-    } else if (P1_SIGN == (p1 & 0x03)) {
-        p1SignHandler(dataBuffer, dataLength, tx, isLastCommandDifferent);
+        return io_send_return1(R_WRONG_SIZE_ERR);
+    } else if (P1_INIT == (cmd->p1 & 0x03)) {
+        return p1InitHandler(cmd);
+    } else if (P1_CONTINUE == (cmd->p1 & 0x03)) {
+        return p1ContinueHandler(cmd, isLastCommandDifferent);
+    } else if (P1_SIGN == (cmd->p1 & 0x03)) {
+        return p1SignHandler(cmd, isLastCommandDifferent);
     } else {
-        G_io_apdu_buffer[(*tx)++] = R_UNKNOWN_CMD_PARAM_ERR;
-    }
-}
-
-void authAndSignTxnHandler(const uint8_t p1, const uint8_t p2, const uint8_t * const dataBuffer, const uint8_t dataLength,
-        uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent) {
-
-    authAndSignTxnHandlerHelper(p1, p2, dataBuffer, dataLength, flags, tx, isLastCommandDifferent);
-
-    if (0 == ((*flags) & IO_ASYNCH_REPLY)) {
-        G_io_apdu_buffer[(*tx)++] = 0x90;
-        G_io_apdu_buffer[(*tx)++] = 0x00;
+        return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);
     }
 }

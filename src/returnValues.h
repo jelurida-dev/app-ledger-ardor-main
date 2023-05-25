@@ -18,6 +18,8 @@
 
 #pragma once
 
+#define SW_OK 0x9000
+
 enum returnValues {
 	R_SUCCESS = 0,
 	R_REJECT = 1,
@@ -28,6 +30,7 @@ enum returnValues {
 	R_PARSE_FUNCTION_NOT_FOUND = 6,
 	R_NOT_ALL_BYTES_READ = 7,
 	R_FINISHED = 8,
+	R_WRONG_DATA_LENGTH = 9,
 	R_WRONG_DERIVATION_PATH_HEADER = 10,
 	R_KEY_DERIVATION_EX = 11,
 	R_FORMAT_AMOUNT_ERR = 12,

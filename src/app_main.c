@@ -20,11 +20,16 @@
 ********************************************************************************/
 
 #include <stdint.h>
+#include <string.h>
+
+#include "parser.h" // command_t, apdu_parser
+#include "io.h" // io_init, io_recv_command
 
 #include "config.h"
 #include "ardor.h"
 #include "returnValues.h"
 #include "ui/menu.h"
+#include "io_helper.h"
 
 // The APDU protocol uses a single-byte instruction code (INS) to specify
 // which command should be executed. We'll use this code to dispatch on a
@@ -38,7 +43,7 @@
 
 // This is the function signature for a command handler. 'flags' and 'tx' are
 // out-parameters that will control the behavior of the next io_exchange call
-typedef void handler_fn_t(const uint8_t p1, const uint8_t p2, const uint8_t *dataBuffer, const uint16_t dataLength, uint8_t * const flags, uint8_t * const tx, const bool isLastCommandDifferent);
+typedef int handler_fn_t(const command_t * const cmd, const bool isLastCommandDifferent);
 
 handler_fn_t getVersionHandler;
 handler_fn_t authAndSignTxnHandler;
@@ -60,110 +65,86 @@ static handler_fn_t* lookupHandler(uint8_t ins) {
 	}
 }
 
-
-//thit is used to clean state if we change command types
-uint8_t lastCmdNumber = 0;
-
-
-//Does what it says, in return buffers the first byte is the return code, 0 is sucess allways
-//and all the buffer have 0x90,0x00 at the end, even on errors
-void fillBufferWithAnswerAndEnding(const uint8_t answer, uint8_t * const tx) {
-    if (0 == tx) {
-        G_io_apdu_buffer[0] = answer;
-        G_io_apdu_buffer[1] = 0x90;
-        G_io_apdu_buffer[2] = 0x00;
-    } else {
-        G_io_apdu_buffer[(*tx)++] = answer;
-        G_io_apdu_buffer[(*tx)++] = 0x90;
-        G_io_apdu_buffer[(*tx)++] = 0x00;
-    }
-}
-
-
-
-
 // This is the main loop that reads and writes APDUs. It receives request
 // APDUs from the computer, looks up the corresponding command handler, and
-// calls it on the APDU payload. Then it loops around and calls io_exchange
-// again. The handler may set the 'flags' and 'tx' variables, which affect the
-// subsequent io_exchange call. The handler may also throw an exception, which
-// will be caught, converted to an error code, appended to the response APDU,
-// and sent in the next io_exchange call.
+// calls it on the APDU payload.
 void app_main(void) {
+	PRINTF("app_main, sizeof(state) = %d\n", sizeof(state));
+
+    // Length of APDU command received in G_io_apdu_buffer
+    int input_len = 0;
+
+	// Structured APDU command
+    command_t cmd;
+
+	io_init();
 
 	ui_menu_main();
 
-	lastCmdNumber = 0;
+	//this is used to clean state if we change command types
+	uint8_t lastCmdNumber = 0;
 
-	uint8_t rx = 0;
-	uint8_t tx = 0;
-	uint8_t flags = 0;
-
-	// Exchange APDUs until EXCEPTION_IO_RESET is thrown.
 	for (;;) {
-		// The Ledger SDK implements a form of exception handling. In addition
-		// to explicit THROWs in user code, syscalls (prefixed with os_ or
-		// cx_) may also throw exceptions.
-		//
-		// This TRY block serves to catch any thrown exceptions
-		// and convert them to response codes, which are then sent in APDUs.
-		// However, EXCEPTION_IO_RESET will be re-thrown and caught by the
-		// "true" main function defined in the SDK.
-		
-
 		BEGIN_TRY {
 			TRY {
-				rx = tx;
-				tx = 0; // ensure no race in CATCH_OTHER if io_exchange throws an error
-				
-				rx = io_exchange(CHANNEL_APDU | flags, rx);
-				flags = 0;
+				// Reset structured APDU command
+                memset(&cmd, 0, sizeof(cmd));
 
-				// No APDU received; trigger a reset.
-				if (rx == 0) {
-					THROW(EXCEPTION_IO_RESET); //lastCmdNumber will be zero'd when ardor_main will be called again
-				}
+                // Receive command bytes in G_io_apdu_buffer
+                if ((input_len = io_recv_command()) < 0) {
+                    CLOSE_TRY;
+                    return;
+                }
+
+                // Parse APDU command from G_io_apdu_buffer
+                if (!apdu_parser(&cmd, G_io_apdu_buffer, input_len)) {
+                    PRINTF("=> /!\\ BAD LENGTH: %.*H\n", input_len, G_io_apdu_buffer);
+					io_send_return1(R_WRONG_DATA_LENGTH);
+                    CLOSE_TRY;
+                    continue;
+                }
+
+                PRINTF("=> CLA=%02X | INS=%02X | P1=%02X | P2=%02X | Lc=%02X | CData=%.*H\n",
+                       cmd.cla,
+                       cmd.ins,
+                       cmd.p1,
+                       cmd.p2,
+                       cmd.lc,
+                       cmd.lc,
+                       cmd.data);
+
 				// Malformed APDU.
-				if (CLA != G_io_apdu_buffer[OFFSET_CLA]) {
+				if (CLA != cmd.cla) {
 					lastCmdNumber = 0; //forces the next handler call to clean the state
-					fillBufferWithAnswerAndEnding(R_BAD_CLA, &tx);
+					io_send_return1(R_BAD_CLA);
 					CLOSE_TRY;
 					continue;
 				}
 
 				// Lookup and call the requested command handler.
-				handler_fn_t *handlerFn = lookupHandler(G_io_apdu_buffer[OFFSET_INS]);
+				handler_fn_t *handlerFn = lookupHandler(cmd.ins);
 				if (!handlerFn) {
 					lastCmdNumber = 0; //force the next handler call to clean the state
-					fillBufferWithAnswerAndEnding(R_UNKOWN_CMD, &tx);
+					io_send_return1(R_UNKOWN_CMD);
 					CLOSE_TRY;
 					continue;
 				}
 
 				PRINTF("canary check %d last command number %d\n", check_canary(), lastCmdNumber);
 
-				uint8_t lastCommandSaver = G_io_apdu_buffer[OFFSET_INS]; //the handler is going to write over the buffer, so the command needs to be put aside
+				if (handlerFn(&cmd, cmd.ins != lastCmdNumber) < 0) {
+					CLOSE_TRY;
+					continue;
+				}
 
-				handlerFn(G_io_apdu_buffer[OFFSET_P1], G_io_apdu_buffer[OFFSET_P2],
-				          G_io_apdu_buffer + OFFSET_CDATA, G_io_apdu_buffer[OFFSET_LC], &flags, &tx, G_io_apdu_buffer[OFFSET_INS] != lastCmdNumber);
-
-				lastCmdNumber = lastCommandSaver;
+				lastCmdNumber = cmd.ins;
 			}
 			CATCH(EXCEPTION_IO_RESET) {
-				THROW(EXCEPTION_IO_RESET); //lastCmdNumber will be zero'd when ardor_main will be called again
+				THROW(EXCEPTION_IO_RESET); //lastCmdNumber will be zero'd when app_main will be called again
 			}
 			CATCH_OTHER(e) {
-
-				//just to make sure there is no hacking going on
-				//reset all the states
 			    lastCmdNumber = 0;
-				
-				tx = 0;
-				flags = 0;
-
-				G_io_apdu_buffer[tx++] = R_EXCEPTION;
-				G_io_apdu_buffer[tx++] = e >> 8;
-				fillBufferWithAnswerAndEnding(e & 0xFF, &tx);
+				io_send_return3(R_EXCEPTION, e >> 8, e & 0xFF);
 			}
 			FINALLY {
 				// intentionally blank
