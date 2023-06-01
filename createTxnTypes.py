@@ -7,10 +7,14 @@ def main():
 
 	with open("txtypes.txt", "r") as f:
 
-		out = '//This is an auto generated file by createTxnTypes.py\n\n#include <stdint.h>\n#include "ardor.h"\n\nconst txnType TXN_TYPES[] = {'
+		out = '// This is an auto generated file by createTxnTypes.py\n\n'
+		out += '#include <stdint.h>\n#include "ardor.h"\n\n'
+		varDeclaration = 'const txnType TXN_TYPES[] = {'
+		out += varDeclaration
 
 		lines = f.readlines()
 
+		indent = None
 		for line in lines:
 			txtype, txSubType, name = line.split(',')
 
@@ -19,7 +23,13 @@ def main():
 
 			parseFunction = appendageParseFunctionDict.get(txSubType * 256 + txtype , 0)
 
-			out += '{' + '0x{:02x}{:02x},"{}",{}'.format(txSubType, txtype, name.rstrip(), parseFunction) + '},\n'
+			# indent from the second line with len(varDeclaration) spaces
+			if indent is None:
+				indent = ''
+			else:
+				indent = ' ' * len(varDeclaration)
+
+			out += indent + '{' + '0x{:02x}{:02x}, "{}", {}'.format(txSubType, txtype, name.rstrip(), parseFunction) + '},\n'
 
 
 		print(out[0:-2] + "};")

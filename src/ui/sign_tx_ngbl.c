@@ -41,46 +41,44 @@ static void reviewContinue() {
     int i = 0;
     pairs[i].item = "Chain&TxnType";
     pairs[i++].value = state.txnAuth.chainAndTxnTypeText;
-    if (state.txnAuth.uiFlowBitfeild > 1) {
+    if (state.txnAuth.uiFlowBitField > 1) {
         // optionals 1 and 2
         pairs[i].item = state.txnAuth.optionalWindow1Title;
         pairs[i++].value = state.txnAuth.optionalWindow1Text;
         pairs[i].item = state.txnAuth.optionalWindow2Title;
         pairs[i++].value = state.txnAuth.optionalWindow2Text;
     }
-    if (state.txnAuth.uiFlowBitfeild > 5) {
+    if (state.txnAuth.uiFlowBitField > 5) {
         pairs[i].item = state.txnAuth.optionalWindow3Title;
         pairs[i++].value = state.txnAuth.optionalWindow3Text;
     }
-    if (state.txnAuth.uiFlowBitfeild == 1 || state.txnAuth.uiFlowBitfeild == 7) {
+    if (state.txnAuth.uiFlowBitField == 1 || state.txnAuth.uiFlowBitField == 7) {
         pairs[i].item = "Appendages";
         pairs[i++].value = state.txnAuth.appendagesText;
     }
     pairs[i].item = "Fees";
     pairs[i++].value = state.txnAuth.feeText;
-    
-    PRINTF("uiFlowBitfeild: %d i: %d\n", state.txnAuth.uiFlowBitfeild, i);
+
+    PRINTF("uiFlowBitField: %d i: %d\n", state.txnAuth.uiFlowBitField, i);
 
     pairList.nbMaxLinesForValue = 0;
     pairList.nbPairs = i;
     pairList.pairs = pairs;
 
-    nbgl_pageInfoLongPress_t infoLongPress = {
-        .icon = &C_ArdorIcon64px,
-        .text = "Confirm\nSign transaction",
-        .longPressText = "Hold to sign"
-    };
+    nbgl_pageInfoLongPress_t infoLongPress = {.icon = &C_ArdorIcon64px,
+                                              .text = "Confirm\nSign transaction",
+                                              .longPressText = "Hold to sign"};
     PRINTF("nbgl_useCaseStaticReview\n");
     nbgl_useCaseStaticReview(&pairList, &infoLongPress, "Reject transaction", reviewChoice);
 }
 
 void signTransactionScreen() {
     nbgl_useCaseReviewStart(&C_ArdorIcon64px,
-                        "Review transaction",
-                        NULL,
-                        "Reject transaction",
-                        reviewContinue,
-                        askTransactionRejectionConfirmation);
+                            "Review transaction",
+                            NULL,
+                            "Reject transaction",
+                            reviewContinue,
+                            askTransactionRejectionConfirmation);
 }
 
 #endif

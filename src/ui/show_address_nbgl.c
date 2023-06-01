@@ -1,6 +1,6 @@
 #ifdef HAVE_NBGL
 
-#include <string.h> // memset
+#include <string.h>  // memset
 
 #include "menu.h"
 #include "display.h"
@@ -28,11 +28,11 @@ void showAddressScreen(const uint64_t accountId) {
     reedSolomonEncode(accountId, rsAddress + strlen(rsAddress));
 
     nbgl_useCaseReviewStart(&C_ArdorIcon64px,
-                        "Verify Ardor address",
-                        NULL,
-                        "Cancel",
-                        continueReview,
-                        showAddressCancel);
+                            "Verify Ardor address",
+                            NULL,
+                            "Cancel",
+                            continueReview,
+                            showAddressCancel);
 }
 
 #endif

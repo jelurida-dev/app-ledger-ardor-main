@@ -32,8 +32,9 @@ UX_STEP_CB(stFlowPage2,
 UX_FLOW(stFlow, &stFlowPage1, &stFlowPage2);
 
 void signTokenScreen() {
-    if(0 == G_ux.stack_count)
+    if (0 == G_ux.stack_count) {
         ux_stack_push();
+    }
 
     ux_flow_init(0, stFlow, NULL);
 }
