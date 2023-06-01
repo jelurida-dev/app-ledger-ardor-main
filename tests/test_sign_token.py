@@ -27,7 +27,7 @@ def test_sign_token(backend, navigator, firmware):
     client = _send_token_for_signing(backend)
 
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_REVIEW_CONFIRM, NavInsID.USE_CASE_STATUS_DISMISS]
+        instructions = [NavInsID.USE_CASE_REVIEW_TAP, NavInsID.USE_CASE_REVIEW_CONFIRM, NavInsID.USE_CASE_STATUS_DISMISS]
     else:
         instructions = [NavInsID.BOTH_CLICK]
     
@@ -47,7 +47,7 @@ def test_sign_token_reject(backend, navigator, firmware):
     client = _send_token_for_signing(backend)
 
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_REVIEW_REJECT, NavInsID.USE_CASE_STATUS_DISMISS]
+        instructions = [NavInsID.USE_CASE_REVIEW_TAP, NavInsID.USE_CASE_REVIEW_REJECT, NavInsID.USE_CASE_STATUS_DISMISS]
     else:
         instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
     

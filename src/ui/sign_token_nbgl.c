@@ -23,8 +23,8 @@ static void reviewChoice(bool confirm) {
     }
 }
 
-void signTokenScreen() {
-    nbgl_layoutTagValueList_t pairList = {
+static void reviewContinue() {
+        nbgl_layoutTagValueList_t pairList = {
         .nbMaxLinesForValue = 0,
         .nbPairs = 0,
         .pairs = NULL
@@ -37,6 +37,24 @@ void signTokenScreen() {
     };
     
     nbgl_useCaseStaticReview(&pairList, &infoLongPress, "Cancel", reviewChoice);
+}
+
+static void askSignatureRejectionConfirmation(void) {
+    // display a choice to confirm/cancel rejection
+    nbgl_useCaseConfirm("Reject signature?",
+                        NULL,
+                        "Yes, Reject",
+                        "Go back",
+                        signTokenCancellation);
+}
+
+void signTokenScreen() {
+    nbgl_useCaseReviewStart(&C_ArdorIcon64px,
+                        "Token signature",
+                        NULL,
+                        "Reject",
+                        reviewContinue,
+                        askSignatureRejectionConfirmation);
 }
 
 #endif
