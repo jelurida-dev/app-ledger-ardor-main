@@ -1,5 +1,2 @@
 pytest
-ragger[speculos]>=1.7.3
-
-# due to bug on previous package not declaring this version as minimum required
-speculos>=0.1.255
+ragger[speculos]
