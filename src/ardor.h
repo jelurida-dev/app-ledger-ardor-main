@@ -53,6 +53,11 @@ uint8_t formatAmount(char* const outputString,
                      uint64_t numberToFormat,
                      const uint8_t numDigitsBeforeDecimal);
 
+uint8_t formatChainAmount(char *const out,
+                          const uint16_t maxLength,
+                          uint64_t amount,
+                          const uint8_t chainId);
+
 // define max text sizes for the different UI screens
 #define MAX_FEE_TEXT_SIZE \
     21                                       // 9,223,372,036,854,775,807 is the biggest number you

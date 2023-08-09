@@ -352,6 +352,22 @@ uint8_t formatAmount(char *const outputString,
     return outputIndex + 1;
 }
 
+// like formatAmount but also appends the chain (token) name
+uint8_t formatChainAmount(char *const out,
+                          const uint16_t maxLength,
+                          uint64_t amount,
+                          const uint8_t chainId) {
+    uint8_t ret = formatAmount(out, maxLength, amount, chainNumDecimalsBeforePoint(chainId));
+    if (0 == ret) {
+        return 0;
+    }
+    
+    // append an space and the chain name
+    snprintf(out + ret - 1, maxLength - ret - 1, " %s", chainName(chainId));
+
+    return ret > 0 ? ret + strlen(chainName(chainId)) + 1 : 0;
+}
+
 // app_stack_canary is defined by the link script to be at the start of the user data or end of the
 // stack, something like that so if there is a stack overflow then it will be overwriten, this is
 // how check_canary() works. make sure HAVE_BOLOS_APP_STACK_CANARY is defined in the makefile, so

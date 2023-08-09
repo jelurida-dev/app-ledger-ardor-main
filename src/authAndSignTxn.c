@@ -125,11 +125,12 @@ uint8_t setScreenTexts() {
                          sizeof(state.txnAuth.optionalWindow1Title),
                          "Amount");
 
-                if (0 == formatAmount(state.txnAuth.optionalWindow1Text,
-                                      sizeof(state.txnAuth.optionalWindow1Text),
-                                      state.txnAuth.amount,
-                                      chainNumDecimalsBeforePoint(state.txnAuth.chainId)))
+                if (0 == formatChainAmount(state.txnAuth.optionalWindow1Text,
+                                           sizeof(state.txnAuth.optionalWindow1Text),
+                                           state.txnAuth.amount,
+                                           state.txnAuth.chainId)) {
                     return R_FORMAT_AMOUNT_ERR;
+                }
 
                 snprintf(state.txnAuth.optionalWindow2Title,
                          sizeof(state.txnAuth.optionalWindow2Title),

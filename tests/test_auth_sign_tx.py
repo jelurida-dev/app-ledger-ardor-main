@@ -1,11 +1,11 @@
-from constants import RESPONSE_SUFFIX, R_SUCCESS, ROOT_SCREENSHOT_PATH, PATH_STR_0
+from constants import RESPONSE_SUFFIX, R_SUCCESS, ROOT_SCREENSHOT_PATH, PATH_STR_0, PATH_STR_1
 from ragger.navigator import NavInsID
 from ardor_command_sender import ArdorCommandSender
 
 RET_VAL_TRANSACTION_ACCEPTED = 8 # R_FINISHED
 RET_VAL_TRANSACTION_REJECTED = 1 # R_REJECT
 
-def _sign_tx_test(backend, navigator, unsigned_bytes_hex: str, expected_signature: str, test_name: str, instructions):
+def _sign_tx_test(backend, navigator, unsigned_bytes_hex: str, expected_signature: str, test_name: str, instructions, signing_account = PATH_STR_0):
     tx_bytes = bytes.fromhex(unsigned_bytes_hex)
     client = ArdorCommandSender(backend)
     with client.load_tx(tx_bytes):
@@ -18,7 +18,7 @@ def _sign_tx_test(backend, navigator, unsigned_bytes_hex: str, expected_signatur
     assert rapdu.data[0] == R_SUCCESS
     assert rapdu.data[1] == RET_VAL_TRANSACTION_ACCEPTED
 
-    signature = client.sign_tx(PATH_STR_0)
+    signature = client.sign_tx(signing_account)
     assert signature.hex() == expected_signature
 
 def _sign_tx_reject(backend, navigator, unsigned_bytes_hex: str, test_name: str, instructions):
@@ -63,6 +63,15 @@ def test_send_money_tx_reject(backend, navigator, firmware):
     else:
         instructions = get_nano_instructions(firmware, 8, 6)
     _sign_tx_reject(backend, navigator, tx_bytes, "test_send_money_tx_reject", instructions)
+
+def test_send_ardr_tx(backend, navigator, firmware):
+    tx_bytes = "01000000fe0001f944910a0f00a45834eef72000e08093cb1e23d9c873a9acea0a893bb02738bf8328ba1d076533ece497d15c7f343090b7000000000000e1f5050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc95800000000"
+    expected_signature = "65ee18432849dc797092287436cfb849f1ddf0f288c79f3cb99cb4dc754bac0c1e7dc2f5b6e1cc6542750954d2a5f0572a7fe721bd0bbf9d60f9336a85818ca4"
+    if firmware.device == 'stax':
+        instructions = get_stax_instructions(3)
+    else:
+        instructions = get_nano_instructions(firmware, 7, 5)
+    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ardr_tx", instructions, PATH_STR_1)
 
 def test_send_ardr(backend, navigator, firmware):
     tx_bytes = "01000000fe0001ab77050a0f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20eb6d36651b82d0eb00c2eb0b0000000000e1f505000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000191ee15a5fb74d1200000000"

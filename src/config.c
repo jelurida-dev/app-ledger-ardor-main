@@ -27,8 +27,8 @@
 
 // This configures the supported chain types, chainId, name and amount of decimals to the right of
 // the point
-const chainType CHAINS[] = {{0x00000001, "Ardor", 8},
-                            {0x00000002, "Ignis", 8},
+const chainType CHAINS[] = {{0x00000001, "ARDR", 8},
+                            {0x00000002, "IGNIS", 8},
                             {0x00000003, "AEUR", 4},
                             {0x00000004, "BITS", 8},
                             {0x00000005, "MPG", 8},
