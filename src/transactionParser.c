@@ -359,7 +359,7 @@ uint8_t addToReadBuffer(const uint8_t* const newData, const uint8_t numBytes) {
         return R_NO_SPACE_BUFFER_TOO_SMALL;
     }
 
-    cx_hash(&state.txnAuth.hashstate.header, 0, newData, numBytes, 0, 0);
+    cx_hash_no_throw(&state.txnAuth.hashstate.header, 0, newData, numBytes, 0, 0);
 
     memcpy(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos, newData, numBytes);
     state.txnAuth.readBufferEndPos += numBytes;

@@ -48,13 +48,13 @@ void sha256TwoBuffers(const uint8_t *const bufferTohash1,
     memset(output, 0, 32);
     cx_sha256_init(&shaContext);  // return value has no info
 
-    cx_hash(&shaContext.header, 0, bufferTohash1, sizeOfBuffer1, output, 32);
+    cx_hash_no_throw(&shaContext.header, 0, bufferTohash1, sizeOfBuffer1, output, 32);
 
     if (0 != bufferTohash2) {
-        cx_hash(&shaContext.header, 0, bufferTohash2, sizeOfBuffer2, output, 32);
+        cx_hash_no_throw(&shaContext.header, 0, bufferTohash2, sizeOfBuffer2, output, 32);
     }
 
-    cx_hash(&shaContext.header, CX_LAST, 0, 0, output, 32);
+    cx_hash_no_throw(&shaContext.header, CX_LAST, 0, 0, output, 32);
 }
 
 // SHA-256 of a single buffer

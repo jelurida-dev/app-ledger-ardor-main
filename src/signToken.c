@@ -87,36 +87,36 @@ void signTokenConfirm() {
     size_t offset = 1;
 
     // adding the public key to the hash
-    cx_hash(&state.tokenSign.sha256.header,
-            0,
-            publicKeyAndFinalHash,
-            sizeof(publicKeyAndFinalHash),
-            0,
-            0);
+    cx_hash_no_throw(&state.tokenSign.sha256.header,
+                     0,
+                     publicKeyAndFinalHash,
+                     sizeof(publicKeyAndFinalHash),
+                     0,
+                     0);
 
     // also make a copy to the output buffer, because of how a token is constructed
     memcpy(state.tokenSign.token + offset, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
     offset += sizeof(publicKeyAndFinalHash);
 
     // adding the timestamp to the hash
-    cx_hash(&state.tokenSign.sha256.header,
-            0,
-            (uint8_t*) &state.tokenSign.timestamp,
-            sizeof(state.tokenSign.timestamp),
-            0,
-            0);
+    cx_hash_no_throw(&state.tokenSign.sha256.header,
+                     0,
+                     (uint8_t*) &state.tokenSign.timestamp,
+                     sizeof(state.tokenSign.timestamp),
+                     0,
+                     0);
 
     memcpy(state.tokenSign.token + offset,
            &state.tokenSign.timestamp,
            sizeof(state.tokenSign.timestamp));
     offset += sizeof(state.tokenSign.timestamp);
 
-    cx_hash(&state.tokenSign.sha256.header,
-            CX_LAST,
-            0,
-            0,
-            publicKeyAndFinalHash,
-            sizeof(publicKeyAndFinalHash));
+    cx_hash_no_throw(&state.tokenSign.sha256.header,
+                     CX_LAST,
+                     0,
+                     0,
+                     publicKeyAndFinalHash,
+                     sizeof(publicKeyAndFinalHash));
 
     signMsg(keySeed, publicKeyAndFinalHash, state.tokenSign.token + offset);
     memset(keySeed, 0, sizeof(keySeed));
@@ -145,7 +145,7 @@ static int p1TokenMsgBytesHandler(const command_t* const cmd, const bool isLastC
 
     state.tokenSign.mode = STATE_BYTES_RECEIVED;
 
-    cx_hash(&state.tokenSign.sha256.header, 0, cmd->data, cmd->lc, 0, 0);
+    cx_hash_no_throw(&state.tokenSign.sha256.header, 0, cmd->data, cmd->lc, 0, 0);
 
     return io_send_return1(R_SUCCESS);
 }

@@ -250,14 +250,14 @@ uint8_t signTxn(const uint8_t* const derivationPath,
         return ret;
     }
 
-    uint8_t finalTxnSha256[32];
-    cx_hash(&state.txnAuth.hashstate.header, CX_LAST, 0, 0, finalTxnSha256, sizeof(finalTxnSha256));
+    uint8_t txHash[32];
+    cx_hash_no_throw(&state.txnAuth.hashstate.header, CX_LAST, 0, 0, txHash, sizeof(txHash));
 
     // sign msg should only use the first 32 bytes of keyseed
-    signMsg(keySeed, finalTxnSha256, destBuffer);
+    signMsg(keySeed, txHash, destBuffer);
 
     // clean buffers
-    memset(finalTxnSha256, 0, sizeof(finalTxnSha256));
+    memset(txHash, 0, sizeof(txHash));
     memset(keySeed, 0, sizeof(keySeed));
 
     return R_SUCCESS;
