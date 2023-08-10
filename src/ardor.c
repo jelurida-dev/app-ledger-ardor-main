@@ -361,7 +361,7 @@ uint8_t formatChainAmount(char *const out,
     if (0 == ret) {
         return 0;
     }
-    
+
     // append an space and the chain name
     snprintf(out + ret - 1, maxLength - ret - 1, " %s", chainName(chainId));
 

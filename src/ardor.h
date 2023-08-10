@@ -53,7 +53,7 @@ uint8_t formatAmount(char* const outputString,
                      uint64_t numberToFormat,
                      const uint8_t numDigitsBeforeDecimal);
 
-uint8_t formatChainAmount(char *const out,
+uint8_t formatChainAmount(char* const out,
                           const uint16_t maxLength,
                           uint64_t amount,
                           const uint8_t chainId);
