@@ -43,6 +43,8 @@ extern const uint8_t ARDOR_SPECIAL_IDENTIFIER_LEN;
 extern const uint16_t VERSION;
 extern const uint8_t VERSION_FLAGS;
 
+#define ARRAY_COUNT(array) (sizeof(array) / sizeof(array[0]))
+
 #define MIN_DERIVATION_LENGTH 3
 #define MAX_DERIVATION_LENGTH 20
 

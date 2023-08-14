@@ -72,6 +72,15 @@ static handler_fn_t* lookupHandler(uint8_t ins) {
     }
 }
 
+static void nv_storage_init() {
+    if (N_storage.initialized != true) {
+        internalStorage_t storage;
+        storage.settings.allowBlindSigning = false;
+        storage.initialized = true;
+        nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
+    }
+}
+
 // This is the main loop that reads and writes APDUs. It receives request
 // APDUs from the computer, looks up the corresponding command handler, and
 // calls it on the APDU payload.
@@ -85,7 +94,7 @@ void app_main(void) {
     command_t cmd;
 
     io_init();
-
+    nv_storage_init();
     ui_menu_main();
 
     // this is used to clean state if we change command types

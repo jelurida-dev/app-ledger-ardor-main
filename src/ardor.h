@@ -158,6 +158,19 @@ typedef union {
 // declared in ardor.c
 extern states_t state;
 
+// Settings
+typedef struct {
+    bool allowBlindSigning;
+} settings_t;
+
+typedef struct internalStorage_t {
+    settings_t settings;
+    bool initialized;
+} internalStorage_t;
+
+extern const internalStorage_t N_storage_real;
+#define N_storage (*(volatile internalStorage_t*) PIC(&N_storage_real))
+
 // used to list txn types
 typedef struct {
     uint16_t id;
