@@ -77,6 +77,7 @@ uint8_t formatChainAmount(char* const out,
 typedef struct {
     bool txnPassedAutherization;  // This most important bool, means the user confirmed the txn
                                   // content via the dialog and we can sign the current TXN
+    bool requiresBlindSigning;    // This is true if the TX is a blind signing TX
 
     uint8_t readBuffer[512];        // This is where unparsed temp buffer data is kept, since we do
                                     // streamed parsing we have to have it here

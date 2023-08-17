@@ -27,7 +27,12 @@ def test_sign_token(backend, navigator, firmware):
     client = _send_token_for_signing(backend)
 
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_REVIEW_TAP, NavInsID.USE_CASE_REVIEW_CONFIRM, NavInsID.USE_CASE_STATUS_DISMISS]
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
+                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
+                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
+                        NavInsID.USE_CASE_REVIEW_TAP,     # ack token signing operation
+                        NavInsID.USE_CASE_REVIEW_CONFIRM, # confirm token signing operation
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
     else:
         instructions = [NavInsID.BOTH_CLICK]
     
@@ -41,18 +46,45 @@ def test_sign_token(backend, navigator, firmware):
     assert rapdu.data[0] == R_SUCCESS
     assert rapdu.data[1:].hex() == expected_token
 
-def test_sign_token_reject(backend, navigator, firmware):
+def test_sign_token_reject_blind(backend, navigator, firmware):
     timestamp = 167772040
 
     client = _send_token_for_signing(backend)
 
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_REVIEW_TAP, NavInsID.USE_CASE_REVIEW_REJECT, NavInsID.USE_CASE_STATUS_DISMISS]
+        instructions = [NavInsID.USE_CASE_CHOICE_REJECT,  # reject blind signing
+                        NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm operation rejection
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
     else:
         instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
     
     with client.sign_token_sign(PATH_STR_0, timestamp):
-        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, "test_sign_token_reject", instructions)
+        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, "test_sign_token_reject_blind", instructions)
+
+    rapdu = client.get_async_response()
+    assert rapdu is not None
+    assert rapdu.status == RESPONSE_SUFFIX
+    assert len(rapdu.data) == 2
+    assert rapdu.data[0] == R_SUCCESS
+    assert rapdu.data[1] == R_REJECT
+
+def test_sign_token_reject_tx(backend, navigator, firmware):
+    timestamp = 167772040
+
+    client = _send_token_for_signing(backend)
+
+    if firmware.device == 'stax':
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
+                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
+                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
+                        NavInsID.USE_CASE_REVIEW_TAP,     # ack token signing operation
+                        NavInsID.USE_CASE_CHOICE_REJECT,  # reject token signing operation
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+    else:
+        instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+    
+    with client.sign_token_sign(PATH_STR_0, timestamp):
+        navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, "test_sign_token_reject_tx", instructions)
 
     rapdu = client.get_async_response()
     assert rapdu is not None

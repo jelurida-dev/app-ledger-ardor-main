@@ -103,6 +103,13 @@ uint8_t parseMainTxnData() {
         addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
     }
 
+    // general blind signing check, functions without specific parsing are marked as blind signing
+    // except payments which don't require special parsing
+    if (0 == currentTxnType->attachmentParsingFunctionNumber &&
+        0x0000 != state.txnAuth.txnTypeAndSubType && 0x00fe != state.txnAuth.txnTypeAndSubType) {
+        state.txnAuth.requiresBlindSigning = true;
+    }
+
     if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
         snprintf(state.txnAuth.chainAndTxnTypeText,
                  sizeof(state.txnAuth.chainAndTxnTypeText),
@@ -114,6 +121,7 @@ uint8_t parseMainTxnData() {
                  sizeof(state.txnAuth.chainAndTxnTypeText),
                  "%s\nUnknownTxnType",
                  chainName(state.txnAuth.chainId));
+        state.txnAuth.requiresBlindSigning = true;
     }
 
     if (SUPPORTED_TXN_VERSION != *((uint8_t*) ptr)) {
@@ -188,6 +196,7 @@ uint8_t parseAppendagesFlags() {
     memmove(&appendages, buffPtr, sizeof(appendages));
 
     if (0 != appendages) {
+        state.txnAuth.requiresBlindSigning = true;
         state.txnAuth.uiFlowBitField |= 1;  // turn on the first bit
 
         // fallback to hex string if we found unknown appendages
@@ -231,6 +240,7 @@ uint8_t parseAppendagesFlags() {
 // PARSE_FN_REFERENCED_TXN 3
 // Parses a txn reference, by just skiping over the bytes :)
 uint8_t parseReferencedTxn() {
+    state.txnAuth.requiresBlindSigning = true;
     if (0 == readFromBuffer(sizeof(uint32_t) + 32)) {
         return R_SEND_MORE_BYTES;
     }
@@ -308,8 +318,12 @@ uint8_t parseAskOrderPlacementAttachment() {
 // types, sometimes this is needed
 uint8_t parseIgnoreBytesUntilTheEnd() {
     while (state.txnAuth.numBytesRead != state.txnAuth.txnSizeBytes) {
-        if (0 == readFromBuffer(1)) {
+        uint8_t* ptr = readFromBuffer(1);
+        if (0 == ptr) {
             return R_SEND_MORE_BYTES;
+        }
+        if (0 != *ptr) {
+            state.txnAuth.requiresBlindSigning = true;
         }
     }
 

@@ -5,6 +5,8 @@
 #include "nbgl_use_case.h"
 #include "os.h"
 #include "ardor.h"
+#include "settings.h"
+#include "glyph_symbols.h"
 
 void app_quit(void) {
     // exit app here
@@ -52,14 +54,10 @@ static bool settings_nav_callback(uint8_t page, nbgl_pageContent_t* content) {
 
 static void settings_controls_callback(int token, uint8_t index) {
     UNUSED(index);
-    uint8_t new_setting;
     switch (token) {
         case BLIND_SIGNING_TOKEN:
-            // Write in NVM the opposit of what the current toggle is
-            new_setting = (G_switches[BLIND_SIGNING_IDX].initState != ON_STATE);
-            nvm_write((void*) &N_storage.settings.allowBlindSigning,
-                      &new_setting,
-                      sizeof(new_setting));
+            // Write in NVM the opposite of what the current toggle is
+            settings_set_allow_blind_signing(G_switches[BLIND_SIGNING_IDX].initState != ON_STATE);
             break;
         default:
             PRINTF("Unreachable\n");

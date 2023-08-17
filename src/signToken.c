@@ -49,18 +49,22 @@
             returns:    1 byte status
 
         P1_SIGN:
-            dataBuffer: timestamp (4 bytes) | derivaiton path (uint32) * some length |
+            dataBuffer: timestamp (4 bytes) | derivation path (uint32) * some length |
             returns:    1 byte status | token 100 bytes
 
     100-byte token consists of a 32-byte public key, a 4-byte timestamp, and a 64-byte signature
 */
 
-// does what it says :)
 static void cleanTokenSignState() {
     memset(&state, 0, sizeof(state));
 }
 
-// UI callbacks
+static int cleanAndReturn(uint8_t ret) {
+    cleanTokenSignState();
+    return io_send_return1(ret);
+}
+
+// UI callback defined in ui/display.h
 void signTokenConfirm() {
     uint16_t exception = 0;
     uint8_t keySeed[32];
@@ -125,6 +129,7 @@ void signTokenConfirm() {
     cleanTokenSignState();
 }
 
+// UI callback defined in ui/display.h
 void signTokenCancel() {
     cleanTokenSignState();
     io_send_return2(R_SUCCESS, R_REJECT);
@@ -139,8 +144,7 @@ static int p1TokenInitHandler() {
 
 static int p1TokenMsgBytesHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
     if (isLastCommandDifferent || (STATE_INVALID == state.tokenSign.mode)) {
-        cleanTokenSignState();
-        return io_send_return1(R_WRONG_STATE);
+        return cleanAndReturn(R_WRONG_STATE);
     }
 
     state.tokenSign.mode = STATE_BYTES_RECEIVED;
@@ -152,18 +156,15 @@ static int p1TokenMsgBytesHandler(const command_t* const cmd, const bool isLastC
 
 static int p1TokenSignHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
     if (isLastCommandDifferent || (STATE_BYTES_RECEIVED != state.tokenSign.mode)) {
-        cleanTokenSignState();
-        return io_send_return1(R_WRONG_STATE);
+        return cleanAndReturn(R_WRONG_STATE);
     }
 
     if (cmd->lc < 4) {
-        cleanTokenSignState();
-        return io_send_return1(R_WRONG_SIZE_ERR);
+        return cleanAndReturn(R_WRONG_SIZE_ERR);
     }
 
     if (0 != (cmd->lc - 4) % sizeof(uint32_t)) {
-        cleanTokenSignState();
-        return io_send_return1(R_WRONG_SIZE_MODULO_ERR);
+        return cleanAndReturn(R_WRONG_SIZE_MODULO_ERR);
     }
 
     // underflow was checked against above above
@@ -171,8 +172,7 @@ static int p1TokenSignHandler(const command_t* const cmd, const bool isLastComma
 
     if ((MIN_DERIVATION_LENGTH > state.tokenSign.derivationPathLengthInUints32) ||
         (MAX_DERIVATION_LENGTH < state.tokenSign.derivationPathLengthInUints32)) {
-        cleanTokenSignState();
-        return io_send_return1(R_WRONG_SIZE_ERR);
+        return cleanAndReturn(R_WRONG_SIZE_ERR);
     }
 
     memcpy(&state.tokenSign.timestamp, cmd->data, sizeof(state.tokenSign.timestamp));
@@ -194,7 +194,6 @@ int signTokenMessageHandler(const command_t* const cmd, const bool isLastCommand
     } else if (P1_SIGN == cmd->p1) {
         return p1TokenSignHandler(cmd, isLastCommandDifferent);
     } else {
-        cleanTokenSignState();
-        return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);
+        return cleanAndReturn(R_UNKNOWN_CMD_PARAM_ERR);
     }
 }

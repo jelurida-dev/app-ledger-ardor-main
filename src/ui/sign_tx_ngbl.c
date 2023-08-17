@@ -5,15 +5,17 @@
 #include "ardor.h"
 #include "glyphs.h"
 #include "menu.h"
+#include "glyph_symbols.h"
+#include "nbgl_blind_sign.h"
 
 static void signTxConfirmation() {
     signTransactionConfirm();
-    nbgl_useCaseStatus("SIGNATURE\nSUCCESSFUL", true, ui_menu_main);
+    nbgl_useCaseStatus("TRANSACTION\nSIGNED", true, ui_menu_main);
 }
 
 static void signTxCancellation() {
     signTransactionCancel();
-    nbgl_useCaseStatus("Signature\ncancelled", false, ui_menu_main);
+    nbgl_useCaseStatus("Transaction\nrejected", false, ui_menu_main);
 }
 
 static void askTransactionRejectionConfirmation(void) {
@@ -66,19 +68,21 @@ static void reviewContinue() {
     pairList.pairs = pairs;
 
     nbgl_pageInfoLongPress_t infoLongPress = {.icon = &C_ArdorIcon64px,
-                                              .text = "Confirm\nSign transaction",
+                                              .text = "Sign transaction",
                                               .longPressText = "Hold to sign"};
     PRINTF("nbgl_useCaseStaticReview\n");
     nbgl_useCaseStaticReview(&pairList, &infoLongPress, "Reject transaction", reviewChoice);
 }
 
 void signTransactionScreen() {
-    nbgl_useCaseReviewStart(&C_ArdorIcon64px,
-                            "Review transaction",
-                            NULL,
-                            "Reject transaction",
-                            reviewContinue,
-                            askTransactionRejectionConfirmation);
+    nbgl_useCaseReview_t useCaseReview = state.txnAuth.requiresBlindSigning ? 
+                                        nbgl_useCaseReviewBlindSign : nbgl_useCaseReviewStart;
+    useCaseReview(&C_ArdorIcon64px,
+                  "Review transaction",
+                  NULL,
+                  "Reject transaction",
+                  reviewContinue,
+                  askTransactionRejectionConfirmation);
 }
 
 #endif

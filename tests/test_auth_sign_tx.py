@@ -47,40 +47,74 @@ def get_nano_instructions(firmware, nanos_screens: int, nanoxsp_screens: int):
 def get_stax_instructions(num_taps: int):
     return [NavInsID.USE_CASE_REVIEW_TAP] * num_taps + [NavInsID.USE_CASE_REVIEW_CONFIRM, NavInsID.USE_CASE_STATUS_DISMISS]
 
-def test_send_money_tx(backend, navigator, firmware):   
+def test_send_ignis_tx(backend, navigator, firmware):   
     tx_bytes = "020000000000011d98fe090f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20eb6d36651b82d0eb00c2eb0b0000000000e1f505000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000191ee15a5fb74d1200000000000000000000000000000000000000000000000000000000000000000000000000000000"
     expected_signature = "ad92efeb45e2d0866b22a20ad3bbc75b3fbcd63a32b451665857815598d13800404feca2d6f33730fae127ce89a2213e06afb9e8dbb44e06c7514cb56475e642"
     if firmware.device == 'stax':
         instructions = get_stax_instructions(3)
     else:
         instructions = get_nano_instructions(firmware, 7, 5)
-    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_money_tx", instructions)
+    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_tx", instructions)
 
-def test_send_money_tx_reject(backend, navigator, firmware):
+def test_send_ignis_tx_reject(backend, navigator, firmware):
     tx_bytes = "020000000000011d98fe090f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20eb6d36651b82d0eb00c2eb0b0000000000e1f505000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000191ee15a5fb74d1200000000000000000000000000000000000000000000000000000000000000000000000000000000"
     if firmware.device == 'stax':
         instructions = [NavInsID.USE_CASE_REVIEW_TAP] * 3 + [NavInsID.USE_CASE_REVIEW_REJECT, NavInsID.USE_CASE_CHOICE_CONFIRM, NavInsID.USE_CASE_STATUS_DISMISS]
     else:
         instructions = get_nano_instructions(firmware, 8, 6)
-    _sign_tx_reject(backend, navigator, tx_bytes, "test_send_money_tx_reject", instructions)
+    _sign_tx_reject(backend, navigator, tx_bytes, "test_send_ignis_tx_reject", instructions)
 
-def test_send_ardr_tx(backend, navigator, firmware):
+def test_send_ardr(backend, navigator, firmware):
     tx_bytes = "01000000fe0001f944910a0f00a45834eef72000e08093cb1e23d9c873a9acea0a893bb02738bf8328ba1d076533ece497d15c7f343090b7000000000000e1f5050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc95800000000"
     expected_signature = "65ee18432849dc797092287436cfb849f1ddf0f288c79f3cb99cb4dc754bac0c1e7dc2f5b6e1cc6542750954d2a5f0572a7fe721bd0bbf9d60f9336a85818ca4"
     if firmware.device == 'stax':
         instructions = get_stax_instructions(3)
     else:
         instructions = get_nano_instructions(firmware, 7, 5)
-    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ardr_tx", instructions, PATH_STR_1)
+    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ardr", instructions, PATH_STR_1)
 
-def test_send_ardr(backend, navigator, firmware):
-    tx_bytes = "01000000fe0001ab77050a0f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20eb6d36651b82d0eb00c2eb0b0000000000e1f505000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000191ee15a5fb74d1200000000"
-    expected_signature = "7acc118c59b17814e8b5d38b3ecd44153e82934725d3c2ffa1433862bd2f580edfb68701a5c9a4a0b7ceec8065738c71837ab6a47b07694c67875be48ae0c4fd"
+def test_send_ignis_blind_accept(backend, navigator, firmware):
+    tx_bytes = "02000000000001887b9a0a0f00a45834eef72000e08093cb1e23d9c873a9acea0a893bb02738bf8328ba1d0765d33f5982ba1e78e080bf76080000000080f0fa020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc958080000000100d66f3134953b76b64b9ceae03fd2a2d858c7b73b7a50eeb901fb489ec387442c000000000000000000000000000000000000000000000000000000000000000000000000"
+    expected_signature = "c7c184571ab5515a20d2cff3d25ce58968ca37e6c63ef1b9817f9a7a4caca403071b9e7493aaea299a692d230efa5f367976d886f9c48e1abd091fd148b095c3"
     if firmware.device == 'stax':
-        instructions = get_stax_instructions(3)
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
+                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
+                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
+                        NavInsID.USE_CASE_REVIEW_TAP,     # ack tx signing operation
+                        NavInsID.USE_CASE_REVIEW_TAP,     # chain, amount, recipient
+                        NavInsID.USE_CASE_REVIEW_TAP,     # fees
+                        NavInsID.USE_CASE_REVIEW_CONFIRM, # confirm tx signing operation
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
     else:
-        instructions = get_nano_instructions(firmware, 7, 5)
-    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ardr", instructions)
+        instructions = [NavInsID.BOTH_CLICK] #TODO
+    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_blind_accept", 
+                  instructions, PATH_STR_1)
+
+def test_send_ignis_blind_reject(backend, navigator, firmware):
+    tx_bytes = "02000000000001887b9a0a0f00a45834eef72000e08093cb1e23d9c873a9acea0a893bb02738bf8328ba1d0765d33f5982ba1e78e080bf76080000000080f0fa020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc958080000000100d66f3134953b76b64b9ceae03fd2a2d858c7b73b7a50eeb901fb489ec387442c000000000000000000000000000000000000000000000000000000000000000000000000"
+    if firmware.device == 'stax':
+        instructions = [NavInsID.USE_CASE_CHOICE_REJECT,  # reject blind signing
+                        NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm operation rejection
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+    else:
+        instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+    _sign_tx_reject(backend, navigator, tx_bytes, "test_send_ignis_blind_reject", instructions)
+
+def test_send_ignis_blind_reject_tx(backend, navigator, firmware):
+    tx_bytes = "02000000000001887b9a0a0f00a45834eef72000e08093cb1e23d9c873a9acea0a893bb02738bf8328ba1d0765d33f5982ba1e78e080bf76080000000080f0fa020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc958080000000100d66f3134953b76b64b9ceae03fd2a2d858c7b73b7a50eeb901fb489ec387442c000000000000000000000000000000000000000000000000000000000000000000000000"
+    if firmware.device == 'stax':
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
+                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
+                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
+                        NavInsID.USE_CASE_REVIEW_TAP,     # ack tx signing operation
+                        NavInsID.USE_CASE_REVIEW_TAP,     # chain, amount, recipient
+                        NavInsID.USE_CASE_REVIEW_TAP,     # fees
+                        NavInsID.USE_CASE_REVIEW_REJECT,  # reject tx signing operation
+                        NavInsID.USE_CASE_CHOICE_CONFIRM, # ack rejection
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+    else:
+        instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+    _sign_tx_reject(backend, navigator, tx_bytes, "test_send_ignis_blind_reject_tx", instructions)
 
 def test_ardor_coin_exchange(backend, navigator, firmware):
     tx_bytes = "01000000fc0001ca81050a0f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a200000000000000000000000000000000080f0fa02000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000191ee15a5fb74d12000000000101000000020000000084d7170000000080f0fa0200000000"
