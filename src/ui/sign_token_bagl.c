@@ -3,6 +3,8 @@
 #include "ux.h"
 #include "display.h"
 #include "menu.h"
+#include "ardor.h"
+#include "blind_sign_bagl.h"
 
 static void signTokenConfirmation() {
     signTokenConfirm();
@@ -14,6 +16,13 @@ static void signTokenCancellation() {
     ui_menu_main();
 }
 
+UX_STEP_NOCB(stBlindSignWarning,
+             pnn,
+             {
+                 &C_icon_warning,
+                 "Blind",
+                 "Signing",
+             });
 UX_STEP_CB(stFlowPage1,
            pb,
            signTokenConfirmation(),
@@ -21,7 +30,6 @@ UX_STEP_CB(stFlowPage1,
                &C_icon_validate_14,
                "Sign token",
            });
-
 UX_STEP_CB(stFlowPage2,
            pb,
            signTokenCancellation(),
@@ -29,14 +37,14 @@ UX_STEP_CB(stFlowPage2,
                &C_icon_crossmark,
                "Reject",
            });
-UX_FLOW(stFlow, &stFlowPage1, &stFlowPage2);
+UX_FLOW(stFlow, &stBlindSignWarning, &stFlowPage1, &stFlowPage2);
 
 void signTokenScreen() {
-    if (0 == G_ux.stack_count) {
-        ux_stack_push();
+    if (N_storage.settings.allowBlindSigning) {
+        ux_flow_init(0, stFlow, NULL);
+    } else {
+        blindSigningNotEnabledScreen(signTokenCancellation);
     }
-
-    ux_flow_init(0, stFlow, NULL);
 }
 
 #endif

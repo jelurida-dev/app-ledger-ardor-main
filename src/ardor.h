@@ -124,8 +124,6 @@ typedef struct {
     char optionalWindow3Title[MAX_WIN3_TITLE_SIZE];
     char optionalWindow3Text[MAX_WIN3_TEXT_SIZE];
     char appendagesText[MAX_APPENDAGES_TEXT_SIZE];
-    uint8_t uiFlowBitField;  // This is a bit field for selecting the right UI flow
-
 } authTxn_t;
 
 #define MAX_CHUNK_SIZE_ENCRYPT 224

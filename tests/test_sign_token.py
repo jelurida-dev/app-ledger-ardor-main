@@ -1,5 +1,6 @@
 from ardor_command_sender import ArdorCommandSender
 from constants import PATH_STR_0, R_SUCCESS, RESPONSE_SUFFIX, ROOT_SCREENSHOT_PATH, R_REJECT
+from utils import enable_blind_signing
 
 from ragger.navigator import NavInsID
 
@@ -34,7 +35,8 @@ def test_sign_token(backend, navigator, firmware):
                         NavInsID.USE_CASE_REVIEW_CONFIRM, # confirm token signing operation
                         NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
     else:
-        instructions = [NavInsID.BOTH_CLICK]
+        enable_blind_signing(navigator)
+        instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
     
     with client.sign_token_sign(PATH_STR_0, timestamp):
         navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, "test_sign_token", instructions)
@@ -55,8 +57,10 @@ def test_sign_token_reject_blind(backend, navigator, firmware):
         instructions = [NavInsID.USE_CASE_CHOICE_REJECT,  # reject blind signing
                         NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm operation rejection
                         NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
-    else:
+    elif firmware.device == 'nanos':
         instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+    else:
+        instructions = [NavInsID.BOTH_CLICK]
     
     with client.sign_token_sign(PATH_STR_0, timestamp):
         navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, "test_sign_token_reject_blind", instructions)
@@ -81,7 +85,8 @@ def test_sign_token_reject_tx(backend, navigator, firmware):
                         NavInsID.USE_CASE_CHOICE_REJECT,  # reject token signing operation
                         NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
     else:
-        instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+        enable_blind_signing(navigator)
+        instructions = [NavInsID.RIGHT_CLICK, NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
     
     with client.sign_token_sign(PATH_STR_0, timestamp):
         navigator.navigate_and_compare(ROOT_SCREENSHOT_PATH, "test_sign_token_reject_tx", instructions)

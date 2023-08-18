@@ -197,7 +197,6 @@ uint8_t parseAppendagesFlags() {
 
     if (0 != appendages) {
         state.txnAuth.requiresBlindSigning = true;
-        state.txnAuth.uiFlowBitField |= 1;  // turn on the first bit
 
         // fallback to hex string if we found unknown appendages
         if (appendages >= 1 << NUM_APPENDAGE_TYPES) {

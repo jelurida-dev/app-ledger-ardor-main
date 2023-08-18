@@ -119,8 +119,6 @@ uint8_t setScreenTexts() {
             case TX_TYPE_ORDINARY_PAYMENT:
             case TX_TYPE_FXT_PAYMENT:
 
-                state.txnAuth.uiFlowBitField |= 2;  // turn on the second bit for optional 1 & 2
-
                 snprintf(state.txnAuth.optionalWindow1Title,
                          sizeof(state.txnAuth.optionalWindow1Title),
                          "Amount");
@@ -146,8 +144,6 @@ uint8_t setScreenTexts() {
 
             case TX_TYPE_FXT_COIN_EXCHANGE_ORDER_ISSUE:
             case TX_TYPE_COIN_EXCHANGE_ORDER_ISSUE:
-
-                state.txnAuth.uiFlowBitField |= 2;  // turn on the second bit for optional 1 & 2
 
                 snprintf(state.txnAuth.optionalWindow1Title,
                          sizeof(state.txnAuth.optionalWindow1Title),
@@ -194,8 +190,6 @@ uint8_t setScreenTexts() {
                 break;
 
             case TX_TYPE_ASSET_TRANSFER:
-
-                state.txnAuth.uiFlowBitField |= 6;  // turn bits 2&3 for all three optional screens
 
                 snprintf(state.txnAuth.optionalWindow1Title,
                          sizeof(state.txnAuth.optionalWindow1Title),

@@ -1,6 +1,7 @@
 from constants import RESPONSE_SUFFIX, R_SUCCESS, ROOT_SCREENSHOT_PATH, PATH_STR_0, PATH_STR_1
 from ragger.navigator import NavInsID
 from ardor_command_sender import ArdorCommandSender
+from utils import enable_blind_signing
 
 RET_VAL_TRANSACTION_ACCEPTED = 8 # R_FINISHED
 RET_VAL_TRANSACTION_REJECTED = 1 # R_REJECT
@@ -86,7 +87,8 @@ def test_send_ignis_blind_accept(backend, navigator, firmware):
                         NavInsID.USE_CASE_REVIEW_CONFIRM, # confirm tx signing operation
                         NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
     else:
-        instructions = [NavInsID.BOTH_CLICK] #TODO
+        enable_blind_signing(navigator)
+        instructions = get_nano_instructions(firmware, 9, 7)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_blind_accept", 
                   instructions, PATH_STR_1)
 
@@ -96,8 +98,10 @@ def test_send_ignis_blind_reject(backend, navigator, firmware):
         instructions = [NavInsID.USE_CASE_CHOICE_REJECT,  # reject blind signing
                         NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm operation rejection
                         NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
-    else:
+    elif firmware.device == 'nanos':
         instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+    else:
+        instructions = [NavInsID.BOTH_CLICK]
     _sign_tx_reject(backend, navigator, tx_bytes, "test_send_ignis_blind_reject", instructions)
 
 def test_send_ignis_blind_reject_tx(backend, navigator, firmware):
@@ -113,7 +117,8 @@ def test_send_ignis_blind_reject_tx(backend, navigator, firmware):
                         NavInsID.USE_CASE_CHOICE_CONFIRM, # ack rejection
                         NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
     else:
-        instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
+        enable_blind_signing(navigator)
+        instructions = get_nano_instructions(firmware, 10, 8)
     _sign_tx_reject(backend, navigator, tx_bytes, "test_send_ignis_blind_reject_tx", instructions)
 
 def test_ardor_coin_exchange(backend, navigator, firmware):
