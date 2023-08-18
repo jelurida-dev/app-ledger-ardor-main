@@ -14,10 +14,7 @@ static void blindSigningNotEnabledCallback() {
 UX_STEP_CB(ux_step_blind_signing_not_enabled,
            bnnn_paging,
            blindSigningNotEnabledCallback(),
-           {
-               "ERROR",
-               "Blind signing must be enabled on Settings"
-           });
+           {"ERROR", "Blind signing must be enabled on Settings"});
 UX_FLOW(ux_flow_blind_signing_not_enabled, &ux_step_blind_signing_not_enabled);
 
 #else
@@ -25,11 +22,7 @@ UX_FLOW(ux_flow_blind_signing_not_enabled, &ux_step_blind_signing_not_enabled);
 UX_STEP_CB(ux_step_blind_signing_not_enabled,
            pnn,
            blindSigningNotEnabledCallback(),
-           {
-                &C_icon_crossmark,
-               "Blind signing must be",
-               "enabled on Settings"
-           });
+           {&C_icon_crossmark, "Blind signing must be", "enabled on Settings"});
 UX_FLOW(ux_flow_blind_signing_not_enabled, &ux_step_blind_signing_not_enabled);
 
 #endif

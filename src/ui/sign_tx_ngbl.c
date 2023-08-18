@@ -74,8 +74,8 @@ static void reviewContinue() {
 }
 
 void signTransactionScreen() {
-    nbgl_useCaseReview_t useCaseReview = state.txnAuth.requiresBlindSigning ? 
-                                        nbgl_useCaseReviewBlindSign : nbgl_useCaseReviewStart;
+    nbgl_useCaseReview_t useCaseReview =
+        state.txnAuth.requiresBlindSigning ? nbgl_useCaseReviewBlindSign : nbgl_useCaseReviewStart;
     useCaseReview(&C_ArdorIcon64px,
                   "Review transaction",
                   NULL,
