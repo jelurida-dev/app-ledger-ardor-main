@@ -10,11 +10,19 @@
 
 static char rsAddress[27];
 
+static void confirm_address_approval(void) {
+    nbgl_useCaseStatus("ADDRESS\nVERIFIED", true, showAddressConfirm);
+}
+
+static void confirm_address_rejection(void) {
+    nbgl_useCaseStatus("Address verification\ncancelled", false, showAddressCancel);
+}
+
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        showAddressConfirm();
+        confirm_address_approval();
     } else {
-        showAddressCancel();
+        confirm_address_rejection();
     }
 }
 
@@ -32,7 +40,7 @@ void showAddressScreen(const uint64_t accountId) {
                             NULL,
                             "Cancel",
                             continueReview,
-                            showAddressCancel);
+                            confirm_address_rejection);
 }
 
 #endif

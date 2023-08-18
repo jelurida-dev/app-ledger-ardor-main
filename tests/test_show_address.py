@@ -8,7 +8,7 @@ def show_address_test(backend, navigator, firmware, path, test_name):
     elif firmware.device == 'nanox' or firmware.device == 'nanosp':
         instructions=[NavInsID.RIGHT_CLICK] * 1 + [NavInsID.BOTH_CLICK]
     elif firmware.device == 'stax':
-        instructions=[NavInsID.USE_CASE_REVIEW_TAP, NavInsID.USE_CASE_CHOICE_CONFIRM]
+        instructions=[NavInsID.USE_CASE_ADDRESS_CONFIRMATION_TAP, NavInsID.USE_CASE_ADDRESS_CONFIRMATION_CONFIRM]
     else:
         assert False
 

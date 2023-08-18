@@ -48,6 +48,8 @@ ICON_NANOX = icons/ArdorIconNanoX.gif
 ICON_NANOSP = icons/ArdorIconNanoX.gif
 ICON_STAX = icons/ArdorIcon32px.gif
 
+DEFINES += NBGL_QRCODE
+
 CURVE_APP_LOAD_PARAMS = ed25519
 PATH_APP_LOAD_PARAMS = $(PATH_PREFIX)
 
