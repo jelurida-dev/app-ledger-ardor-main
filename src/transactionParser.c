@@ -105,8 +105,9 @@ uint8_t parseMainTxnData() {
 
     // general blind signing check, functions without specific parsing are marked as blind signing
     // except payments which don't require special parsing
-    if (0 == currentTxnType->attachmentParsingFunctionNumber &&
-        0x0000 != state.txnAuth.txnTypeAndSubType && 0x00fe != state.txnAuth.txnTypeAndSubType) {
+    if (LEN_TXN_TYPES <= state.txnAuth.txnTypeIndex ||
+        (0 == currentTxnType->attachmentParsingFunctionNumber &&
+         0x0000 != state.txnAuth.txnTypeAndSubType && 0x00fe != state.txnAuth.txnTypeAndSubType)) {
         state.txnAuth.requiresBlindSigning = true;
     }
 
