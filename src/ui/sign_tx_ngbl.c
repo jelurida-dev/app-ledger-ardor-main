@@ -67,7 +67,7 @@ static void reviewContinue() {
     pairList.pairs = pairs;
 
     nbgl_pageInfoLongPress_t infoLongPress = {.icon = &C_ArdorIcon64px,
-                                              .text = "Sign transaction",
+                                              .text = "Sign transaction?",
                                               .longPressText = "Hold to sign"};
     PRINTF("nbgl_useCaseStaticReview\n");
     nbgl_useCaseStaticReview(&pairList, &infoLongPress, "Reject transaction", reviewChoice);

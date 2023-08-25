@@ -74,7 +74,7 @@ static void ui_menu_settings() {
     nbgl_useCaseSettings(APPNAME " settings",
                          0,
                          SETTINGS_PAGE_NUMBER,
-                         true,
+                         false,
                          ui_menu_main,
                          settings_nav_callback,
                          settings_controls_callback);
