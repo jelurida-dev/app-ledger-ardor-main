@@ -60,12 +60,14 @@ ENABLE_BLUETOOTH = 1
 
 APP_SOURCE_PATH += src
 
-GEN_TX_TYPE_LIST_SRC := src/txnTypeLists.c
+GEN_TX_TYPE_LIST_SRC := $(GEN_SRC_DIR)/txnTypeLists.c
 
 SOURCE_FILES += $(GEN_TX_TYPE_LIST_SRC)
 
 $(GEN_TX_TYPE_LIST_SRC): createTxnTypes.py txtypes.txt
-	python ./createTxnTypes.py > $@
+	python3 ./createTxnTypes.py > $@
+
+BUILD_DEPENDENCIES = $(GEN_TX_TYPE_LIST_SRC)
 
 .PHONY: realclean
 realclean: clean
