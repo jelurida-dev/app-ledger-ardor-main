@@ -147,8 +147,8 @@ typedef struct {
     // 100-byte token consists of a 32-byte public key, a 4-byte timestamp, and a 64-byte signature
 } signTokenState_t;
 
-// This is the union states type, the actual object is defined in ardor.c
-typedef union {
+// This is the states type, the actual object is defined in ardor.c
+typedef struct {
     encyptionState_t encryption;
     authTxn_t txnAuth;
     signTokenState_t tokenSign;
