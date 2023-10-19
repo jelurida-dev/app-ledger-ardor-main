@@ -75,16 +75,12 @@ void cleanState();
     60  // this should allow displaying the names for up to
         // three types, otherwise we show a bitmap
 
-enum authTxnStates {
-    AUTH_STATE_INIT,
-    AUTH_STATE_PARSING,
-    AUTH_STATE_USER_AUTHORIZED
-};
+enum authTxnStates { AUTH_STATE_INIT, AUTH_STATE_PARSING, AUTH_STATE_USER_AUTHORIZED };
 
 // This is the state object that authAndSignTxn uses
 typedef struct {
     enum authTxnStates state;
-    bool requiresBlindSigning;    // This is true if the TX is a blind signing TX
+    bool requiresBlindSigning;  // This is true if the TX is a blind signing TX
 
     uint8_t readBuffer[512];        // This is where unparsed temp buffer data is kept, since we do
                                     // streamed parsing we have to have it here
@@ -141,11 +137,7 @@ typedef struct {
     uint8_t buffer[MAX_CHUNK_SIZE_ENCRYPT + 1];  // +1 for R_SUCCESS at position 0
 } encryptionState_t;
 
-enum signTokenStates {
-    SIGN_TOKEN_UNINIT,
-    SIGN_TOKEN_INIT,
-    SIGN_TOKEN_BYTES_RECEIVED
-};
+enum signTokenStates { SIGN_TOKEN_UNINIT, SIGN_TOKEN_INIT, SIGN_TOKEN_BYTES_RECEIVED };
 
 // State of the sign token handler
 typedef struct {

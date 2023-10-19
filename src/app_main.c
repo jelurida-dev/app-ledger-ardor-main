@@ -151,7 +151,7 @@ void app_main(void) {
                     // last command was different, clean state
                     cleanState();
                 }
-                
+
                 if (handlerFn(&cmd) < 0) {
                     CLOSE_TRY;
                     continue;
