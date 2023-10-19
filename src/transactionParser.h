@@ -36,4 +36,4 @@ uint8_t addToReadBuffer(const uint8_t* const newData, const uint8_t numBytes);
 
 // Parses the tx from the read buffer using the parse functions from state.txnAuth.functionStack
 // If there aren't enough bytes in the read buffer it returns R_SEND_MORE_BYTES
-uint8_t parseTransaction(uint8_t (*setScreenTexts)(), void (*showScreen)());
+uint8_t parseTransaction(uint8_t (*setScreenTexts)());

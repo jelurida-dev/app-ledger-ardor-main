@@ -269,7 +269,11 @@ static int p1InitContinueCommon(const command_t* const cmd) {
         return io_send_return1(ret);
     }
 
-    ret = parseTransaction(&setScreenTexts, &signTransactionScreen);
+    ret = parseTransaction(&setScreenTexts);
+
+    if (R_SHOW_DISPLAY == ret) {
+        signTransactionScreen();
+    }
 
     if (!((R_SEND_MORE_BYTES == ret) || (R_FINISHED == ret) || (R_SHOW_DISPLAY == ret))) {
         initTxnAuthState();

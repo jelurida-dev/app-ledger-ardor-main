@@ -407,7 +407,7 @@ uint8_t callFunctionNumber(const uint8_t functionNum) {
 // This function manages the parsing of the readBuffer with functionStack functions
 // If there aren't enough bytes in the read buffer it returns R_SEND_MORE_BYTES
 // which will be sent back to the user
-uint8_t parseTransaction(uint8_t (*setScreenTexts)(), void (*showScreen)()) {
+uint8_t parseTransaction(uint8_t (*setScreenTexts)()) {
     while (true) {
         if (0 == state.txnAuth.numFunctionsOnStack) {
             if (state.txnAuth.readBufferEndPos != state.txnAuth.readBufferReadOffset) {
@@ -419,8 +419,6 @@ uint8_t parseTransaction(uint8_t (*setScreenTexts)(), void (*showScreen)()) {
             if (R_SUCCESS != ret) {
                 return ret;
             }
-
-            (*showScreen)();
 
             return R_SHOW_DISPLAY;
         }
