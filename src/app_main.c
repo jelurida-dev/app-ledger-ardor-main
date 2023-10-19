@@ -41,9 +41,8 @@
 #define INS_GET_PUBLIC_KEY_AND_CHAIN_CODE 0x06
 #define INS_SIGN_TOKEN 0x07
 
-// This is the function signature for a command handler. 'flags' and 'tx' are
-// out-parameters that will control the behavior of the next io_exchange call
-typedef int handler_fn_t(const command_t* const cmd, const bool isLastCommandDifferent);
+// This is the function signature for a command handler
+typedef int handler_fn_t(const command_t* const cmd);
 
 handler_fn_t getVersionHandler;
 handler_fn_t authAndSignTxnHandler;
@@ -148,7 +147,12 @@ void app_main(void) {
 
                 PRINTF("canary check %d last command number %d\n", check_canary(), lastCmdNumber);
 
-                if (handlerFn(&cmd, cmd.ins != lastCmdNumber) < 0) {
+                if (cmd.ins != lastCmdNumber) {
+                    // last command was different, clean state
+                    cleanState();
+                }
+                
+                if (handlerFn(&cmd) < 0) {
                     CLOSE_TRY;
                     continue;
                 }

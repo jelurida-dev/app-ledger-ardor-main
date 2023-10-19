@@ -59,10 +59,6 @@
         returns:    1 bytes status | encrypted / decrypted buffer (same size as input)
 */
 
-static void cleanEncryptionState() {
-    memset(&state, 0, sizeof(state));
-}
-
 static bool getDerivationLength(const uint8_t p1,
                                 const uint8_t dataLength,
                                 uint8_t* derivationLength) {
@@ -86,18 +82,18 @@ static bool getDerivationLength(const uint8_t p1,
 
 static int initHandler(const command_t* const cmd) {
     if (0 != cmd->lc % sizeof(uint32_t)) {
-        cleanEncryptionState();
+        cleanState();
         return io_send_return1(R_WRONG_SIZE_ERR);
     }
 
     if (MAX_CHUNK_SIZE_ENCRYPT < cmd->lc) {
-        cleanEncryptionState();
+        cleanState();
         return io_send_return1(R_NO_SPACE_BUFFER_TOO_SMALL);
     }
 
     uint8_t derivationLength = 0;
     if (getDerivationLength(cmd->p1, cmd->lc, &derivationLength) == false) {
-        cleanEncryptionState();
+        cleanState();
         return io_send_return1(R_WRONG_SIZE_ERR);
     }
 
@@ -120,16 +116,16 @@ static int initHandler(const command_t* const cmd) {
                                          encryptionKey);
 
     if (R_KEY_DERIVATION_EX == ret) {
-        cleanEncryptionState();
+        cleanState();
         return io_send_return3(ret, exceptionOut >> 8, exceptionOut & 0xFF);
     } else if (R_SUCCESS != ret) {
-        cleanEncryptionState();
+        cleanState();
         return io_send_return1(ret);
     }
 
     if (CX_OK !=
         cx_aes_init_key_no_throw(encryptionKey, sizeof(encryptionKey), &state.encryption.aesKey)) {
-        cleanEncryptionState();
+        cleanState();
         return io_send_return1(R_AES_ERROR);
     }
     if (P1_INIT_ENCRYPT != cmd->p1) {
@@ -161,21 +157,16 @@ static int initHandler(const command_t* const cmd) {
     return io_send_response_pointer(state.encryption.buffer, bufferSize, SW_OK);
 }
 
-static int aesEncryptDecryptHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
-    if (isLastCommandDifferent) {
-        cleanEncryptionState();
-        return io_send_return1(R_NO_SETUP);
-    }
-
+static int aesEncryptDecryptHandler(const command_t* const cmd) {
     if ((P1_INIT_ENCRYPT != state.encryption.mode) &&
         (P1_INIT_DECRYPT_HIDE_SHARED_KEY != state.encryption.mode) &&
         (P1_INIT_DECRYPT_SHOW_SHARED_KEY != state.encryption.mode)) {
-        cleanEncryptionState();
+        cleanState();
         return io_send_return1(R_NO_SETUP);
     }
 
     if (0 != cmd->lc % CX_AES_BLOCK_SIZE) {
-        cleanEncryptionState();
+        cleanState();
         return io_send_return1(R_WRONG_SIZE_MODULO_ERR);
     }
 
@@ -208,18 +199,14 @@ static int aesEncryptDecryptHandler(const command_t* const cmd, const bool isLas
 
 // Since this is a callback function, and the handler manages state, it's this function's
 // reposibility to clean the state Every time we get some sort of an error
-int encryptDecryptMessageHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
-    if (isLastCommandDifferent) {
-        cleanEncryptionState();
-    }
-
+int encryptDecryptMessageHandler(const command_t* const cmd) {
     if ((P1_INIT_ENCRYPT == cmd->p1) || (P1_INIT_DECRYPT_HIDE_SHARED_KEY == cmd->p1) ||
         (P1_INIT_DECRYPT_SHOW_SHARED_KEY == cmd->p1)) {
         return initHandler(cmd);
     } else if (P1_AES_ENCRYPT_DECRYPT == cmd->p1) {
-        return aesEncryptDecryptHandler(cmd, isLastCommandDifferent);
+        return aesEncryptDecryptHandler(cmd);
     } else {
-        cleanEncryptionState();
+        cleanState();
         return io_send_return1(R_UNKOWN_CMD);
     }
 }

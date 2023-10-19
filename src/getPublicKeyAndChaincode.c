@@ -47,9 +47,7 @@
 
 */
 
-int getPublicKeyAndChainCodeHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
-    UNUSED(isLastCommandDifferent);  // there is no state to manage
-
+int getPublicKeyAndChainCodeHandler(const command_t* const cmd) {
     if ((P1_GET_PUBLIC_KEY != cmd->p1) &&
         (P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY != cmd->p1)) {
         return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);

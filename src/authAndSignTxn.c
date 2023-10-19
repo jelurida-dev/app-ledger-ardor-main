@@ -82,30 +82,25 @@
 //      dataBuffer: derivaiton path (uint32) * some length
 //      returns:    1 bytes status | 64 byte signiture
 
-// This function cleans the state, its important to call it before starting to load a txn
-// also whenever there is an error you should call it so that no one can exploit an error state for
-// some sort of attack, the cleaner the state is, the better, always clean when you can
 static void initTxnAuthState() {
-    memset(&state, 0, sizeof(state));
+    cleanState();
 
     state.txnAuth.functionStack[0] = PARSE_FN_MAIN;  // Add the first parse function on the stack
     state.txnAuth.functionStack[1] = PARSE_FN_APPENDAGES_FLAGS;  // The appendages parse function
     state.txnAuth.numFunctionsOnStack = 2;
-
-    state.txnAuth.isClean = true;
 
     cx_sha256_init(&state.txnAuth.hashstate);
 }
 
 // Accept click callback
 void signTransactionConfirm() {
-    state.txnAuth.txnPassedAutherization = true;
+    state.txnAuth.state = AUTH_STATE_USER_AUTHORIZED;
     io_send_return2(R_SUCCESS, R_FINISHED);
 }
 
 // Canceled click callback
 void signTransactionCancel() {
-    initTxnAuthState();
+    cleanState();
     io_send_return2(R_SUCCESS, R_REJECT);
 }
 
@@ -261,7 +256,7 @@ uint8_t signTxn(const uint8_t* const derivationPath,
 //// HANDLER MAIN FUNCTIONS
 
 static int p1InitContinueCommon(const command_t* const cmd) {
-    state.txnAuth.isClean = false;
+    state.txnAuth.state = AUTH_STATE_PARSING;
 
     uint8_t ret = addToReadBuffer(cmd->data, cmd->lc);
 
@@ -276,7 +271,7 @@ static int p1InitContinueCommon(const command_t* const cmd) {
     }
 
     if (!((R_SEND_MORE_BYTES == ret) || (R_FINISHED == ret) || (R_SHOW_DISPLAY == ret))) {
-        initTxnAuthState();
+        cleanState();
     }
 
     if (R_SHOW_DISPLAY != ret) {
@@ -297,41 +292,31 @@ static int p1InitHandler(const command_t* const cmd) {
     return p1InitContinueCommon(cmd);
 }
 
-static int p1ContinueHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
-    if (isLastCommandDifferent) {
-        initTxnAuthState();
-        return io_send_return1(R_ERR_NO_INIT_CANT_CONTINUE);
-    }
-
-    if (state.txnAuth.txnPassedAutherization) {
-        initTxnAuthState();
+static int p1ContinueHandler(const command_t* const cmd) {
+    if (AUTH_STATE_USER_AUTHORIZED == state.txnAuth.state) {
+        cleanState();
         return io_send_return1(R_NOT_ALL_BYTES_USED);
     }
 
-    if (state.txnAuth.isClean) {
-        initTxnAuthState();
+    if (AUTH_STATE_INIT == state.txnAuth.state) {
+        cleanState();
         return io_send_return1(R_ERR_NO_INIT_CANT_CONTINUE);
     }
 
     return p1InitContinueCommon(cmd);
 }
 
-static int p1SignHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
-    if (isLastCommandDifferent) {
-        initTxnAuthState();
+static int p1SignHandler(const command_t* const cmd) {
+    if (AUTH_STATE_USER_AUTHORIZED != state.txnAuth.state) {
+        cleanState();
         return io_send_return1(R_TXN_UNAUTHORIZED);
     }
 
     // dataLength is the derivation path length in bytes
     if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > cmd->lc) ||
         (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < cmd->lc) || (0 != cmd->lc % sizeof(uint32_t))) {
-        initTxnAuthState();
+        cleanState();
         return io_send_return1(R_WRONG_SIZE_ERR);
-    }
-
-    if (!state.txnAuth.txnPassedAutherization) {
-        initTxnAuthState();
-        return io_send_return1(R_TXN_UNAUTHORIZED);
     }
 
     uint16_t exception = 0;
@@ -339,7 +324,7 @@ static int p1SignHandler(const command_t* const cmd, const bool isLastCommandDif
     buffer[0] = R_SUCCESS;
     uint8_t ret = signTxn(cmd->data, cmd->lc / 4, buffer + 1, &exception);
 
-    initTxnAuthState();
+    cleanState();
 
     if (R_SUCCESS == ret) {
         return io_send_response_pointer(buffer, sizeof(buffer), SW_OK);
@@ -356,16 +341,16 @@ static int p1SignHandler(const command_t* const cmd, const bool isLastCommandDif
 // and manages calls to initTxnAuthState(), signTxn(), addToReadBuffer(), parseTransaction()
 // Since this is a callback function, and this handler manages state, it's this function's
 // reposibility to call initTxnAuthState Every time we get some sort of an error
-int authAndSignTxnHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
+int authAndSignTxnHandler(const command_t* const cmd) {
     if (1 > cmd->lc) {
-        initTxnAuthState();
+        cleanState();
         return io_send_return1(R_WRONG_SIZE_ERR);
     } else if (P1_INIT == (cmd->p1 & 0x03)) {
         return p1InitHandler(cmd);
     } else if (P1_CONTINUE == (cmd->p1 & 0x03)) {
-        return p1ContinueHandler(cmd, isLastCommandDifferent);
+        return p1ContinueHandler(cmd);
     } else if (P1_SIGN == (cmd->p1 & 0x03)) {
-        return p1SignHandler(cmd, isLastCommandDifferent);
+        return p1SignHandler(cmd);
     } else {
         return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);
     }

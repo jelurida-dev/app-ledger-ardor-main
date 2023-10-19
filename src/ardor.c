@@ -35,6 +35,10 @@ states_t state;
 // persistent storage: app settings
 const internalStorage_t N_storage_real;
 
+void cleanState() {
+    memset(&state, 0, sizeof(state));
+}
+
 // SHA-256 of two buffers, the output is the hash of the concatenation of the two buffers
 //@param[in] bufferTohash1 - first buffer to hash
 //@param[in] sizeOfBuffer1 - size of first buffer to hash

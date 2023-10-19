@@ -29,9 +29,8 @@
 
 // function that returns the version, in order to see if this is actually the ardor app
 // returns VERSION 3 bytes | FLAGS 1 byte | ARDOR_SPECIAL_IDENTIFIER 3 bytes
-int getVersionHandler(const command_t *const cmd, const bool isLastCommandDifferent) {
+int getVersionHandler(const command_t *const cmd) {
     UNUSED(cmd);
-    UNUSED(isLastCommandDifferent);
 
     if (3 < ARDOR_SPECIAL_IDENTIFIER_LEN) {
         return -1;

@@ -58,6 +58,8 @@ uint8_t formatChainAmount(char* const out,
                           uint64_t amount,
                           const uint8_t chainId);
 
+void cleanState();
+
 // define max text sizes for the different UI screens
 #define MAX_FEE_TEXT_SIZE \
     21                                       // 9,223,372,036,854,775,807 is the biggest number you
@@ -73,10 +75,15 @@ uint8_t formatChainAmount(char* const out,
     60  // this should allow displaying the names for up to
         // three types, otherwise we show a bitmap
 
+enum authTxnStates {
+    AUTH_STATE_INIT,
+    AUTH_STATE_PARSING,
+    AUTH_STATE_USER_AUTHORIZED
+};
+
 // This is the state object that authAndSignTxn uses
 typedef struct {
-    bool txnPassedAutherization;  // This most important bool, means the user confirmed the txn
-                                  // content via the dialog and we can sign the current TXN
+    enum authTxnStates state;
     bool requiresBlindSigning;    // This is true if the TX is a blind signing TX
 
     uint8_t readBuffer[512];        // This is where unparsed temp buffer data is kept, since we do
@@ -89,8 +96,6 @@ typedef struct {
                                                  // to parse the TXN, the C handler file explains
                                                  // this process in more detail
     uint8_t numFunctionsOnStack;
-
-    bool isClean;  // If the state was just initilized
 
     cx_sha256_t hashstate;  // The state of the hash for the txn buffer
 
@@ -134,11 +139,17 @@ typedef struct {
     uint8_t cbc[CX_AES_BLOCK_SIZE];              // Something to do with AES state
     cx_aes_key_t aesKey;                         // This is the encryption key
     uint8_t buffer[MAX_CHUNK_SIZE_ENCRYPT + 1];  // +1 for R_SUCCESS at position 0
-} encyptionState_t;
+} encryptionState_t;
+
+enum signTokenStates {
+    SIGN_TOKEN_UNINIT,
+    SIGN_TOKEN_INIT,
+    SIGN_TOKEN_BYTES_RECEIVED
+};
 
 // State of the sign token handler
 typedef struct {
-    uint8_t mode;                           // Modes described in the .C file
+    enum signTokenStates state;             // The state of the handler
     cx_sha256_t sha256;                     // The state of the token hash
     uint32_t timestamp;                     // The timestamp of the token
     uint8_t derivationPathLengthInUints32;  // The length of the derivation path
@@ -149,7 +160,7 @@ typedef struct {
 
 // This is the states type, the actual object is defined in ardor.c
 typedef struct {
-    encyptionState_t encryption;
+    encryptionState_t encryption;
     authTxn_t txnAuth;
     signTokenState_t tokenSign;
 } states_t;

@@ -34,10 +34,6 @@
 #define P1_MSG_BYTES 1
 #define P1_SIGN 2
 
-#define STATE_INVALID 0
-#define STATE_MODE_INITED 1
-#define STATE_BYTES_RECEIVED 2
-
 /*
     modes:
         P1_INIT: this commands just clears all bytes in the state
@@ -55,12 +51,8 @@
     100-byte token consists of a 32-byte public key, a 4-byte timestamp, and a 64-byte signature
 */
 
-static void cleanTokenSignState() {
-    memset(&state, 0, sizeof(state));
-}
-
 static int cleanAndReturn(uint8_t ret) {
-    cleanTokenSignState();
+    cleanState();
     return io_send_return1(ret);
 }
 
@@ -82,7 +74,7 @@ void signTokenConfirm() {
                             &exception);
 
     if (R_SUCCESS != ret) {
-        cleanTokenSignState();
+        cleanState();
         io_send_return3(ret, exception >> 8, exception & 0xFF);
         return;
     }
@@ -126,36 +118,36 @@ void signTokenConfirm() {
     memset(keySeed, 0, sizeof(keySeed));
 
     io_send_response_pointer(state.tokenSign.token, sizeof(state.tokenSign.token), SW_OK);
-    cleanTokenSignState();
+    cleanState();
 }
 
 // UI callback defined in ui/display.h
 void signTokenCancel() {
-    cleanTokenSignState();
+    cleanState();
     io_send_return2(R_SUCCESS, R_REJECT);
 }
 
 static int p1TokenInitHandler() {
-    cleanTokenSignState();
-    state.tokenSign.mode = STATE_MODE_INITED;
+    cleanState();
+    state.tokenSign.state = SIGN_TOKEN_INIT;
     cx_sha256_init(&state.tokenSign.sha256);
     return io_send_return1(R_SUCCESS);
 }
 
-static int p1TokenMsgBytesHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
-    if (isLastCommandDifferent || (STATE_INVALID == state.tokenSign.mode)) {
+static int p1TokenMsgBytesHandler(const command_t* const cmd) {
+    if (SIGN_TOKEN_UNINIT == state.tokenSign.state) {
         return cleanAndReturn(R_WRONG_STATE);
     }
 
-    state.tokenSign.mode = STATE_BYTES_RECEIVED;
+    state.tokenSign.state = SIGN_TOKEN_BYTES_RECEIVED;
 
     cx_hash_no_throw(&state.tokenSign.sha256.header, 0, cmd->data, cmd->lc, 0, 0);
 
     return io_send_return1(R_SUCCESS);
 }
 
-static int p1TokenSignHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
-    if (isLastCommandDifferent || (STATE_BYTES_RECEIVED != state.tokenSign.mode)) {
+static int p1TokenSignHandler(const command_t* const cmd) {
+    if (SIGN_TOKEN_BYTES_RECEIVED != state.tokenSign.state) {
         return cleanAndReturn(R_WRONG_STATE);
     }
 
@@ -184,15 +176,13 @@ static int p1TokenSignHandler(const command_t* const cmd, const bool isLastComma
 
 // Since this is a callback function, and this handler manages state, it's this function's
 // reposibility to clear the state Every time we get some sort of an error
-int signTokenMessageHandler(const command_t* const cmd, const bool isLastCommandDifferent) {
-    if (isLastCommandDifferent) cleanTokenSignState();
-
+int signTokenMessageHandler(const command_t* const cmd) {
     if (P1_INIT == cmd->p1) {
         return p1TokenInitHandler();
     } else if (P1_MSG_BYTES == cmd->p1) {
-        return p1TokenMsgBytesHandler(cmd, isLastCommandDifferent);
+        return p1TokenMsgBytesHandler(cmd);
     } else if (P1_SIGN == cmd->p1) {
-        return p1TokenSignHandler(cmd, isLastCommandDifferent);
+        return p1TokenSignHandler(cmd);
     } else {
         return cleanAndReturn(R_UNKNOWN_CMD_PARAM_ERR);
     }
