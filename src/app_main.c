@@ -153,6 +153,7 @@ void app_main(void) {
                 }
 
                 if (handlerFn(&cmd) < 0) {
+                    lastCmdNumber = 0;  // forces the next handler call to clean the state
                     CLOSE_TRY;
                     continue;
                 }
