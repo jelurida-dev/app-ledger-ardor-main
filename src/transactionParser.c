@@ -215,11 +215,12 @@ uint8_t parseAppendagesFlags() {
                     // special case: not enough space to show the text for all appendages, revert to
                     // bitmap
                     if (free < len + 2) {  // +2 for separator and null terminator
-                        for (uint8_t i = 0; i < NUM_APPENDAGE_TYPES; i++) {
+                        int limit = MIN(NUM_APPENDAGE_TYPES, free - 1);  // security audit
+                        for (uint8_t i = 0; i < limit; i++) {
                             state.txnAuth.appendagesText[i] =
                                 (appendages & 1 << i) != 0 ? '1' + i : '_';
                         }
-                        state.txnAuth.appendagesText[NUM_APPENDAGE_TYPES] = '\0';
+                        state.txnAuth.appendagesText[limit] = '\0';
                         return R_SUCCESS;
                     }
 

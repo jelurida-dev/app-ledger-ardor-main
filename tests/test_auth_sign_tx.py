@@ -6,6 +6,12 @@ from utils import enable_blind_signing
 RET_VAL_TRANSACTION_ACCEPTED = 8 # R_FINISHED
 RET_VAL_TRANSACTION_REJECTED = 1 # R_REJECT
 
+#
+# HOW TO ADD A NEW TEST
+#
+# To get the unsigned bytes of a transaction, you can use the Ardor wallet API.
+# Send the transaction to the wallet API, and then use the "getTransactionBytes" API call.
+
 def _sign_tx_test(backend, navigator, unsigned_bytes_hex: str, expected_signature: str, test_name: str, instructions, signing_account = PATH_STR_0):
     tx_bytes = bytes.fromhex(unsigned_bytes_hex)
     client = ArdorCommandSender(backend)
@@ -147,3 +153,21 @@ def test_asset_transfer(backend, navigator, firmware):
     else:
         instructions = get_nano_instructions(firmware, 9, 6)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_asset_transfer", instructions)
+
+def test_send_ignis_4_attachments(backend, navigator, firmware):
+    tx_bytes = "020000000000018b07ef0a0f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20627a6c6937f5eaca00b108190000000000f8590d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc9586c0000000103300089e13a97c49b577a2e602d6ee422eebb37426af6f636fea77ef9968d0b6d890ef6744230f7c030975dc2b45cbdef080c8915cea2345e8cf14822ce90f6c994fe83e0ed79c1f7c0c88f5c694fac0e9d8d0100e7c3eb4eab23682b7e07aa780f63fe3986b326013c49c978cdc4e2b5d8b4e06301e288f39fdad8a465c30c8d9839e707718f4fde871c265cca5b6fea5938a4f91e012b2dd800000100000000000000000000000000000002d33f5982ba1e78e033ece497d15c7f34000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    expected_signature = "3552aaa5cdbf592f21eeee08480c06bb4f634f2b65f9947118623ea2c871bf074316566b2b7a27d8ed3e9f1b61aa6143ff4a2dbe3d16518d9056f0a97a64c053"
+    if firmware.device == 'stax':
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
+                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
+                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
+                        NavInsID.USE_CASE_REVIEW_TAP,     # ack tx signing operation
+                        NavInsID.USE_CASE_REVIEW_TAP,     # chain, amount, recipient
+                        NavInsID.USE_CASE_REVIEW_TAP,     # fees
+                        NavInsID.USE_CASE_REVIEW_CONFIRM, # confirm tx signing operation
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+    else:
+        enable_blind_signing(navigator)
+        instructions = get_nano_instructions(firmware, 12, 8)
+    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_4_attachments", 
+                  instructions, PATH_STR_0)
