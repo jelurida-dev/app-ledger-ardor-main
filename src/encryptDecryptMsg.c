@@ -172,6 +172,11 @@ static int aesEncryptDecryptHandler(const command_t* const cmd) {
         return io_send_return1(R_WRONG_SIZE_MODULO_ERR);
     }
 
+    if (0 == cmd->data) {
+        cleanState();
+        return io_send_return1(R_NOT_ALL_BYTES_READ);
+    }
+
     uint8_t* inPtr = cmd->data;
     uint8_t* outPtr = state.encryption.buffer + 1;
     state.encryption.buffer[0] = R_SUCCESS;
