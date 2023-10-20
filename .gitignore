@@ -6,7 +6,6 @@ build/
 src/glyphs\.c
 src/glyphs\.h
 usbtool/
-src/txnTypeLists.c
 .vscode/
 output-scan-build/
 tests/build/
