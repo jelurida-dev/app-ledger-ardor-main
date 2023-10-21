@@ -365,7 +365,7 @@ uint8_t addToReadBuffer(const uint8_t* const newData, const uint8_t numBytes) {
         state.txnAuth.readBuffer[i] = state.txnAuth.readBuffer[i + offset];
     }
 
-    memset(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos - offset, 0, offset);
+    explicit_bzero(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos - offset, offset);
 
     state.txnAuth.readBufferEndPos -= offset;
     state.txnAuth.readBufferReadOffset = 0;

@@ -117,11 +117,11 @@ static int initHandler(const command_t* const cmd) {
 
     if (R_KEY_DERIVATION_EX == ret) {
         cleanState();
-        memset(encryptionKey, 0, sizeof(encryptionKey));  // cleaning the key from memory
+        explicit_bzero(encryptionKey, sizeof(encryptionKey));  // cleaning the key from memory
         return io_send_return3(ret, exceptionOut >> 8, exceptionOut & 0xFF);
     } else if (R_SUCCESS != ret) {
         cleanState();
-        memset(encryptionKey, 0, sizeof(encryptionKey));  // cleaning the key from memory
+        explicit_bzero(encryptionKey, sizeof(encryptionKey));  // cleaning the key from memory
         return io_send_return1(ret);
     }
 
@@ -155,7 +155,7 @@ static int initHandler(const command_t* const cmd) {
         bufferSize += sizeof(encryptionKey);
     }
 
-    memset(encryptionKey, 0, sizeof(encryptionKey));  // cleaning the key from memory
+    explicit_bzero(encryptionKey, sizeof(encryptionKey));  // cleaning the key from memory
     return io_send_response_pointer(state.encryption.buffer, bufferSize, SW_OK);
 }
 

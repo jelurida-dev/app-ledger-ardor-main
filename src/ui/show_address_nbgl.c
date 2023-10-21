@@ -31,7 +31,7 @@ static void continueReview(void) {
 }
 
 void showAddressScreen(const uint64_t accountId) {
-    memset(rsAddress, 0, sizeof(rsAddress));
+    explicit_bzero(rsAddress, sizeof(rsAddress));
     snprintf(rsAddress, sizeof(rsAddress), APP_PREFIX);
     reedSolomonEncode(accountId, rsAddress + strlen(rsAddress));
 

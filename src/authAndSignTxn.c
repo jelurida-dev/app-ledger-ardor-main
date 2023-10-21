@@ -231,12 +231,12 @@ uint8_t signTxn(const uint8_t* const derivationPath,
                 uint8_t* const destBuffer,
                 uint16_t* const outException) {
     uint8_t keySeed[32];
-    memset(keySeed, 0, sizeof(keySeed));
+    explicit_bzero(keySeed, sizeof(keySeed));
     uint8_t ret = 0;
 
     ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, outException);
     if (R_SUCCESS != ret) {
-        memset(keySeed, 0, sizeof(keySeed));
+        explicit_bzero(keySeed, sizeof(keySeed));
         return ret;
     }
 
@@ -247,8 +247,8 @@ uint8_t signTxn(const uint8_t* const derivationPath,
     signMsg(keySeed, txHash, destBuffer);
 
     // clean buffers
-    memset(txHash, 0, sizeof(txHash));
-    memset(keySeed, 0, sizeof(keySeed));
+    explicit_bzero(txHash, sizeof(txHash));
+    explicit_bzero(keySeed, sizeof(keySeed));
 
     return R_SUCCESS;
 }

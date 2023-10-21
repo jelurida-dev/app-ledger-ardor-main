@@ -103,7 +103,7 @@ void app_main(void) {
         BEGIN_TRY {
             TRY {
                 // Reset structured APDU command
-                memset(&cmd, 0, sizeof(cmd));
+                explicit_bzero(&cmd, sizeof(cmd));
 
                 // Receive command bytes in G_io_apdu_buffer
                 if ((input_len = io_recv_command()) < 0) {

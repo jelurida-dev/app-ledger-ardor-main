@@ -52,7 +52,7 @@ int showAddressHandler(const command_t* const cmd) {
 
     uint16_t exception = 0;
     uint8_t publicKey[32];
-    memset(publicKey, 0, sizeof(publicKey));
+    explicit_bzero(publicKey, sizeof(publicKey));
 
     // cmd->lc (derivationParamLengthInBytes) should be multiple of 4, it's checked above
     uint8_t ret = ardorKeys(cmd->data, cmd->lc / sizeof(uint32_t), 0, publicKey, 0, 0, &exception);

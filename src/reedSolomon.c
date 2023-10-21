@@ -43,7 +43,7 @@ uint8_t gmult(const uint8_t a, const uint8_t b) {
 //@output out - output should be of length 21;
 void reedSolomonEncode(uint64_t inp, char* const output) {
     uint8_t plain_string_32[CODEWORD_LENGTH];
-    memset(plain_string_32, 0, CODEWORD_LENGTH);
+    explicit_bzero(plain_string_32, CODEWORD_LENGTH);
 
     uint8_t index = 0;
 

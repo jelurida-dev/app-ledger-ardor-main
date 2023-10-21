@@ -36,7 +36,7 @@ states_t state;
 const internalStorage_t N_storage_real;
 
 void cleanState() {
-    memset(&state, 0, sizeof(state));
+    explicit_bzero(&state, sizeof(state));
 }
 
 // SHA-256 of two buffers, the output is the hash of the concatenation of the two buffers
@@ -52,7 +52,7 @@ void sha256TwoBuffers(const uint8_t *const bufferTohash1,
                       uint8_t *const output) {
     cx_sha256_t shaContext;
 
-    memset(output, 0, 32);
+    explicit_bzero(output, 32);
     cx_sha256_init(&shaContext);  // return value has no info
 
     cx_hash_no_throw(&shaContext.header, 0, bufferTohash1, sizeOfBuffer1, output, 32);
@@ -79,23 +79,23 @@ void sha256Buffer(const uint8_t *const in, const uint16_t len, uint8_t *const ou
 //@param[out] sig should point to 64 bytes allocated to hold the signiture of the message
 void signMsg(uint8_t *const keySeedBfr, const uint8_t *const msgSha256, uint8_t *const sig) {
     uint8_t publicKeyX[32], privateKey[32];
-    memset(publicKeyX, 0, sizeof(publicKeyX));
-    memset(privateKey, 0, sizeof(privateKey));
+    explicit_bzero(publicKeyX, sizeof(publicKeyX));
+    explicit_bzero(privateKey, sizeof(privateKey));
 
     keygen25519(publicKeyX, privateKey, keySeedBfr);
 
     uint8_t x[32];
-    memset(x, 0, sizeof(x));
+    explicit_bzero(x, sizeof(x));
 
     sha256TwoBuffers(msgSha256, 32, privateKey, sizeof(privateKey), x);
 
     uint8_t Y[32];
-    memset(Y, 0, sizeof(Y));
+    explicit_bzero(Y, sizeof(Y));
 
     keygen25519(Y, 0, x);
 
     uint8_t h[32];
-    memset(h, 0, sizeof(h));
+    explicit_bzero(h, sizeof(h));
 
     sha256TwoBuffers(msgSha256, 32, Y, sizeof(Y), h);
 
@@ -104,10 +104,10 @@ void signMsg(uint8_t *const keySeedBfr, const uint8_t *const msgSha256, uint8_t 
     sign25519(sig, h, x, privateKey);
 
     // clean buffers
-    memset(privateKey, 0, sizeof(privateKey));
-    memset(x, 0, sizeof(x));
-    memset(Y, 0, sizeof(Y));
-    memset(h, 0, sizeof(h));
+    explicit_bzero(privateKey, sizeof(privateKey));
+    explicit_bzero(x, sizeof(x));
+    explicit_bzero(Y, sizeof(Y));
+    explicit_bzero(h, sizeof(h));
 }
 
 // from curveConversion.C
@@ -143,7 +143,7 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
     // os_derive_bip32_no_throw doesn't accept derivation paths located on the input buffer, so we
     // make a local stack copy
     uint32_t copiedDerivationPath[MAX_DERIVATION_LENGTH];
-    memset(copiedDerivationPath, 0, sizeof(copiedDerivationPath));
+    explicit_bzero(copiedDerivationPath, sizeof(copiedDerivationPath));
     memmove(copiedDerivationPath, derivationPath, derivationPathLengthInUints32 * sizeof(uint32_t));
 
     for (uint8_t i = 0; i < sizeof(bipPrefix) / sizeof(bipPrefix[0]); i++) {
@@ -153,14 +153,14 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
     }
 
     uint8_t KLKR[64];
-    memset(KLKR, 0, sizeof(KLKR));
+    explicit_bzero(KLKR, sizeof(KLKR));
     cx_err_t ret = os_derive_bip32_no_throw(CX_CURVE_Ed25519,
                                             copiedDerivationPath,
                                             derivationPathLengthInUints32,
                                             KLKR,
                                             chainCodeOut);
     if (CX_OK != ret) {
-        memset(KLKR, 0, sizeof(KLKR));
+        explicit_bzero(KLKR, sizeof(KLKR));
         *exceptionOut = (uint16_t) ret;
         return R_KEY_DERIVATION_EX;
     }
@@ -180,8 +180,8 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
         cx_ecfp_public_key_t publicKey;
         ret = cx_ecfp_init_public_key_no_throw(CX_CURVE_Ed25519, 0, 0, &publicKey);
         if (CX_OK != ret) {
-            memset(privateKey.d, 0, sizeof(privateKey.d));
-            memset(KLKR, 0, sizeof(KLKR));
+            explicit_bzero(privateKey.d, sizeof(privateKey.d));
+            explicit_bzero(KLKR, sizeof(KLKR));
             *exceptionOut = (uint16_t) ret;
             return R_KEY_DERIVATION_EX;
         }
@@ -197,15 +197,15 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
                                              NULL,
                                              0);
         if (CX_OK != ret) {
-            memset(privateKey.d, 0, sizeof(privateKey.d));
-            memset(KLKR, 0, sizeof(KLKR));
+            explicit_bzero(privateKey.d, sizeof(privateKey.d));
+            explicit_bzero(KLKR, sizeof(KLKR));
             *exceptionOut = (uint16_t) ret;
             return R_KEY_DERIVATION_EX;
         }
 
         // copy public key from big endian to little endian
         uint8_t publicKeyYLE[32];
-        memset(publicKeyYLE, 0, sizeof(publicKeyYLE));
+        explicit_bzero(publicKeyYLE, sizeof(publicKeyYLE));
         for (uint8_t i = 0; i < sizeof(publicKeyYLE); i++) {
             publicKeyYLE[i] = publicKey.W[64 - i];
         }
@@ -224,11 +224,11 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
             memmove(publicKeyEd25519YLEWithXParityOut, publicKeyYLE, 32);
         }
 
-        memset(publicKeyYLE, 0, sizeof(publicKeyYLE));
+        explicit_bzero(publicKeyYLE, sizeof(publicKeyYLE));
     }
 
-    memset(privateKey.d, 0, sizeof(privateKey.d));
-    memset(KLKR, 0, sizeof(KLKR));
+    explicit_bzero(privateKey.d, sizeof(privateKey.d));
+    explicit_bzero(KLKR, sizeof(KLKR));
 
     return R_SUCCESS;
 }
@@ -245,7 +245,7 @@ uint8_t getSharedEncryptionKey(const uint8_t *const derivationPath,
                                uint16_t *const exceptionOut,
                                uint8_t *const aesKeyOut) {
     uint8_t keySeed[32];
-    memset(keySeed, 0, sizeof(keySeed));
+    explicit_bzero(keySeed, sizeof(keySeed));
 
     uint8_t ret =
         ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, exceptionOut);
@@ -255,7 +255,7 @@ uint8_t getSharedEncryptionKey(const uint8_t *const derivationPath,
     }
 
     uint8_t sharedKey[32];
-    memset(sharedKey, 0, sizeof(sharedKey));
+    explicit_bzero(sharedKey, sizeof(sharedKey));
 
     curve25519(sharedKey, keySeed, targetPublicKey);  // should use only the first
                                                       // 32 bytes of keySeed
@@ -266,8 +266,8 @@ uint8_t getSharedEncryptionKey(const uint8_t *const derivationPath,
     sha256Buffer(sharedKey, sizeof(sharedKey), aesKeyOut);
 
     // clean up buffers
-    memset(keySeed, 0, sizeof(keySeed));
-    memset(sharedKey, 0, sizeof(sharedKey));
+    explicit_bzero(keySeed, sizeof(keySeed));
+    explicit_bzero(sharedKey, sizeof(sharedKey));
 
     return R_SUCCESS;
 }

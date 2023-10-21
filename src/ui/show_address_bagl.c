@@ -19,7 +19,7 @@ UX_STEP_CB(saFlowPage2, pb, showAddressConfirm(), {&C_icon_validate_14, "Done"})
 UX_FLOW(saFlow, &saFlowPage1, &saFlowPage2);
 
 void showAddressScreen(const uint64_t accountId) {
-    memset(screenContent, 0, sizeof(screenContent));
+    explicit_bzero(screenContent, sizeof(screenContent));
     snprintf(screenContent, sizeof(screenContent), APP_PREFIX);
     reedSolomonEncode(accountId, screenContent + strlen(screenContent));
 

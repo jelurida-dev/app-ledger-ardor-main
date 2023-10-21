@@ -60,11 +60,11 @@ static int cleanAndReturn(uint8_t ret) {
 void signTokenConfirm() {
     uint16_t exception = 0;
     uint8_t keySeed[32];
-    memset(keySeed, 0, sizeof(keySeed));
+    explicit_bzero(keySeed, sizeof(keySeed));
 
     // gotta do some space reuse
     uint8_t publicKeyAndFinalHash[32];
-    memset(publicKeyAndFinalHash, 0, sizeof(publicKeyAndFinalHash));
+    explicit_bzero(publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
     uint8_t ret = ardorKeys(state.tokenSign.ptrDerivationPath,
                             state.tokenSign.derivationPathLengthInUints32,
                             keySeed,
@@ -115,7 +115,7 @@ void signTokenConfirm() {
                      sizeof(publicKeyAndFinalHash));
 
     signMsg(keySeed, publicKeyAndFinalHash, state.tokenSign.token + offset);
-    memset(keySeed, 0, sizeof(keySeed));
+    explicit_bzero(keySeed, sizeof(keySeed));
 
     io_send_response_pointer(state.tokenSign.token, sizeof(state.tokenSign.token), SW_OK);
     cleanState();
