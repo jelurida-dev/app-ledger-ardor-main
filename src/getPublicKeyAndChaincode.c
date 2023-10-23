@@ -47,6 +47,13 @@
 
 */
 
+#define BUFFER_R_SUCESS_OFFSET 0
+#define BUFFER_PUBLIC_KEY_CURVE_OFFSET 1
+#define BUFFER_PUBLIC_KEY_ED25519_OFFSET 33
+#define BUFFER_CHAIN_CODE_OFFSET 65
+#define BUFFER_SIZE 97  // 1 R_SUCCESS + 32 publicKeyCurve + 32 publicKeyEd25519YLE + 32 chainCode
+#define REDUCED_RESPONSE_SIZE 33  // 1 R_SUCCESS + 32 publicKeyCurve
+
 int getPublicKeyAndChainCodeHandler(const command_t* const cmd) {
     if ((P1_GET_PUBLIC_KEY != cmd->p1) &&
         (P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY != cmd->p1)) {
@@ -66,26 +73,21 @@ int getPublicKeyAndChainCodeHandler(const command_t* const cmd) {
 
     // Instead of having 3 buffers for the public keys and chain code we use one buffer that
     // we will directly send as an APDU, instead of having to copy the data to the APDU buffer.
-    // Buffer offsets:
-    // 0: R_SUCCESS
-    // 1: publicKeyCurve
-    // 33: publicKeyEd25519YLE
-    // 65: chainCode
-    uint8_t buffer[97];  // 1 R_SUCCESS + 32 publicKeyCurve + 32 publicKeyEd25519YLE + 32 chainCode
+    uint8_t buffer[BUFFER_SIZE];
     uint16_t exception = 0;
 
     uint8_t ret = ardorKeys(cmd->data,
                             derivationParamLengthInBytes / sizeof(uint32_t),
                             0,
-                            buffer + 1,
-                            buffer + 33,
-                            buffer + 65,
+                            buffer + BUFFER_PUBLIC_KEY_CURVE_OFFSET,
+                            buffer + BUFFER_PUBLIC_KEY_ED25519_OFFSET,
+                            buffer + BUFFER_CHAIN_CODE_OFFSET,
                             &exception);
 
     if (ret != R_SUCCESS) {
         return io_send_return3(ret, exception >> 8, exception & 0xFF);
     }
     buffer[0] = R_SUCCESS;
-    size_t responseSize = P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY == cmd->p1 ? 97 : 33;
+    size_t responseSize = P1_GET_PUBLIC_KEY == cmd->p1 ? REDUCED_RESPONSE_SIZE : BUFFER_SIZE;
     return io_send_response_pointer(buffer, responseSize, SW_OK);
 }

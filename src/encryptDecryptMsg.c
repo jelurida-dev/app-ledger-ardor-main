@@ -34,10 +34,13 @@
 #define P1_INIT_DECRYPT_SHOW_SHARED_KEY 3
 #define P1_AES_ENCRYPT_DECRYPT 4
 
+#define NONCE_LENGTH 32
+#define IV_LENGTH 16
+
 /*
 
    This command allows the client to encrypt and decrypt messages that are assigned to some foreign
-   public key and nonce First you need to call the right INIT function, you have 3 choices. After
+   public key. First you need to call the right INIT function, you have 3 choices. After
    that you call P1_AES_ENCRYPT_DECRYPT as many times as you need
 
     API:
@@ -47,11 +50,11 @@
         returns:    1 byte status | nonce (on success) | IV
 
         P1: P1_INIT_DECRYPT_HIDE_SHARED_KEY:
-        dataBuffer: derivaiton path (uint32) * some length | second party public key | nonce | IV
+        dataBuffer: derivation path (uint32) * some length | second party public key | nonce | IV
         returns:    1 byte status
 
         P1: P1_INIT_DECRYPT_SHOW_SHARED_KEY:
-        dataBuffer: derivaiton path (uint32) * some length | second party public key | nonce | IV
+        dataBuffer: derivation path (uint32) * some length | second party public key | nonce | IV
         returns:    1 byte status | sharedkey 32 bytes
 
         P1_AES_ENCRYPT_DECRYPT:
@@ -65,10 +68,11 @@ static bool getDerivationLength(const uint8_t p1,
     int16_t derivationLengthSigned = 0;
 
     if (P1_INIT_ENCRYPT == p1) {
-        derivationLengthSigned = (dataLength - 32) / sizeof(uint32_t);  // no underflow because
-                                                                        // type is signed
+        // no underflow because the type is signed
+        derivationLengthSigned = (dataLength - PUBLIC_KEY_SIZE) / sizeof(uint32_t);
     } else {
-        derivationLengthSigned = (dataLength - 32 * 2 - 16) / sizeof(uint32_t);
+        derivationLengthSigned =
+            (dataLength - PUBLIC_KEY_SIZE - NONCE_LENGTH - IV_LENGTH) / sizeof(uint32_t);
     }
 
     if ((MIN_DERIVATION_LENGTH > derivationLengthSigned) ||
@@ -97,8 +101,8 @@ static int initHandler(const command_t* const cmd) {
         return io_send_return1(R_WRONG_SIZE_ERR);
     }
 
-    uint8_t nonce[32];
-    const uint8_t* noncePtr = cmd->data + derivationLength * sizeof(uint32_t) + 32;
+    uint8_t nonce[NONCE_LENGTH];
+    const uint8_t* noncePtr = cmd->data + derivationLength * sizeof(uint32_t) + PUBLIC_KEY_SIZE;
 
     if (P1_INIT_ENCRYPT == cmd->p1) {
         cx_trng_get_random_data(nonce, sizeof(nonce));

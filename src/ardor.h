@@ -139,6 +139,9 @@ typedef struct {
 
 enum signTokenStates { SIGN_TOKEN_UNINIT, SIGN_TOKEN_INIT, SIGN_TOKEN_BYTES_RECEIVED };
 
+// 100-byte token consists of a 32-byte public key, a 4-byte timestamp, and a 64-byte signature
+#define TOKEN_SIZE (1 + PUBLIC_KEY_SIZE + TIMESTAMP_SIZE + SIGNATURE_SIZE)
+
 // State of the sign token handler
 typedef struct {
     enum signTokenStates state;             // The state of the handler
@@ -146,8 +149,7 @@ typedef struct {
     uint32_t timestamp;                     // The timestamp of the token
     uint8_t derivationPathLengthInUints32;  // The length of the derivation path
     uint8_t* ptrDerivationPath;             // The derivation path
-    uint8_t token[101];                     // The 1 byte response code + token
-    // 100-byte token consists of a 32-byte public key, a 4-byte timestamp, and a 64-byte signature
+    uint8_t token[TOKEN_SIZE];              // The 1 byte response code + token
 } signTokenState_t;
 
 // This is the states type, the actual object is defined in ardor.c

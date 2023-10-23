@@ -22,9 +22,7 @@
 #include "returnValues.h"
 #include "transactionParser.h"
 
-#define TX_TIMESTAMP_SIZE 4
 #define TX_TIMESTAMP_DEADLINE 2
-#define TX_PUBLIC_KEY_SIZE 32
 
 // returns the txn type at the given index
 txnType* txnTypeAtIndex(const uint8_t index) {
@@ -107,7 +105,8 @@ uint8_t parseMainTxnData() {
     // except payments which don't require special parsing
     if (LEN_TXN_TYPES <= state.txnAuth.txnTypeIndex ||
         (0 == currentTxnType->attachmentParsingFunctionNumber &&
-         0x0000 != state.txnAuth.txnTypeAndSubType && 0x00fe != state.txnAuth.txnTypeAndSubType)) {
+         TX_TYPE_ORDINARY_PAYMENT != state.txnAuth.txnTypeAndSubType &&
+         TX_TYPE_FXT_PAYMENT != state.txnAuth.txnTypeAndSubType)) {
         state.txnAuth.requiresBlindSigning = true;
     }
 
@@ -131,9 +130,9 @@ uint8_t parseMainTxnData() {
 
     ptr += sizeof(uint8_t);
 
-    ptr += TX_TIMESTAMP_SIZE;      // Skip the timestamp
+    ptr += TIMESTAMP_SIZE;         // Skip the timestamp
     ptr += TX_TIMESTAMP_DEADLINE;  // Skip the deadline
-    ptr += TX_PUBLIC_KEY_SIZE;     // Skip the sender publickey
+    ptr += PUBLIC_KEY_SIZE;        // Skip the sender publickey
 
     memmove(&(state.txnAuth.recipientId), ptr, sizeof(state.txnAuth.recipientId));
     ptr += sizeof(state.txnAuth.recipientId);
@@ -157,14 +156,6 @@ uint8_t parseMainTxnData() {
              sizeof(state.txnAuth.feeText) - ret - 1,
              " %s",
              chainName(state.txnAuth.chainId));
-
-    /* Comment unnecessary pointer movement over the last fields. Keeping for future reference.
-    ptr += sizeof(uint64_t);
-
-    ptr += 64;  //Skip the sig
-    ptr += 4;   //Skip the block height
-    ptr += 8;   //Skip the block Id
-    */
 
     addToFunctionStack(PARSE_FN_IGNORE_BYTES_UNTIL_THE_END);
 

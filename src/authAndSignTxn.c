@@ -36,6 +36,10 @@
 #define P1_CONTINUE 2
 #define P1_SIGN 3
 
+#define MODE_P1_MASK 0b00000011
+#define TX_SIZE_P1_MASK 0b11111100
+#define TX_SIZE_P1_SHIFT 6
+
 // This is the code that parses the txn for signing, it parses streamed tx bytes into the state
 // object while hashing the bytes to be signed later, displays a dialog of screens which contain the
 // parsed txn bytes from the state. It solves 2 no trivial problems:
@@ -270,7 +274,7 @@ static int p1InitContinueCommon(const command_t* const cmd) {
         signTransactionScreen();
         return 0;
     }
-    
+
     if ((R_SEND_MORE_BYTES != ret) && (R_FINISHED != ret)) {
         cleanState();
     }
@@ -281,7 +285,7 @@ static int p1InitContinueCommon(const command_t* const cmd) {
 static int p1InitHandler(const command_t* const cmd) {
     initTxnAuthState();
 
-    state.txnAuth.txnSizeBytes = ((cmd->p1 & 0b11111100) << 6) + cmd->p2;
+    state.txnAuth.txnSizeBytes = ((cmd->p1 & TX_SIZE_P1_MASK) << TX_SIZE_P1_SHIFT) + cmd->p2;
 
     if (BASE_TRANSACTION_SIZE > state.txnAuth.txnSizeBytes) {
         return io_send_response_pointer(&(const uint8_t){R_TXN_SIZE_TOO_SMALL}, 1, SW_OK);
@@ -318,7 +322,7 @@ static int p1SignHandler(const command_t* const cmd) {
     }
 
     uint16_t exception = 0;
-    uint8_t buffer[65];
+    uint8_t buffer[1 + SIGNATURE_SIZE];
     buffer[0] = R_SUCCESS;
     uint8_t ret = signTxn(cmd->data, cmd->lc / 4, buffer + 1, &exception);
 
@@ -343,11 +347,11 @@ int authAndSignTxnHandler(const command_t* const cmd) {
     if (1 > cmd->lc) {
         cleanState();
         return io_send_return1(R_WRONG_SIZE_ERR);
-    } else if (P1_INIT == (cmd->p1 & 0x03)) {
+    } else if (P1_INIT == (cmd->p1 & MODE_P1_MASK)) {
         return p1InitHandler(cmd);
-    } else if (P1_CONTINUE == (cmd->p1 & 0x03)) {
+    } else if (P1_CONTINUE == (cmd->p1 & MODE_P1_MASK)) {
         return p1ContinueHandler(cmd);
-    } else if (P1_SIGN == (cmd->p1 & 0x03)) {
+    } else if (P1_SIGN == (cmd->p1 & MODE_P1_MASK)) {
         return p1SignHandler(cmd);
     } else {
         return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);
