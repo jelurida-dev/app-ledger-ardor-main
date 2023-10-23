@@ -268,16 +268,14 @@ static int p1InitContinueCommon(const command_t* const cmd) {
 
     if (R_SHOW_DISPLAY == ret) {
         signTransactionScreen();
+        return 0;
     }
-
-    if (!((R_SEND_MORE_BYTES == ret) || (R_FINISHED == ret) || (R_SHOW_DISPLAY == ret))) {
+    
+    if ((R_SEND_MORE_BYTES != ret) && (R_FINISHED != ret)) {
         cleanState();
     }
 
-    if (R_SHOW_DISPLAY != ret) {
-        return io_send_return2(R_SUCCESS, ret);
-    }
-    return 0;
+    return io_send_return2(R_SUCCESS, ret);
 }
 
 static int p1InitHandler(const command_t* const cmd) {
