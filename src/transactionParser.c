@@ -291,7 +291,7 @@ static uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment(
         return R_UNSUPPORTED_ATTACHMENT_VERSION;
     }
 
-    ptr += 1;
+    ptr += 1;  // skip version byte
 
     memmove(&state.txnAuth.attachmentInt32Num1, ptr, sizeof(state.txnAuth.attachmentInt32Num1));
     ptr += sizeof(state.txnAuth.attachmentInt32Num1);
@@ -315,17 +315,19 @@ static uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment(
     return R_SUCCESS;
 }
 
-// PARSE_FN_ASK_ORDER_PLACEMENT_ATTACHMENT 5
+// PARSE_FN_ASSET_ORDER_PLACEMENT_ATTACHMENT 5
 // Parses a specific type of attachment
-static uint8_t parseAskOrderPlacementAttachment() {
+static uint8_t parseAssetOrderPlacementAttachment() {
     state.txnAuth.attachmentInt64Num1 = 0;  // assetId
     state.txnAuth.attachmentInt64Num2 = 0;  // quantityQNT
     state.txnAuth.attachmentInt64Num3 = 0;  // priceNQT
 
-    uint8_t* ptr = readFromBuffer(sizeof(state.txnAuth.attachmentInt64Num1) * 3);
+    uint8_t* ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachmentInt64Num1) * 3);
     if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
+
+    ptr += 1;  // skip version byte
 
     memmove(&state.txnAuth.attachmentInt64Num1, ptr, sizeof(state.txnAuth.attachmentInt64Num1));
     ptr += sizeof(state.txnAuth.attachmentInt64Num1);
@@ -360,7 +362,7 @@ static uint8_t parseAssetTransferAttachment() {
     state.txnAuth.attachmentInt64Num1 = 0;  // asset id
     state.txnAuth.attachmentInt64Num2 = 0;  // quantity
 
-    uint8_t* ptr = readFromBuffer(sizeof(state.txnAuth.attachmentInt64Num1) * 2);
+    uint8_t* ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachmentInt64Num1) * 2);
     if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
@@ -416,8 +418,8 @@ static uint8_t callFunctionNumber(const uint8_t functionNum) {
             return parseAppendagesFlags();
         case PARSE_FN_FXT_COIN_EXCHANGE_ORDER_ISSUE_OR_COIN_EXCHANGE_ORDER_ISSUE_ATTACHMENT:
             return parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment();
-        case PARSE_FN_ASK_ORDER_PLACEMENT_ATTACHMENT:
-            return parseAskOrderPlacementAttachment();
+        case PARSE_FN_ASSET_ORDER_PLACEMENT_ATTACHMENT:
+            return parseAssetOrderPlacementAttachment();
         case PARSE_FN_IGNORE_BYTES_UNTIL_THE_END:
             return parseIgnoreBytesUntilTheEnd();
         case PARSE_FN_ASSET_TRANSFER_ATTACHMENT:

@@ -189,3 +189,14 @@ def test_send_ignis_referenced_tx(backend, navigator, firmware):
         instructions = get_nano_instructions(firmware, 8, 6)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_referenced_tx", 
                   instructions, PATH_STR_0)
+
+def test_place_asset_exchange_order(backend, navigator, firmware):
+    tx_bytes = "02000000020201169bf50a0f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a200000000000000000000000000000000080841e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc9580000000001813b83eafc58a13a030000000000000080de800200000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    expected_signature = "2d0fcf25e6afb2015bde4f0d90d75cfeb718dbd80ef35d1adfca95d0b5e69c030349eb41a877bb0ca005ef2e67221d4592b3bc87c22cd3ee35c9c7092eed5055"
+    if firmware.device == 'stax':
+        instructions = get_stax_instructions(3)
+    else:
+        enable_blind_signing(navigator)
+        instructions = get_nano_instructions(firmware, 8, 6)
+    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_place_asset_exchange_order", 
+                  instructions, PATH_STR_0)

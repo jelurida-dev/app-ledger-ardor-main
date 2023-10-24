@@ -180,6 +180,34 @@ static uint8_t setCoinExchangeScreenTexts() {
     return R_SUCCESS;
 }
 
+static uint8_t setAssetOrderScreenTexts() {
+    snprintf(state.txnAuth.optionalWindow1Title,
+             sizeof(state.txnAuth.optionalWindow1Title),
+             "Asset Id");
+    formatAmount(state.txnAuth.optionalWindow1Text,
+                 sizeof(state.txnAuth.optionalWindow1Text),
+                 state.txnAuth.attachmentInt64Num1,
+                 0);
+
+    snprintf(state.txnAuth.optionalWindow2Title,
+             sizeof(state.txnAuth.optionalWindow2Title),
+             "Quantity QNT");
+    formatAmount(state.txnAuth.optionalWindow2Text,
+                 sizeof(state.txnAuth.optionalWindow2Text),
+                 state.txnAuth.attachmentInt64Num2,
+                 0);
+
+    snprintf(state.txnAuth.optionalWindow3Title,
+             sizeof(state.txnAuth.optionalWindow3Title),
+             "Price NQT");
+    formatAmount(state.txnAuth.optionalWindow3Text,
+                 sizeof(state.txnAuth.optionalWindow3Text),
+                 state.txnAuth.attachmentInt64Num3,
+                 0);
+
+    return R_SUCCESS;
+}
+
 static uint8_t setAssetTransferScreenTexts() {
     snprintf(state.txnAuth.optionalWindow1Title,
              sizeof(state.txnAuth.optionalWindow1Title),
@@ -222,6 +250,10 @@ uint8_t setScreenTexts() {
             case TX_TYPE_FXT_COIN_EXCHANGE_ORDER_ISSUE:
             case TX_TYPE_COIN_EXCHANGE_ORDER_ISSUE:
                 return setCoinExchangeScreenTexts();
+
+            case TX_TYPE_ASK_ORDER_PLACEMENT:
+            case TX_TYPE_BID_ORDER_PLACEMENT:
+                return setAssetOrderScreenTexts();
 
             case TX_TYPE_ASSET_TRANSFER:
                 return setAssetTransferScreenTexts();
