@@ -273,17 +273,6 @@ static uint8_t parseAppendagesFlags() {
     return R_SUCCESS;
 }
 
-// PARSE_FN_REFERENCED_TXN 3
-// Parses a txn reference, by just skiping over the bytes :)
-static uint8_t parseReferencedTxn() {
-    state.txnAuth.requiresBlindSigning = true;
-    if (readFromBuffer(sizeof(uint32_t) + 32) == 0) {
-        return R_SEND_MORE_BYTES;
-    }
-
-    return R_SUCCESS;
-}
-
 // PARSE_FN_FXT_COIN_EXCHANGE_ORDER_ISSUE_OR_COIN_EXCHANGE_ORDER_ISSUE_ATTACHMENT 4
 // Parses a specific type of attachment
 static uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
@@ -425,8 +414,6 @@ static uint8_t callFunctionNumber(const uint8_t functionNum) {
             return parseMainTxnData();
         case PARSE_FN_APPENDAGES_FLAGS:
             return parseAppendagesFlags();
-        case PARSE_FN_REFERENCED_TXN:
-            return parseReferencedTxn();
         case PARSE_FN_FXT_COIN_EXCHANGE_ORDER_ISSUE_OR_COIN_EXCHANGE_ORDER_ISSUE_ATTACHMENT:
             return parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment();
         case PARSE_FN_ASK_ORDER_PLACEMENT_ATTACHMENT:
