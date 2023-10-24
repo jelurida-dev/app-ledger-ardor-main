@@ -32,9 +32,6 @@
 int getVersionHandler(const command_t *const cmd) {
     UNUSED(cmd);
 
-    if (ARDOR_SPECIAL_IDENTIFIER_LEN > 3) {
-        return -1;
-    }
     uint8_t data[7];
     data[0] = APPVERSION_M;
     data[1] = APPVERSION_N;

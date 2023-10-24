@@ -385,7 +385,7 @@ uint8_t formatChainAmount(char *const out,
     // append an space and the chain name
     snprintf(out + ret - 1, maxLength - ret - 1, " %s", chainName(chainId));
 
-    return ret > 0 ? ret + strlen(chainName(chainId)) + 1 : 0;
+    return ret + strlen(chainName(chainId)) + 1;
 }
 
 // app_stack_canary is defined by the link script to be at the start of the user data or end of the

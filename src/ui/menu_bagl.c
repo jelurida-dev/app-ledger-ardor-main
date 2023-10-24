@@ -19,13 +19,11 @@ enum SettingsMenuOption {
 };
 
 static unsigned int settings_submenu_option_index(enum SettingsMenuOption settings_menu_option) {
-    switch (settings_menu_option) {
-        case SettingsMenuOptionAllowBlindSign:
-            return (unsigned int) settings_menu_option;
-        default:
-            break;
+    if (settings_menu_option == SettingsMenuOptionAllowBlindSign) {
+        return (unsigned int) settings_menu_option;
+    } else {
+        return 0;
     }
-    return 0;
 }
 
 const char* const settings_submenu_getter_values[] = {
@@ -41,15 +39,13 @@ static const char* settings_submenu_getter(unsigned int idx) {
 }
 
 static void settings_submenu_selector(unsigned int idx) {
-    switch (idx) {
-        case 0:
-            ux_menulist_init_select(0,
-                                    allow_blind_sign_data_getter,
-                                    allow_blind_sign_data_selector,
-                                    N_storage.settings.allowBlindSigning);
-            break;
-        default:
-            ui_menu_main();
+    if (idx == 0) {
+        ux_menulist_init_select(0,
+                                allow_blind_sign_data_getter,
+                                allow_blind_sign_data_selector,
+                                N_storage.settings.allowBlindSigning);
+    } else {
+        ui_menu_main();
     }
 }
 

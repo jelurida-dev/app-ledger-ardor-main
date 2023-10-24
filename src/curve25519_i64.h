@@ -9,6 +9,8 @@
  * Based on work by Daniel J Bernstein, http://cr.yp.to/ecdh.html
  */
 
+#pragma once
+
 #include <stddef.h>
 
 typedef unsigned char k25519[32]; /* any type of key */

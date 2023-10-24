@@ -108,115 +108,123 @@ void signTransactionCancel() {
     io_send_return2(R_SUCCESS, R_REJECT);
 }
 
+static uint8_t setPaymentsScreenTexts() {
+    snprintf(state.txnAuth.optionalWindow1Title,
+             sizeof(state.txnAuth.optionalWindow1Title),
+             "Amount");
+
+    uint8_t ret = formatChainAmount(state.txnAuth.optionalWindow1Text,
+                                    sizeof(state.txnAuth.optionalWindow1Text),
+                                    state.txnAuth.amount,
+                                    state.txnAuth.chainId);
+    if (ret == 0) {
+        return R_FORMAT_AMOUNT_ERR;
+    }
+
+    snprintf(state.txnAuth.optionalWindow2Title,
+             sizeof(state.txnAuth.optionalWindow2Title),
+             "Recipient");
+    snprintf(state.txnAuth.optionalWindow2Text,
+             sizeof(state.txnAuth.optionalWindow2Text),
+             APP_PREFIX);
+    reedSolomonEncode(
+        state.txnAuth.recipientId,
+        state.txnAuth.optionalWindow2Text + strlen(state.txnAuth.optionalWindow2Text));
+
+    return R_SUCCESS;
+}
+
+static uint8_t setCoinExchangeScreenTexts() {
+    snprintf(state.txnAuth.optionalWindow1Title,
+             sizeof(state.txnAuth.optionalWindow1Title),
+             "Amount");
+
+    uint8_t ret = formatAmount(state.txnAuth.optionalWindow1Text,
+                               sizeof(state.txnAuth.optionalWindow1Text),
+                               state.txnAuth.attachmentInt64Num1,
+                               chainNumDecimalsBeforePoint(state.txnAuth.attachmentInt32Num2));
+
+    if (ret == 0) {
+        return R_FORMAT_AMOUNT_ERR;
+    }
+
+    // note: the existence of chainName(state.txnAuth.attachmentInt32Num2) was already
+    // checked in the parsing function
+    snprintf(state.txnAuth.optionalWindow1Text + ret - 1,
+             sizeof(state.txnAuth.optionalWindow1Text) - ret - 1,
+             " %s",
+             chainName(state.txnAuth.attachmentInt32Num2));
+
+    // note: the existence of chainName(state.txnAuth.attachmentInt32Num2) was already
+    // checked in the parsing function
+    snprintf(state.txnAuth.optionalWindow2Title,
+             sizeof(state.txnAuth.optionalWindow2Title),
+             "Price per %s",
+             chainName(state.txnAuth.attachmentInt32Num2));
+    ret = formatAmount(state.txnAuth.optionalWindow2Text,
+                       sizeof(state.txnAuth.optionalWindow2Text),
+                       state.txnAuth.attachmentInt64Num2,
+                       chainNumDecimalsBeforePoint(state.txnAuth.attachmentInt32Num1));
+
+    if (ret == 0) {
+        return R_FORMAT_AMOUNT_ERR;
+    }
+
+    // note: the existence of chainName(state.txnAuth.attachmentInt32Num1) was already
+    // checked in the parsing function
+    snprintf(state.txnAuth.optionalWindow2Text + ret - 1,
+             sizeof(state.txnAuth.optionalWindow2Text) - ret - 1,
+             " %s",
+             chainName(state.txnAuth.attachmentInt32Num1));
+
+    return R_SUCCESS;
+}
+
+static uint8_t setAssetTransferScreenTexts() {
+    snprintf(state.txnAuth.optionalWindow1Title,
+             sizeof(state.txnAuth.optionalWindow1Title),
+             "Asset Id");
+    formatAmount(state.txnAuth.optionalWindow1Text,
+                 sizeof(state.txnAuth.optionalWindow1Text),
+                 state.txnAuth.attachmentInt64Num1,
+                 0);
+
+    snprintf(state.txnAuth.optionalWindow2Title,
+             sizeof(state.txnAuth.optionalWindow2Title),
+             "Quantity QNT");
+    formatAmount(state.txnAuth.optionalWindow2Text,
+                 sizeof(state.txnAuth.optionalWindow2Text),
+                 state.txnAuth.attachmentInt64Num2,
+                 0);
+
+    snprintf(state.txnAuth.optionalWindow3Title,
+             sizeof(state.txnAuth.optionalWindow3Title),
+             "Recipient");
+    snprintf(state.txnAuth.optionalWindow3Text,
+             sizeof(state.txnAuth.optionalWindow3Text),
+             APP_PREFIX);
+    reedSolomonEncode(
+        state.txnAuth.recipientId,
+        state.txnAuth.optionalWindow3Text + strlen(state.txnAuth.optionalWindow3Text));
+
+    return R_SUCCESS;
+}
+
 // This function formats trxn data into text memebers of the state which the UI flow will read from
 // Returns: Success iff everything is good, otherwise probably some kind of formating error
 uint8_t setScreenTexts() {
-    uint8_t ret = 0;
-
     if (state.txnAuth.txnTypeIndex < LEN_TXN_TYPES) {
         switch (state.txnAuth.txnTypeAndSubType) {
             case TX_TYPE_ORDINARY_PAYMENT:
             case TX_TYPE_FXT_PAYMENT:
-
-                snprintf(state.txnAuth.optionalWindow1Title,
-                         sizeof(state.txnAuth.optionalWindow1Title),
-                         "Amount");
-
-                ret = formatChainAmount(state.txnAuth.optionalWindow1Text,
-                                        sizeof(state.txnAuth.optionalWindow1Text),
-                                        state.txnAuth.amount,
-                                        state.txnAuth.chainId);
-                if (ret == 0) {
-                    return R_FORMAT_AMOUNT_ERR;
-                }
-
-                snprintf(state.txnAuth.optionalWindow2Title,
-                         sizeof(state.txnAuth.optionalWindow2Title),
-                         "Recipient");
-                snprintf(state.txnAuth.optionalWindow2Text,
-                         sizeof(state.txnAuth.optionalWindow2Text),
-                         APP_PREFIX);
-                reedSolomonEncode(
-                    state.txnAuth.recipientId,
-                    state.txnAuth.optionalWindow2Text + strlen(state.txnAuth.optionalWindow2Text));
-
-                break;
+                return setPaymentsScreenTexts();
 
             case TX_TYPE_FXT_COIN_EXCHANGE_ORDER_ISSUE:
             case TX_TYPE_COIN_EXCHANGE_ORDER_ISSUE:
-
-                snprintf(state.txnAuth.optionalWindow1Title,
-                         sizeof(state.txnAuth.optionalWindow1Title),
-                         "Amount");
-
-                ret = formatAmount(state.txnAuth.optionalWindow1Text,
-                                   sizeof(state.txnAuth.optionalWindow1Text),
-                                   state.txnAuth.attachmentInt64Num1,
-                                   chainNumDecimalsBeforePoint(state.txnAuth.attachmentInt32Num2));
-
-                if (ret == 0) {
-                    return R_FORMAT_AMOUNT_ERR;
-                }
-
-                // note: the existence of chainName(state.txnAuth.attachmentInt32Num2) was already
-                // checked in the parsing function
-                snprintf(state.txnAuth.optionalWindow1Text + ret - 1,
-                         sizeof(state.txnAuth.optionalWindow1Text) - ret - 1,
-                         " %s",
-                         chainName(state.txnAuth.attachmentInt32Num2));
-
-                // note: the existence of chainName(state.txnAuth.attachmentInt32Num2) was already
-                // checked in the parsing function
-                snprintf(state.txnAuth.optionalWindow2Title,
-                         sizeof(state.txnAuth.optionalWindow2Title),
-                         "Price per %s",
-                         chainName(state.txnAuth.attachmentInt32Num2));
-                ret = formatAmount(state.txnAuth.optionalWindow2Text,
-                                   sizeof(state.txnAuth.optionalWindow2Text),
-                                   state.txnAuth.attachmentInt64Num2,
-                                   chainNumDecimalsBeforePoint(state.txnAuth.attachmentInt32Num1));
-
-                if (ret == 0) {
-                    return R_FORMAT_AMOUNT_ERR;
-                }
-
-                // note: the existence of chainName(state.txnAuth.attachmentInt32Num1) was already
-                // checked in the parsing function
-                snprintf(state.txnAuth.optionalWindow2Text + ret - 1,
-                         sizeof(state.txnAuth.optionalWindow2Text) - ret - 1,
-                         " %s",
-                         chainName(state.txnAuth.attachmentInt32Num1));
-
-                break;
+                return setCoinExchangeScreenTexts();
 
             case TX_TYPE_ASSET_TRANSFER:
-
-                snprintf(state.txnAuth.optionalWindow1Title,
-                         sizeof(state.txnAuth.optionalWindow1Title),
-                         "Asset Id");
-                formatAmount(state.txnAuth.optionalWindow1Text,
-                             sizeof(state.txnAuth.optionalWindow1Text),
-                             state.txnAuth.attachmentInt64Num1,
-                             0);
-
-                snprintf(state.txnAuth.optionalWindow2Title,
-                         sizeof(state.txnAuth.optionalWindow2Title),
-                         "Quantity QNT");
-                formatAmount(state.txnAuth.optionalWindow2Text,
-                             sizeof(state.txnAuth.optionalWindow2Text),
-                             state.txnAuth.attachmentInt64Num2,
-                             0);
-
-                snprintf(state.txnAuth.optionalWindow3Title,
-                         sizeof(state.txnAuth.optionalWindow3Title),
-                         "Recipient");
-                snprintf(state.txnAuth.optionalWindow3Text,
-                         sizeof(state.txnAuth.optionalWindow3Text),
-                         APP_PREFIX);
-                reedSolomonEncode(
-                    state.txnAuth.recipientId,
-                    state.txnAuth.optionalWindow3Text + strlen(state.txnAuth.optionalWindow3Text));
-                break;
+                return setAssetTransferScreenTexts();
         }
     }
 
