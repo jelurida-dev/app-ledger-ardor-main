@@ -31,7 +31,7 @@ static const uint8_t glog[] = {0, 0,  1,  18, 2, 5,  19, 11, 3,  29, 6, 27, 20, 
                                4, 10, 30, 17, 7, 22, 28, 26, 21, 25, 9, 16, 13, 14, 24, 15};
 
 uint8_t gmult(const uint8_t a, const uint8_t b) {
-    if ((0 == a) || (0 == b)) {
+    if ((a == 0) || (b == 0)) {
         return 0;
     }
 
@@ -47,7 +47,7 @@ void reedSolomonEncode(uint64_t inp, char* const output) {
 
     uint8_t index = 0;
 
-    while (0 != inp) {
+    while (inp != 0) {
         uint8_t ret = inp % 32;
         plain_string_32[index++] = ret;
         inp -= ret;

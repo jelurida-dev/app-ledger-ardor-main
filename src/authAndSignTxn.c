@@ -113,7 +113,7 @@ void signTransactionCancel() {
 uint8_t setScreenTexts() {
     uint8_t ret = 0;
 
-    if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
+    if (state.txnAuth.txnTypeIndex < LEN_TXN_TYPES) {
         switch (state.txnAuth.txnTypeAndSubType) {
             case TX_TYPE_ORDINARY_PAYMENT:
             case TX_TYPE_FXT_PAYMENT:
@@ -122,10 +122,11 @@ uint8_t setScreenTexts() {
                          sizeof(state.txnAuth.optionalWindow1Title),
                          "Amount");
 
-                if (0 == formatChainAmount(state.txnAuth.optionalWindow1Text,
-                                           sizeof(state.txnAuth.optionalWindow1Text),
-                                           state.txnAuth.amount,
-                                           state.txnAuth.chainId)) {
+                ret = formatChainAmount(state.txnAuth.optionalWindow1Text,
+                                        sizeof(state.txnAuth.optionalWindow1Text),
+                                        state.txnAuth.amount,
+                                        state.txnAuth.chainId);
+                if (ret == 0) {
                     return R_FORMAT_AMOUNT_ERR;
                 }
 
@@ -153,7 +154,7 @@ uint8_t setScreenTexts() {
                                    state.txnAuth.attachmentInt64Num1,
                                    chainNumDecimalsBeforePoint(state.txnAuth.attachmentInt32Num2));
 
-                if (0 == ret) {
+                if (ret == 0) {
                     return R_FORMAT_AMOUNT_ERR;
                 }
 
@@ -175,7 +176,7 @@ uint8_t setScreenTexts() {
                                    state.txnAuth.attachmentInt64Num2,
                                    chainNumDecimalsBeforePoint(state.txnAuth.attachmentInt32Num1));
 
-                if (0 == ret) {
+                if (ret == 0) {
                     return R_FORMAT_AMOUNT_ERR;
                 }
 
@@ -239,7 +240,7 @@ uint8_t signTxn(const uint8_t* const derivationPath,
     uint8_t ret = 0;
 
     ret = ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, outException);
-    if (R_SUCCESS != ret) {
+    if (ret != R_SUCCESS) {
         explicit_bzero(keySeed, sizeof(keySeed));
         return ret;
     }
@@ -264,18 +265,18 @@ static int p1InitContinueCommon(const command_t* const cmd) {
 
     uint8_t ret = addToReadBuffer(cmd->data, cmd->lc);
 
-    if (R_SUCCESS != ret) {
+    if (ret != R_SUCCESS) {
         return io_send_return1(ret);
     }
 
     ret = parseTransaction(&setScreenTexts);
 
-    if (R_SHOW_DISPLAY == ret) {
+    if (ret == R_SHOW_DISPLAY) {
         signTransactionScreen();
         return 0;
     }
 
-    if ((R_SEND_MORE_BYTES != ret) && (R_FINISHED != ret)) {
+    if ((ret != R_SEND_MORE_BYTES) && (ret != R_FINISHED)) {
         cleanState();
     }
 
@@ -287,7 +288,7 @@ static int p1InitHandler(const command_t* const cmd) {
 
     state.txnAuth.txnSizeBytes = ((cmd->p1 & TX_SIZE_P1_MASK) << TX_SIZE_P1_SHIFT) + cmd->p2;
 
-    if (BASE_TRANSACTION_SIZE > state.txnAuth.txnSizeBytes) {
+    if (state.txnAuth.txnSizeBytes < BASE_TRANSACTION_SIZE) {
         return io_send_response_pointer(&(const uint8_t){R_TXN_SIZE_TOO_SMALL}, 1, SW_OK);
     }
 
@@ -295,12 +296,12 @@ static int p1InitHandler(const command_t* const cmd) {
 }
 
 static int p1ContinueHandler(const command_t* const cmd) {
-    if (AUTH_STATE_USER_AUTHORIZED == state.txnAuth.state) {
+    if (state.txnAuth.state == AUTH_STATE_USER_AUTHORIZED) {
         cleanState();
         return io_send_return1(R_NOT_ALL_BYTES_USED);
     }
 
-    if (AUTH_STATE_INIT == state.txnAuth.state) {
+    if (state.txnAuth.state == AUTH_STATE_INIT) {
         cleanState();
         return io_send_return1(R_ERR_NO_INIT_CANT_CONTINUE);
     }
@@ -309,14 +310,13 @@ static int p1ContinueHandler(const command_t* const cmd) {
 }
 
 static int p1SignHandler(const command_t* const cmd) {
-    if (AUTH_STATE_USER_AUTHORIZED != state.txnAuth.state) {
+    if (state.txnAuth.state != AUTH_STATE_USER_AUTHORIZED) {
         cleanState();
         return io_send_return1(R_TXN_UNAUTHORIZED);
     }
 
     // dataLength is the derivation path length in bytes
-    if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > cmd->lc) ||
-        (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < cmd->lc) || (0 != cmd->lc % sizeof(uint32_t))) {
+    if (!isValidDerivationPathLength(cmd->lc)) {
         cleanState();
         return io_send_return1(R_WRONG_SIZE_ERR);
     }
@@ -328,14 +328,12 @@ static int p1SignHandler(const command_t* const cmd) {
 
     cleanState();
 
-    if (R_SUCCESS == ret) {
+    if (ret == R_SUCCESS) {
         return io_send_response_pointer(buffer, sizeof(buffer), SW_OK);
+    } else if (ret == R_KEY_DERIVATION_EX) {
+        return io_send_return3(ret, exception >> 8, exception & 0xFF);
     } else {
-        if (R_KEY_DERIVATION_EX == ret) {
-            return io_send_return3(ret, exception >> 8, exception & 0xFF);
-        } else {
-            return io_send_return1(ret);
-        }
+        return io_send_return1(ret);
     }
 }
 
@@ -344,14 +342,14 @@ static int p1SignHandler(const command_t* const cmd) {
 // Since this is a callback function, and this handler manages state, it's this function's
 // reposibility to call initTxnAuthState Every time we get some sort of an error
 int authAndSignTxnHandler(const command_t* const cmd) {
-    if (1 > cmd->lc) {
+    if (cmd->lc < 1) {
         cleanState();
         return io_send_return1(R_WRONG_SIZE_ERR);
-    } else if (P1_INIT == (cmd->p1 & MODE_P1_MASK)) {
+    } else if ((cmd->p1 & MODE_P1_MASK) == P1_INIT) {
         return p1InitHandler(cmd);
-    } else if (P1_CONTINUE == (cmd->p1 & MODE_P1_MASK)) {
+    } else if ((cmd->p1 & MODE_P1_MASK) == P1_CONTINUE) {
         return p1ContinueHandler(cmd);
-    } else if (P1_SIGN == (cmd->p1 & MODE_P1_MASK)) {
+    } else if ((cmd->p1 & MODE_P1_MASK) == P1_SIGN) {
         return p1SignHandler(cmd);
     } else {
         return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);

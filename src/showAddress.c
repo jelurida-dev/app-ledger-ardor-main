@@ -41,13 +41,8 @@ void showAddressCancel(void) {
 }
 
 int showAddressHandler(const command_t* const cmd) {
-    if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > cmd->lc) ||
-        (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < cmd->lc)) {
+    if (!isValidDerivationPathLength(cmd->lc)) {
         return io_send_return1(R_WRONG_SIZE_ERR);
-    }
-
-    if (0 != cmd->lc % sizeof(uint32_t)) {
-        return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);
     }
 
     uint16_t exception = 0;
@@ -57,10 +52,10 @@ int showAddressHandler(const command_t* const cmd) {
     // cmd->lc (derivationParamLengthInBytes) should be multiple of 4, it's checked above
     uint8_t ret = ardorKeys(cmd->data, cmd->lc / sizeof(uint32_t), 0, publicKey, 0, 0, &exception);
 
-    if (R_SUCCESS == ret) {
+    if (ret == R_SUCCESS) {
         showAddressScreen(publicKeyToId(publicKey));
         return 0;
-    } else if (R_KEY_DERIVATION_EX == ret) {
+    } else if (ret == R_KEY_DERIVATION_EX) {
         return io_send_return3(ret, exception >> 8, exception & 0xFF);
     } else {
         return io_send_return2(R_SUCCESS, ret);

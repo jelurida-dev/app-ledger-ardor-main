@@ -32,7 +32,7 @@
 int getVersionHandler(const command_t *const cmd) {
     UNUSED(cmd);
 
-    if (3 < ARDOR_SPECIAL_IDENTIFIER_LEN) {
+    if (ARDOR_SPECIAL_IDENTIFIER_LEN > 3) {
         return -1;
     }
     uint8_t data[7];

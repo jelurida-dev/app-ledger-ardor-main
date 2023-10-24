@@ -55,20 +55,13 @@
 #define REDUCED_RESPONSE_SIZE 33  // 1 R_SUCCESS + 32 publicKeyCurve
 
 int getPublicKeyAndChainCodeHandler(const command_t* const cmd) {
-    if ((P1_GET_PUBLIC_KEY != cmd->p1) &&
-        (P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY != cmd->p1)) {
+    if ((cmd->p1 != P1_GET_PUBLIC_KEY) &&
+        (cmd->p1 != P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY)) {
         return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);
     }
 
-    if ((MIN_DERIVATION_LENGTH * sizeof(uint32_t) > cmd->lc) ||
-        (MAX_DERIVATION_LENGTH * sizeof(uint32_t) < cmd->lc)) {
+    if (!isValidDerivationPathLength(cmd->lc)) {
         return io_send_return1(R_WRONG_SIZE_ERR);
-    }
-
-    uint8_t derivationParamLengthInBytes = cmd->lc;
-
-    if (0 != derivationParamLengthInBytes % sizeof(uint32_t)) {
-        return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);
     }
 
     // Instead of having 3 buffers for the public keys and chain code we use one buffer that
@@ -77,7 +70,7 @@ int getPublicKeyAndChainCodeHandler(const command_t* const cmd) {
     uint16_t exception = 0;
 
     uint8_t ret = ardorKeys(cmd->data,
-                            derivationParamLengthInBytes / sizeof(uint32_t),
+                            cmd->lc / sizeof(uint32_t),
                             0,
                             buffer + BUFFER_PUBLIC_KEY_CURVE_OFFSET,
                             buffer + BUFFER_PUBLIC_KEY_ED25519_OFFSET,
@@ -88,6 +81,6 @@ int getPublicKeyAndChainCodeHandler(const command_t* const cmd) {
         return io_send_return3(ret, exception >> 8, exception & 0xFF);
     }
     buffer[0] = R_SUCCESS;
-    size_t responseSize = P1_GET_PUBLIC_KEY == cmd->p1 ? REDUCED_RESPONSE_SIZE : BUFFER_SIZE;
+    size_t responseSize = cmd->p1 == P1_GET_PUBLIC_KEY ? REDUCED_RESPONSE_SIZE : BUFFER_SIZE;
     return io_send_response_pointer(buffer, responseSize, SW_OK);
 }

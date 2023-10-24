@@ -57,7 +57,7 @@ void sha256TwoBuffers(const uint8_t *const bufferTohash1,
 
     cx_hash_no_throw(&shaContext.header, 0, bufferTohash1, sizeOfBuffer1, output, 32);
 
-    if (0 != bufferTohash2) {
+    if (bufferTohash2 != 0) {
         cx_hash_no_throw(&shaContext.header, 0, bufferTohash2, sizeOfBuffer2, output, 32);
     }
 
@@ -136,8 +136,8 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
                   uint16_t *const exceptionOut) {
     uint32_t bipPrefix[] = PATH_PREFIX;  // defined in Makefile
 
-    if ((MIN_DERIVATION_LENGTH > derivationPathLengthInUints32) ||
-        (MAX_DERIVATION_LENGTH < derivationPathLengthInUints32))
+    if (derivationPathLengthInUints32 < MIN_DERIVATION_LENGTH ||
+        (derivationPathLengthInUints32 > MAX_DERIVATION_LENGTH))
         return R_WRONG_SIZE_ERR;
 
     // os_derive_bip32_no_throw doesn't accept derivation paths located on the input buffer, so we
@@ -147,7 +147,7 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
     memmove(copiedDerivationPath, derivationPath, derivationPathLengthInUints32 * sizeof(uint32_t));
 
     for (uint8_t i = 0; i < sizeof(bipPrefix) / sizeof(bipPrefix[0]); i++) {
-        if (copiedDerivationPath[i] != bipPrefix[i]) {
+        if (bipPrefix[i] != copiedDerivationPath[i]) {
             return R_WRONG_DERIVATION_PATH_HEADER;
         }
     }
@@ -159,7 +159,7 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
                                             derivationPathLengthInUints32,
                                             KLKR,
                                             chainCodeOut);
-    if (CX_OK != ret) {
+    if (ret != CX_OK) {
         explicit_bzero(KLKR, sizeof(KLKR));
         *exceptionOut = (uint16_t) ret;
         return R_KEY_DERIVATION_EX;
@@ -172,14 +172,14 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
     memmove(privateKey.d, KLKR, 64);
 
     // KL is the keyseed, KR is used for key derivation
-    if (0 != keySeedBfrOut) {
+    if (keySeedBfrOut != 0) {
         memmove(keySeedBfrOut, KLKR, 32);
     }
 
-    if ((0 != publicKeyCurveXout) || (0 != publicKeyEd25519YLEWithXParityOut)) {
+    if ((publicKeyCurveXout != 0) || (publicKeyEd25519YLEWithXParityOut != 0)) {
         cx_ecfp_public_key_t publicKey;
         ret = cx_ecfp_init_public_key_no_throw(CX_CURVE_Ed25519, 0, 0, &publicKey);
-        if (CX_OK != ret) {
+        if (ret != CX_OK) {
             explicit_bzero(privateKey.d, sizeof(privateKey.d));
             explicit_bzero(KLKR, sizeof(KLKR));
             *exceptionOut = (uint16_t) ret;
@@ -196,7 +196,7 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
                                              0,
                                              NULL,
                                              0);
-        if (CX_OK != ret) {
+        if (ret != CX_OK) {
             explicit_bzero(privateKey.d, sizeof(privateKey.d));
             explicit_bzero(KLKR, sizeof(KLKR));
             *exceptionOut = (uint16_t) ret;
@@ -210,17 +210,17 @@ uint8_t ardorKeys(const uint8_t *const derivationPath,
             publicKeyYLE[i] = publicKey.W[64 - i];
         }
 
-        if (0 != publicKeyCurveXout) {
+        if (publicKeyCurveXout != 0) {
             morph25519_e2m(publicKeyCurveXout, publicKeyYLE);
         }
 
         // We encode the parity of X into the MSB of Y, since it's never used because of the field
         // size This allows us to compress X,Y into 32 bytes
-        if (0 != (publicKey.W[32] & 1)) {
+        if ((publicKey.W[32] & 1) != 0) {
             publicKeyYLE[31] |= 0x80;
         }
 
-        if (0 != publicKeyEd25519YLEWithXParityOut) {
+        if (publicKeyEd25519YLEWithXParityOut != 0) {
             memmove(publicKeyEd25519YLEWithXParityOut, publicKeyYLE, 32);
         }
 
@@ -250,7 +250,7 @@ uint8_t getSharedEncryptionKey(const uint8_t *const derivationPath,
     uint8_t ret =
         ardorKeys(derivationPath, derivationPathLengthInUints32, keySeed, 0, 0, 0, exceptionOut);
 
-    if (R_SUCCESS != ret) {
+    if (ret != R_SUCCESS) {
         return ret;
     }
 
@@ -282,6 +282,19 @@ uint64_t publicKeyToId(const uint8_t *const publicKey) {
             (((uint64_t) tempSha[5]) << 40) | (((uint64_t) tempSha[4]) << 32) |
             (((uint64_t) tempSha[3]) << 24) | (((uint64_t) tempSha[2]) << 16) |
             (((uint64_t) tempSha[1]) << 8) | (((uint64_t) tempSha[0])));
+}
+
+/**
+ * Checks if the given derivation path length is valid.
+ * A valid length is a multiple of 4 bytes (sizeof(uint32_t)) and within the range of
+ * MIN_DERIVATION_LENGTH and MAX_DERIVATION_LENGTH (inclusive).
+ *
+ * @param length The length of the derivation path in bytes.
+ * @return true if the length is valid, false otherwise.
+ */
+bool isValidDerivationPathLength(uint8_t length) {
+    return length >= MIN_DERIVATION_LENGTH * sizeof(uint32_t) &&
+           length <= MAX_DERIVATION_LENGTH * sizeof(uint32_t) && length % sizeof(uint32_t) == 0;
 }
 
 // returns the chain name for a given chainId
@@ -320,8 +333,8 @@ uint8_t formatAmount(char *const outputString,
         numberToFormat -= modulo;
         numberToFormat /= 10;
 
-        if (numDigitsBeforeDecimal == numberIndex) {
-            if (wasANumberWritten && (!isDotWritten) && (0 != numDigitsBeforeDecimal)) {
+        if (numberIndex == numDigitsBeforeDecimal) {
+            if (wasANumberWritten && (!isDotWritten) && (numDigitsBeforeDecimal != 0)) {
                 isDotWritten = true;
                 outputString[outputIndex++] = '.';
             }
@@ -333,7 +346,7 @@ uint8_t formatAmount(char *const outputString,
             wasANumberWritten = true;
         }
 
-        if (wasANumberWritten || (0 == numDigitsBeforeDecimal)) {
+        if (wasANumberWritten || (numDigitsBeforeDecimal == 0)) {
             outputString[outputIndex++] = '0' + modulo;
         }
 
@@ -341,7 +354,7 @@ uint8_t formatAmount(char *const outputString,
             return 0;
         }
 
-        if ((0 == numberToFormat) && (numDigitsBeforeDecimal <= numberIndex)) {
+        if ((numberToFormat == 0) && (numberIndex >= numDigitsBeforeDecimal)) {
             break;
         }
 
@@ -365,7 +378,7 @@ uint8_t formatChainAmount(char *const out,
                           uint64_t amount,
                           const uint8_t chainId) {
     uint8_t ret = formatAmount(out, maxLength, amount, chainNumDecimalsBeforePoint(chainId));
-    if (0 == ret) {
+    if (ret == 0) {
         return 0;
     }
 

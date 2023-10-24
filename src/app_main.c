@@ -106,7 +106,8 @@ void app_main(void) {
                 explicit_bzero(&cmd, sizeof(cmd));
 
                 // Receive command bytes in G_io_apdu_buffer
-                if ((input_len = io_recv_command()) < 0) {
+                input_len = io_recv_command();
+                if (input_len < 0) {
                     CLOSE_TRY;
                     return;
                 }
@@ -129,7 +130,7 @@ void app_main(void) {
                        cmd.data);
 
                 // Malformed APDU.
-                if (CLA != cmd.cla) {
+                if (cmd.cla != CLA) {
                     lastCmdNumber = 0;  // forces the next handler call to clean the state
                     io_send_return1(R_BAD_CLA);
                     CLOSE_TRY;
@@ -147,7 +148,7 @@ void app_main(void) {
 
                 PRINTF("canary check %d last command number %d\n", check_canary(), lastCmdNumber);
 
-                if (cmd.ins != lastCmdNumber) {
+                if (lastCmdNumber != cmd.ins) {
                     // last command was different, clean state
                     cleanState();
                 }

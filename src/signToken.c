@@ -73,7 +73,7 @@ void signTokenConfirm() {
                             0,
                             &exception);
 
-    if (R_SUCCESS != ret) {
+    if (ret != R_SUCCESS) {
         cleanState();
         io_send_return3(ret, exception >> 8, exception & 0xFF);
         return;
@@ -135,7 +135,7 @@ static int p1TokenInitHandler() {
 }
 
 static int p1TokenMsgBytesHandler(const command_t* const cmd) {
-    if (SIGN_TOKEN_UNINIT == state.tokenSign.state) {
+    if (state.tokenSign.state == SIGN_TOKEN_UNINIT) {
         return cleanAndReturn(R_WRONG_STATE);
     }
 
@@ -147,7 +147,7 @@ static int p1TokenMsgBytesHandler(const command_t* const cmd) {
 }
 
 static int p1TokenSignHandler(const command_t* const cmd) {
-    if (SIGN_TOKEN_BYTES_RECEIVED != state.tokenSign.state) {
+    if (state.tokenSign.state != SIGN_TOKEN_BYTES_RECEIVED) {
         return cleanAndReturn(R_WRONG_STATE);
     }
 
@@ -155,15 +155,15 @@ static int p1TokenSignHandler(const command_t* const cmd) {
         return cleanAndReturn(R_WRONG_SIZE_ERR);
     }
 
-    if (0 != (cmd->lc - 4) % sizeof(uint32_t)) {
+    if ((cmd->lc - 4) % sizeof(uint32_t) != 0) {
         return cleanAndReturn(R_WRONG_SIZE_MODULO_ERR);
     }
 
     // underflow was checked against above above
     state.tokenSign.derivationPathLengthInUints32 = (cmd->lc - 4) / sizeof(uint32_t);
 
-    if ((MIN_DERIVATION_LENGTH > state.tokenSign.derivationPathLengthInUints32) ||
-        (MAX_DERIVATION_LENGTH < state.tokenSign.derivationPathLengthInUints32)) {
+    if ((state.tokenSign.derivationPathLengthInUints32 < MIN_DERIVATION_LENGTH) ||
+        (state.tokenSign.derivationPathLengthInUints32 > MAX_DERIVATION_LENGTH)) {
         return cleanAndReturn(R_WRONG_SIZE_ERR);
     }
 
@@ -177,11 +177,11 @@ static int p1TokenSignHandler(const command_t* const cmd) {
 // Since this is a callback function, and this handler manages state, it's this function's
 // reposibility to clear the state Every time we get some sort of an error
 int signTokenMessageHandler(const command_t* const cmd) {
-    if (P1_INIT == cmd->p1) {
+    if (cmd->p1 == P1_INIT) {
         return p1TokenInitHandler();
-    } else if (P1_MSG_BYTES == cmd->p1) {
+    } else if (cmd->p1 == P1_MSG_BYTES) {
         return p1TokenMsgBytesHandler(cmd);
-    } else if (P1_SIGN == cmd->p1) {
+    } else if (cmd->p1 == P1_SIGN) {
         return p1TokenSignHandler(cmd);
     } else {
         return cleanAndReturn(R_UNKNOWN_CMD_PARAM_ERR);

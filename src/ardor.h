@@ -32,6 +32,8 @@ uint8_t ardorKeys(const uint8_t* const derivationPath,
                   uint8_t* const chainCodeOut,
                   uint16_t* const exceptionOut);
 
+bool isValidDerivationPathLength(uint8_t derivationPathLengthInUints32);
+
 char* chainName(const uint8_t chainId);
 
 void signMsg(uint8_t* const keySeedBfr, const uint8_t* const msgSha256, uint8_t* const sig);

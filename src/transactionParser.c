@@ -40,7 +40,7 @@ char* appendageTypeName(const uint8_t index) {
 
 // adds a parsing function to the top of the stack
 uint8_t addToFunctionStack(const uint8_t functionNum) {
-    if (sizeof(state.txnAuth.functionStack) == state.txnAuth.numFunctionsOnStack) {
+    if (state.txnAuth.numFunctionsOnStack == sizeof(state.txnAuth.functionStack)) {
         return R_FUNCTION_STACK_FULL;
     }
 
@@ -68,7 +68,7 @@ uint8_t* readFromBuffer(const uint8_t size) {
 uint8_t parseMainTxnData() {
     uint8_t* ptr = readFromBuffer(BASE_TRANSACTION_SIZE);
 
-    if (0 == ptr) {
+    if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
 
@@ -77,7 +77,7 @@ uint8_t parseMainTxnData() {
     ptr += sizeof(state.txnAuth.chainId);
 
     // note: ardor chain index starts with index 1
-    if ((0 == state.txnAuth.chainId) || (NUM_CHAINS < state.txnAuth.chainId)) {
+    if ((state.txnAuth.chainId == 0) || (state.txnAuth.chainId > NUM_CHAINS)) {
         return R_BAD_CHAIN_ID_ERR;
     }
 
@@ -96,21 +96,21 @@ uint8_t parseMainTxnData() {
         }
     }
 
-    if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex &&
-        0 != currentTxnType->attachmentParsingFunctionNumber) {
+    if (state.txnAuth.txnTypeIndex < LEN_TXN_TYPES &&
+        currentTxnType->attachmentParsingFunctionNumber != 0) {
         addToFunctionStack(currentTxnType->attachmentParsingFunctionNumber);
     }
 
     // general blind signing check, functions without specific parsing are marked as blind signing
     // except payments which don't require special parsing
-    if (LEN_TXN_TYPES <= state.txnAuth.txnTypeIndex ||
-        (0 == currentTxnType->attachmentParsingFunctionNumber &&
-         TX_TYPE_ORDINARY_PAYMENT != state.txnAuth.txnTypeAndSubType &&
-         TX_TYPE_FXT_PAYMENT != state.txnAuth.txnTypeAndSubType)) {
+    if (state.txnAuth.txnTypeIndex >= LEN_TXN_TYPES ||
+        (currentTxnType->attachmentParsingFunctionNumber == 0 &&
+         state.txnAuth.txnTypeAndSubType != TX_TYPE_ORDINARY_PAYMENT &&
+         state.txnAuth.txnTypeAndSubType != TX_TYPE_FXT_PAYMENT)) {
         state.txnAuth.requiresBlindSigning = true;
     }
 
-    if (LEN_TXN_TYPES > state.txnAuth.txnTypeIndex) {
+    if (state.txnAuth.txnTypeIndex < LEN_TXN_TYPES) {
         snprintf(state.txnAuth.chainAndTxnTypeText,
                  sizeof(state.txnAuth.chainAndTxnTypeText),
                  "%s\n%s",
@@ -124,7 +124,7 @@ uint8_t parseMainTxnData() {
         state.txnAuth.requiresBlindSigning = true;
     }
 
-    if (SUPPORTED_TXN_VERSION != *((uint8_t*) ptr)) {
+    if (*((uint8_t*) ptr) != SUPPORTED_TXN_VERSION) {
         return R_WRONG_VERSION_ERR;
     }
 
@@ -148,7 +148,7 @@ uint8_t parseMainTxnData() {
                                fee,
                                chainNumDecimalsBeforePoint(state.txnAuth.chainId));
 
-    if (0 == ret) {
+    if (ret == 0) {
         return R_FORMAT_FEE_ERR;
     }
 
@@ -179,7 +179,7 @@ uint8_t parseMainTxnData() {
 uint8_t parseAppendagesFlags() {
     uint8_t* buffPtr = readFromBuffer(sizeof(uint32_t));
 
-    if (0 == buffPtr) {
+    if (buffPtr == 0) {
         return R_SEND_MORE_BYTES;
     }
 
@@ -187,7 +187,7 @@ uint8_t parseAppendagesFlags() {
 
     memmove(&appendages, buffPtr, sizeof(appendages));
 
-    if (0 != appendages) {
+    if (appendages != 0) {
         state.txnAuth.requiresBlindSigning = true;
 
         // fallback to hex string if we found unknown appendages
@@ -200,12 +200,12 @@ uint8_t parseAppendagesFlags() {
             char* ptr = state.txnAuth.appendagesText;
             size_t free = sizeof(state.txnAuth.appendagesText);
             for (uint8_t j = 0; j < NUM_APPENDAGE_TYPES; j++) {
-                if (0 != (appendages & 1 << j)) {
+                if ((appendages & 1 << j) != 0) {
                     size_t len = strlen(appendageTypeName(j));
 
                     // special case: not enough space to show the text for all appendages, revert to
                     // bitmap
-                    if (free < len + 2) {  // +2 for separator and null terminator
+                    if (len + 2 > free) {  // +2 for separator and null terminator
                         int limit = MIN(NUM_APPENDAGE_TYPES, free - 1);  // security audit
                         for (uint8_t i = 0; i < limit; i++) {
                             state.txnAuth.appendagesText[i] =
@@ -233,7 +233,7 @@ uint8_t parseAppendagesFlags() {
 // Parses a txn reference, by just skiping over the bytes :)
 uint8_t parseReferencedTxn() {
     state.txnAuth.requiresBlindSigning = true;
-    if (0 == readFromBuffer(sizeof(uint32_t) + 32)) {
+    if (readFromBuffer(sizeof(uint32_t) + 32) == 0) {
         return R_SEND_MORE_BYTES;
     }
 
@@ -250,11 +250,11 @@ uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
 
     uint8_t* ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachmentInt32Num1) * 2 +
                                   sizeof(state.txnAuth.attachmentInt64Num1) * 2);
-    if (0 == ptr) {
+    if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
 
-    if (1 != *ptr) {
+    if (*ptr != 1) {
         return R_UNSUPPORTED_ATTACHMENT_VERSION;
     }
 
@@ -263,14 +263,14 @@ uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
     memmove(&state.txnAuth.attachmentInt32Num1, ptr, sizeof(state.txnAuth.attachmentInt32Num1));
     ptr += sizeof(state.txnAuth.attachmentInt32Num1);
 
-    if (NUM_CHAINS < state.txnAuth.attachmentInt32Num1 || 1 > state.txnAuth.attachmentInt32Num1) {
+    if (state.txnAuth.attachmentInt32Num1 > NUM_CHAINS || state.txnAuth.attachmentInt32Num1 < 1) {
         return R_BAD_CHAIN_ID_ERR;
     }
 
     memmove(&state.txnAuth.attachmentInt32Num2, ptr, sizeof(state.txnAuth.attachmentInt32Num2));
     ptr += sizeof(state.txnAuth.attachmentInt32Num2);
 
-    if (NUM_CHAINS < state.txnAuth.attachmentInt32Num2 || 1 > state.txnAuth.attachmentInt32Num2) {
+    if (state.txnAuth.attachmentInt32Num2 > NUM_CHAINS || state.txnAuth.attachmentInt32Num2 < 1) {
         return R_BAD_CHAIN_ID_ERR;
     }
 
@@ -290,7 +290,7 @@ uint8_t parseAskOrderPlacementAttachment() {
     state.txnAuth.attachmentInt64Num3 = 0;  // priceNQT
 
     uint8_t* ptr = readFromBuffer(sizeof(state.txnAuth.attachmentInt64Num1) * 3);
-    if (0 == ptr) {
+    if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
 
@@ -311,10 +311,10 @@ uint8_t parseAskOrderPlacementAttachment() {
 uint8_t parseIgnoreBytesUntilTheEnd() {
     while (state.txnAuth.numBytesRead != state.txnAuth.txnSizeBytes) {
         uint8_t* ptr = readFromBuffer(1);
-        if (0 == ptr) {
+        if (ptr == 0) {
             return R_SEND_MORE_BYTES;
         }
-        if (0 != *ptr) {
+        if (*ptr != 0) {
             state.txnAuth.requiresBlindSigning = true;
         }
     }
@@ -328,11 +328,11 @@ uint8_t parseAssetTransferAttachment() {
     state.txnAuth.attachmentInt64Num2 = 0;  // quantity
 
     uint8_t* ptr = readFromBuffer(sizeof(state.txnAuth.attachmentInt64Num1) * 2);
-    if (0 == ptr) {
+    if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
 
-    if (1 != *ptr) {
+    if (*ptr != 1) {
         return R_UNSUPPORTED_ATTACHMENT_VERSION;
     }
 
@@ -361,7 +361,7 @@ uint8_t addToReadBuffer(const uint8_t* const newData, const uint8_t numBytes) {
     state.txnAuth.readBufferEndPos -= offset;
     state.txnAuth.readBufferReadOffset = 0;
 
-    if (sizeof(state.txnAuth.readBuffer) < state.txnAuth.readBufferEndPos + numBytes) {
+    if (state.txnAuth.readBufferEndPos + numBytes > sizeof(state.txnAuth.readBuffer)) {
         return R_NO_SPACE_BUFFER_TOO_SMALL;
     }
 
@@ -401,14 +401,14 @@ uint8_t callFunctionNumber(const uint8_t functionNum) {
 // which will be sent back to the user
 uint8_t parseTransaction(uint8_t (*setScreenTexts)()) {
     while (true) {
-        if (0 == state.txnAuth.numFunctionsOnStack) {
+        if (state.txnAuth.numFunctionsOnStack == 0) {
             if (state.txnAuth.readBufferEndPos != state.txnAuth.readBufferReadOffset) {
                 return R_NOT_ALL_BYTES_READ;
             }
 
             uint8_t ret = (*setScreenTexts)();
 
-            if (R_SUCCESS != ret) {
+            if (ret != R_SUCCESS) {
                 return ret;
             }
 
@@ -417,7 +417,7 @@ uint8_t parseTransaction(uint8_t (*setScreenTexts)()) {
 
         uint8_t ret = callFunctionNumber(state.txnAuth.functionStack[0]);
 
-        if (R_SEND_MORE_BYTES == ret) {
+        if (ret == R_SEND_MORE_BYTES) {
             return ret;
         }
 
@@ -427,7 +427,7 @@ uint8_t parseTransaction(uint8_t (*setScreenTexts)()) {
         state.txnAuth.functionStack[sizeof(state.txnAuth.functionStack) - 1] = 0;
         state.txnAuth.numFunctionsOnStack--;
 
-        if (R_SUCCESS == ret) {
+        if (ret == R_SUCCESS) {
             continue;
         }
 
