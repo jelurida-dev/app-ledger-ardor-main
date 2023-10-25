@@ -446,13 +446,14 @@ static uint8_t callFunctionNumber(const uint8_t functionNum) {
 // If there aren't enough bytes in the read buffer it returns R_SEND_MORE_BYTES
 // which will be sent back to the user
 uint8_t parseTransaction(uint8_t (*setScreenTexts)()) {
-    while (true) {
+    uint8_t ret = R_SUCCESS;
+    while (ret == R_SUCCESS) {
         if (state.txnAuth.numFunctionsOnStack == 0) {
             if (state.txnAuth.readBufferEndPos != state.txnAuth.readBufferReadOffset) {
                 return R_NOT_ALL_BYTES_READ;
             }
 
-            uint8_t ret = (*setScreenTexts)();
+            ret = (*setScreenTexts)();
 
             if (ret != R_SUCCESS) {
                 return ret;
@@ -461,7 +462,7 @@ uint8_t parseTransaction(uint8_t (*setScreenTexts)()) {
             return R_SHOW_DISPLAY;
         }
 
-        uint8_t ret = callFunctionNumber(state.txnAuth.functionStack[0]);
+        ret = callFunctionNumber(state.txnAuth.functionStack[0]);
 
         if (ret == R_SEND_MORE_BYTES) {
             return ret;
@@ -472,11 +473,6 @@ uint8_t parseTransaction(uint8_t (*setScreenTexts)()) {
         memmove(state.txnAuth.functionStack, tempBuffer, sizeof(tempBuffer));
         state.txnAuth.functionStack[sizeof(state.txnAuth.functionStack) - 1] = 0;
         state.txnAuth.numFunctionsOnStack--;
-
-        if (ret == R_SUCCESS) {
-            continue;
-        }
-
-        return ret;
     }
+    return ret;
 }
