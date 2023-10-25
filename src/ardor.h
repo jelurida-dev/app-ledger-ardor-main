@@ -106,15 +106,25 @@ typedef struct {
                       // differently, it divides this number by some 10^X
     uint64_t fee;
 
-    // Different attachments parse in different ways, they all need space in state, so this is how
-    // it's defined
-    uint32_t attachmentInt32Num1;  // chainId for FxtCoinExchangeOrderIssue,CoinExchangeOrderIssue
-    uint32_t attachmentInt32Num2;  // chainId for FxtCoinExchangeOrderIssue,CoinExchangeOrderIssue
-    uint64_t attachmentInt64Num1;  // amountQNT for FxtCoinExchangeOrderIssue,CoinExchangeOrderIssue
-                                   // assetId for AssetTransfer,AskOrderPlacement
-    uint64_t attachmentInt64Num2;  // price for FxtCoinExchangeOrderIssue,CoinExchangeOrderIssue
-                                   // quantityQNT for AssetTransfer,AskOrderPlacement
-    uint64_t attachmentInt64Num3;  // price for AskOrderPlacement
+    // Different attachments have different payloads. Each transaction type & subtype have
+    // a specific attachment. We use a union to define each supported attachment to preserve storage
+    union {
+        struct {
+            uint32_t chainId;
+            uint32_t exchangeChainId;
+            uint64_t quantityQNT;
+            uint64_t priceNQT;
+        } coinExchange;
+        struct {
+            uint64_t assetId;
+            uint64_t quantityQNT;
+            uint64_t priceNQT;
+        } assetOrderPlacement;
+        struct {
+            uint64_t assetId;
+            uint64_t quantityQNT;
+        } assetTransfer;
+    } attachment;
 
     uint16_t txnSizeBytes;  // The declared Txn size
 

@@ -65,6 +65,11 @@ static char* appendageTypeName(const uint8_t index) {
     return (char*) PIC(((appendageType*) PIC(&APPENDAGE_TYPES[index]))->name);
 }
 
+// note: ardor chain index starts with index 1
+static bool isValidChainId(uint32_t chainId) {
+    return chainId > 0 && chainId <= NUM_CHAINS;
+}
+
 // adds a parsing function to the top of the stack
 static uint8_t addToFunctionStack(const uint8_t functionNum) {
     if (state.txnAuth.numFunctionsOnStack == sizeof(state.txnAuth.functionStack)) {
@@ -152,8 +157,7 @@ static uint8_t parseMainTxnData() {
 
     ptr += sizeof(state.txnAuth.chainId);
 
-    // note: ardor chain index starts with index 1
-    if ((state.txnAuth.chainId == 0) || (state.txnAuth.chainId > NUM_CHAINS)) {
+    if (!isValidChainId(state.txnAuth.chainId)) {
         return R_BAD_CHAIN_ID_ERR;
     }
 
@@ -276,13 +280,12 @@ static uint8_t parseAppendagesFlags() {
 // PARSE_FN_FXT_COIN_EXCHANGE_ORDER_ISSUE_OR_COIN_EXCHANGE_ORDER_ISSUE_ATTACHMENT 4
 // Parses a specific type of attachment
 static uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment() {
-    state.txnAuth.attachmentInt32Num1 = 0;  // chainId
-    state.txnAuth.attachmentInt32Num2 = 0;  // exchangeChain
-    state.txnAuth.attachmentInt64Num1 = 0;  // quantity
-    state.txnAuth.attachmentInt64Num2 = 0;  // price
+    uint32_t chainId = 0;          // chainId
+    uint32_t exchangeChainId = 0;  // exchangeChain
+    uint64_t quantityQNT = 0;      // quantity
+    uint64_t priceNQT = 0;         // price
 
-    uint8_t* ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachmentInt32Num1) * 2 +
-                                  sizeof(state.txnAuth.attachmentInt64Num1) * 2);
+    uint8_t* ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachment.coinExchange));
     if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
@@ -293,50 +296,58 @@ static uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment(
 
     ptr += 1;  // skip version byte
 
-    memmove(&state.txnAuth.attachmentInt32Num1, ptr, sizeof(state.txnAuth.attachmentInt32Num1));
-    ptr += sizeof(state.txnAuth.attachmentInt32Num1);
+    memmove(&chainId, ptr, sizeof(chainId));
+    ptr += sizeof(chainId);
 
-    if (state.txnAuth.attachmentInt32Num1 > NUM_CHAINS || state.txnAuth.attachmentInt32Num1 < 1) {
+    if (!isValidChainId(chainId)) {
         return R_BAD_CHAIN_ID_ERR;
     }
 
-    memmove(&state.txnAuth.attachmentInt32Num2, ptr, sizeof(state.txnAuth.attachmentInt32Num2));
-    ptr += sizeof(state.txnAuth.attachmentInt32Num2);
+    memmove(&exchangeChainId, ptr, sizeof(exchangeChainId));
+    ptr += sizeof(exchangeChainId);
 
-    if (state.txnAuth.attachmentInt32Num2 > NUM_CHAINS || state.txnAuth.attachmentInt32Num2 < 1) {
+    if (!isValidChainId(exchangeChainId)) {
         return R_BAD_CHAIN_ID_ERR;
     }
 
-    memmove(&state.txnAuth.attachmentInt64Num1, ptr, sizeof(state.txnAuth.attachmentInt64Num1));
-    ptr += sizeof(state.txnAuth.attachmentInt64Num1);
+    memmove(&quantityQNT, ptr, sizeof(quantityQNT));
+    ptr += sizeof(quantityQNT);
 
-    memmove(&state.txnAuth.attachmentInt64Num2, ptr, sizeof(state.txnAuth.attachmentInt64Num2));
+    memmove(&priceNQT, ptr, sizeof(priceNQT));
 
+    state.txnAuth.attachment.coinExchange.chainId = chainId;
+    state.txnAuth.attachment.coinExchange.exchangeChainId = exchangeChainId;
+    state.txnAuth.attachment.coinExchange.quantityQNT = quantityQNT;
+    state.txnAuth.attachment.coinExchange.priceNQT = priceNQT;
     return R_SUCCESS;
 }
 
 // PARSE_FN_ASSET_ORDER_PLACEMENT_ATTACHMENT 5
 // Parses a specific type of attachment
 static uint8_t parseAssetOrderPlacementAttachment() {
-    state.txnAuth.attachmentInt64Num1 = 0;  // assetId
-    state.txnAuth.attachmentInt64Num2 = 0;  // quantityQNT
-    state.txnAuth.attachmentInt64Num3 = 0;  // priceNQT
+    uint64_t assetId = 0;      // assetId
+    uint64_t quantityQNT = 0;  // quantityQNT
+    uint64_t priceNQT = 0;     // priceNQT
 
-    uint8_t* ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachmentInt64Num1) * 3);
+    uint8_t* ptr =
+        readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachment.assetOrderPlacement));
     if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
 
     ptr += 1;  // skip version byte
 
-    memmove(&state.txnAuth.attachmentInt64Num1, ptr, sizeof(state.txnAuth.attachmentInt64Num1));
-    ptr += sizeof(state.txnAuth.attachmentInt64Num1);
+    memmove(&assetId, ptr, sizeof(assetId));
+    ptr += sizeof(assetId);
 
-    memmove(&state.txnAuth.attachmentInt64Num2, ptr, sizeof(state.txnAuth.attachmentInt64Num2));
-    ptr += sizeof(state.txnAuth.attachmentInt64Num2);
+    memmove(&quantityQNT, ptr, sizeof(quantityQNT));
+    ptr += sizeof(quantityQNT);
 
-    memmove(&state.txnAuth.attachmentInt64Num3, ptr, sizeof(state.txnAuth.attachmentInt64Num3));
+    memmove(&priceNQT, ptr, sizeof(priceNQT));
 
+    state.txnAuth.attachment.assetOrderPlacement.assetId = assetId;
+    state.txnAuth.attachment.assetOrderPlacement.quantityQNT = quantityQNT;
+    state.txnAuth.attachment.assetOrderPlacement.priceNQT = priceNQT;
     return R_SUCCESS;
 }
 
@@ -359,10 +370,10 @@ static uint8_t parseIgnoreBytesUntilTheEnd() {
 
 // PARSE_FN_ASSET_TRANSFER_ATTACHMENT 7
 static uint8_t parseAssetTransferAttachment() {
-    state.txnAuth.attachmentInt64Num1 = 0;  // asset id
-    state.txnAuth.attachmentInt64Num2 = 0;  // quantity
+    uint64_t assetId;      // asset id
+    uint64_t quantityQNT;  // quantity
 
-    uint8_t* ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachmentInt64Num1) * 2);
+    uint8_t* ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachment.assetTransfer));
     if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
@@ -373,11 +384,13 @@ static uint8_t parseAssetTransferAttachment() {
 
     ptr += 1;  // skip version byte
 
-    memmove(&state.txnAuth.attachmentInt64Num1, ptr, sizeof(state.txnAuth.attachmentInt64Num1));
-    ptr += sizeof(state.txnAuth.attachmentInt64Num1);
+    memmove(&assetId, ptr, sizeof(assetId));
+    ptr += sizeof(assetId);
 
-    memmove(&state.txnAuth.attachmentInt64Num2, ptr, sizeof(state.txnAuth.attachmentInt64Num2));
+    memmove(&quantityQNT, ptr, sizeof(quantityQNT));
 
+    state.txnAuth.attachment.assetTransfer.assetId = assetId;
+    state.txnAuth.attachment.assetTransfer.quantityQNT = quantityQNT;
     return R_SUCCESS;
 }
 
