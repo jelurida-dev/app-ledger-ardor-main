@@ -40,23 +40,23 @@ UX_STEP_NOCB(ux_tx_chain,
                  .title = "Chain&TxnType",
                  .text = state.txnAuth.chainAndTxnTypeText,
              });
-UX_STEP_NOCB(ux_tx_optional1,
+UX_STEP_NOCB(ux_tx_window0,
              bnnn_paging,
              {
-                 .title = state.txnAuth.optionalWindow1Title,
-                 .text = state.txnAuth.optionalWindow1Text,
+                 .title = state.txnAuth.windowTitles[0],
+                 .text = state.txnAuth.windowTexts[0],
              });
-UX_STEP_NOCB(ux_tx_optional2,
+UX_STEP_NOCB(ux_tx_window1,
              bnnn_paging,
              {
-                 .title = state.txnAuth.optionalWindow2Title,
-                 .text = state.txnAuth.optionalWindow2Text,
+                 .title = state.txnAuth.windowTitles[1],
+                 .text = state.txnAuth.windowTexts[1],
              });
-UX_STEP_NOCB(ux_tx_optional3,
+UX_STEP_NOCB(ux_tx_window2,
              bnnn_paging,
              {
-                 .title = state.txnAuth.optionalWindow3Title,
-                 .text = state.txnAuth.optionalWindow3Text,
+                 .title = state.txnAuth.windowTitles[2],
+                 .text = state.txnAuth.windowTexts[2],
              });
 UX_STEP_NOCB(ux_tx_appendages,
              bnnn_paging,
@@ -102,16 +102,16 @@ void signTransactionScreen() {
 
     ux_tx_flow[index++] = &ux_tx_chain;
 
-    if (*state.txnAuth.optionalWindow1Title != 0) {
-        ux_tx_flow[index++] = &ux_tx_optional1;
+    if (*state.txnAuth.windowTitles[0] != 0) {
+        ux_tx_flow[index++] = &ux_tx_window0;
     }
 
-    if (*state.txnAuth.optionalWindow2Title != 0) {
-        ux_tx_flow[index++] = &ux_tx_optional2;
+    if (*state.txnAuth.windowTitles[1] != 0) {
+        ux_tx_flow[index++] = &ux_tx_window1;
     }
 
-    if (*state.txnAuth.optionalWindow3Title != 0) {
-        ux_tx_flow[index++] = &ux_tx_optional3;
+    if (*state.txnAuth.windowTitles[2] != 0) {
+        ux_tx_flow[index++] = &ux_tx_window2;
     }
 
     if (*state.txnAuth.appendagesText != 0) {

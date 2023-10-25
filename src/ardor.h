@@ -63,19 +63,15 @@ uint8_t formatChainAmount(char* const out,
 void cleanState();
 
 // define max text sizes for the different UI screens
-#define MAX_FEE_TEXT_SIZE \
-    21                                       // 9,223,372,036,854,775,807 is the biggest number you
-                                             // can hold in uint64 + the dot + null
-#define MAX_CHAIN_AND_TXN_TYPE_TEXT_SIZE 60  // Aproximation of size
-#define MAX_WIN1_TITLE_SIZE 9                // MAX("Amount","Asset Id")
-#define MAX_WIN1_TEXT_SIZE 31                // same as fee text + name of the chain + space
-#define MAX_WIN2_TITLE_SIZE 20               // The longest string is price per (chain name here)
-#define MAX_WIN2_TEXT_SIZE 31                // MAX(Ardor arddress = 27, feeText + chainName)
-#define MAX_WIN3_TITLE_SIZE 10               // MAX("Recipient")
-#define MAX_WIN3_TEXT_SIZE 28                // MAX(Ardor arddress = 27)
-#define MAX_APPENDAGES_TEXT_SIZE \
-    60  // this should allow displaying the names for up to
-        // three types, otherwise we show a bitmap
+
+// 9,223,372,036,854,775,807 is the biggest number you can hold in uint64 + the dot + null
+#define MAX_FEE_TEXT_SIZE 21
+#define MAX_CHAIN_AND_TXN_TYPE_TEXT_SIZE 60
+#define MAX_WINDOWS 3             // Additional windows, depending on the txn type
+#define MAX_WINDOW_TITLE_SIZE 20  // The longest string is price per (chain name here)
+#define MAX_WINDOW_TEXT_SIZE 31   // MAX(Ardor arddress = 27, feeText + chainName)
+// this should allow displaying the names for up to three types, otherwise we show a bitmap
+#define MAX_APPENDAGES_TEXT_SIZE 60
 
 enum authTxnStates { AUTH_STATE_INIT, AUTH_STATE_PARSING, AUTH_STATE_USER_AUTHORIZED };
 
@@ -130,12 +126,9 @@ typedef struct {
 
     char feeText[MAX_FEE_TEXT_SIZE];
     char chainAndTxnTypeText[MAX_CHAIN_AND_TXN_TYPE_TEXT_SIZE];
-    char optionalWindow1Title[MAX_WIN1_TITLE_SIZE];
-    char optionalWindow1Text[MAX_WIN1_TEXT_SIZE];
-    char optionalWindow2Title[MAX_WIN2_TITLE_SIZE];
-    char optionalWindow2Text[MAX_WIN2_TEXT_SIZE];
-    char optionalWindow3Title[MAX_WIN3_TITLE_SIZE];
-    char optionalWindow3Text[MAX_WIN3_TEXT_SIZE];
+    // additional UI screens, depending on the txn type
+    char windowTitles[MAX_WINDOWS][MAX_WINDOW_TITLE_SIZE];
+    char windowTexts[MAX_WINDOWS][MAX_WINDOW_TEXT_SIZE];
     char appendagesText[MAX_APPENDAGES_TEXT_SIZE];
 } authTxn_t;
 

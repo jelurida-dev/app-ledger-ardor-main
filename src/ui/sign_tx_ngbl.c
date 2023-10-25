@@ -43,17 +43,11 @@ static void reviewContinue() {
     int i = 0;
     pairs[i].item = "Chain&TxnType";
     pairs[i++].value = state.txnAuth.chainAndTxnTypeText;
-    if (*state.txnAuth.optionalWindow1Title != 0) {
-        pairs[i].item = state.txnAuth.optionalWindow1Title;
-        pairs[i++].value = state.txnAuth.optionalWindow1Text;
-    }
-    if (*state.txnAuth.optionalWindow2Title != 0) {
-        pairs[i].item = state.txnAuth.optionalWindow2Title;
-        pairs[i++].value = state.txnAuth.optionalWindow2Text;
-    }
-    if (*state.txnAuth.optionalWindow3Title != 0) {
-        pairs[i].item = state.txnAuth.optionalWindow3Title;
-        pairs[i++].value = state.txnAuth.optionalWindow3Text;
+    for (int j = 0; j < MAX_WINDOWS; j++) {
+        if (*state.txnAuth.windowTitles[j] != 0) {
+            pairs[i].item = state.txnAuth.windowTitles[j];
+            pairs[i++].value = state.txnAuth.windowTexts[j];
+        }
     }
     if (*state.txnAuth.appendagesText != 0) {
         pairs[i].item = "Appendages";

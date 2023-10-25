@@ -108,40 +108,50 @@ void signTransactionCancel() {
     io_send_return2(R_SUCCESS, R_REJECT);
 }
 
-static uint8_t setPaymentsScreenTexts() {
-    snprintf(state.txnAuth.optionalWindow1Title,
-             sizeof(state.txnAuth.optionalWindow1Title),
-             "Amount");
+/**
+ * Sets the title and text for one of the optional windows in the transaction authorization screen.
+ * The title is a regular text, the text is formatted as an integer.
+ *
+ * @param windowIndex The index of the window to print the amount for.
+ * @param title The title to display for the window.
+ * @param amount The amount to display in the window text.
+ */
+static void printWindowAmount(uint8_t windowIndex, const char* title, uint64_t amount) {
+    snprintf(state.txnAuth.windowTitles[windowIndex],
+             sizeof(state.txnAuth.windowTitles[windowIndex]),
+             "%s",
+             title);
+    formatAmount(state.txnAuth.windowTexts[windowIndex],
+                 sizeof(state.txnAuth.windowTexts[windowIndex]),
+                 amount,
+                 0);
+}
 
-    uint8_t ret = formatChainAmount(state.txnAuth.optionalWindow1Text,
-                                    sizeof(state.txnAuth.optionalWindow1Text),
+static uint8_t setPaymentsScreenTexts() {
+    snprintf(state.txnAuth.windowTitles[0], sizeof(state.txnAuth.windowTitles[0]), "Amount");
+
+    uint8_t ret = formatChainAmount(state.txnAuth.windowTexts[0],
+                                    sizeof(state.txnAuth.windowTexts[0]),
                                     state.txnAuth.amount,
                                     state.txnAuth.chainId);
     if (ret == 0) {
         return R_FORMAT_AMOUNT_ERR;
     }
 
-    snprintf(state.txnAuth.optionalWindow2Title,
-             sizeof(state.txnAuth.optionalWindow2Title),
-             "Recipient");
-    snprintf(state.txnAuth.optionalWindow2Text,
-             sizeof(state.txnAuth.optionalWindow2Text),
-             APP_PREFIX);
-    reedSolomonEncode(
-        state.txnAuth.recipientId,
-        state.txnAuth.optionalWindow2Text + strlen(state.txnAuth.optionalWindow2Text));
+    snprintf(state.txnAuth.windowTitles[1], sizeof(state.txnAuth.windowTitles[1]), "Recipient");
+    snprintf(state.txnAuth.windowTexts[1], sizeof(state.txnAuth.windowTexts[1]), APP_PREFIX);
+    reedSolomonEncode(state.txnAuth.recipientId,
+                      state.txnAuth.windowTexts[1] + strlen(state.txnAuth.windowTexts[1]));
 
     return R_SUCCESS;
 }
 
 static uint8_t setCoinExchangeScreenTexts() {
-    snprintf(state.txnAuth.optionalWindow1Title,
-             sizeof(state.txnAuth.optionalWindow1Title),
-             "Amount");
+    snprintf(state.txnAuth.windowTitles[0], sizeof(state.txnAuth.windowTitles[0]), "Amount");
 
     uint8_t ret = formatAmount(
-        state.txnAuth.optionalWindow1Text,
-        sizeof(state.txnAuth.optionalWindow1Text),
+        state.txnAuth.windowTexts[0],
+        sizeof(state.txnAuth.windowTexts[0]),
         state.txnAuth.attachment.coinExchange.quantityQNT,
         chainNumDecimalsBeforePoint(state.txnAuth.attachment.coinExchange.exchangeChainId));
 
@@ -151,17 +161,17 @@ static uint8_t setCoinExchangeScreenTexts() {
 
     // the existence of the chainId and exchangeId chains was already checked in transactionParser.c
 
-    snprintf(state.txnAuth.optionalWindow1Text + ret - 1,
-             sizeof(state.txnAuth.optionalWindow1Text) - ret - 1,
+    snprintf(state.txnAuth.windowTexts[0] + ret - 1,
+             sizeof(state.txnAuth.windowTexts[0]) - ret - 1,
              " %s",
              chainName(state.txnAuth.attachment.coinExchange.exchangeChainId));
 
-    snprintf(state.txnAuth.optionalWindow2Title,
-             sizeof(state.txnAuth.optionalWindow2Title),
+    snprintf(state.txnAuth.windowTitles[1],
+             sizeof(state.txnAuth.windowTitles[1]),
              "Price per %s",
              chainName(state.txnAuth.attachment.coinExchange.exchangeChainId));
-    ret = formatAmount(state.txnAuth.optionalWindow2Text,
-                       sizeof(state.txnAuth.optionalWindow2Text),
+    ret = formatAmount(state.txnAuth.windowTexts[1],
+                       sizeof(state.txnAuth.windowTexts[1]),
                        state.txnAuth.attachment.coinExchange.priceNQT,
                        chainNumDecimalsBeforePoint(state.txnAuth.attachment.coinExchange.chainId));
 
@@ -169,8 +179,8 @@ static uint8_t setCoinExchangeScreenTexts() {
         return R_FORMAT_AMOUNT_ERR;
     }
 
-    snprintf(state.txnAuth.optionalWindow2Text + ret - 1,
-             sizeof(state.txnAuth.optionalWindow2Text) - ret - 1,
+    snprintf(state.txnAuth.windowTexts[1] + ret - 1,
+             sizeof(state.txnAuth.windowTexts[1]) - ret - 1,
              " %s",
              chainName(state.txnAuth.attachment.coinExchange.chainId));
 
@@ -178,59 +188,20 @@ static uint8_t setCoinExchangeScreenTexts() {
 }
 
 static uint8_t setAssetOrderScreenTexts() {
-    snprintf(state.txnAuth.optionalWindow1Title,
-             sizeof(state.txnAuth.optionalWindow1Title),
-             "Asset Id");
-    formatAmount(state.txnAuth.optionalWindow1Text,
-                 sizeof(state.txnAuth.optionalWindow1Text),
-                 state.txnAuth.attachment.assetOrderPlacement.assetId,
-                 0);
-
-    snprintf(state.txnAuth.optionalWindow2Title,
-             sizeof(state.txnAuth.optionalWindow2Title),
-             "Quantity QNT");
-    formatAmount(state.txnAuth.optionalWindow2Text,
-                 sizeof(state.txnAuth.optionalWindow2Text),
-                 state.txnAuth.attachment.assetOrderPlacement.quantityQNT,
-                 0);
-
-    snprintf(state.txnAuth.optionalWindow3Title,
-             sizeof(state.txnAuth.optionalWindow3Title),
-             "Price NQT");
-    formatAmount(state.txnAuth.optionalWindow3Text,
-                 sizeof(state.txnAuth.optionalWindow3Text),
-                 state.txnAuth.attachment.assetOrderPlacement.priceNQT,
-                 0);
-
+    printWindowAmount(0, "Asset Id", state.txnAuth.attachment.assetOrderPlacement.assetId);
+    printWindowAmount(1, "Quantity QNT", state.txnAuth.attachment.assetOrderPlacement.quantityQNT);
+    printWindowAmount(2, "Price NQT", state.txnAuth.attachment.assetOrderPlacement.priceNQT);
     return R_SUCCESS;
 }
 
 static uint8_t setAssetTransferScreenTexts() {
-    snprintf(state.txnAuth.optionalWindow1Title,
-             sizeof(state.txnAuth.optionalWindow1Title),
-             "Asset Id");
-    formatAmount(state.txnAuth.optionalWindow1Text,
-                 sizeof(state.txnAuth.optionalWindow1Text),
-                 state.txnAuth.attachment.assetTransfer.assetId,
-                 0);
+    printWindowAmount(0, "Asset Id", state.txnAuth.attachment.assetTransfer.assetId);
+    printWindowAmount(1, "Quantity QNT", state.txnAuth.attachment.assetTransfer.quantityQNT);
 
-    snprintf(state.txnAuth.optionalWindow2Title,
-             sizeof(state.txnAuth.optionalWindow2Title),
-             "Quantity QNT");
-    formatAmount(state.txnAuth.optionalWindow2Text,
-                 sizeof(state.txnAuth.optionalWindow2Text),
-                 state.txnAuth.attachment.assetTransfer.quantityQNT,
-                 0);
-
-    snprintf(state.txnAuth.optionalWindow3Title,
-             sizeof(state.txnAuth.optionalWindow3Title),
-             "Recipient");
-    snprintf(state.txnAuth.optionalWindow3Text,
-             sizeof(state.txnAuth.optionalWindow3Text),
-             APP_PREFIX);
-    reedSolomonEncode(
-        state.txnAuth.recipientId,
-        state.txnAuth.optionalWindow3Text + strlen(state.txnAuth.optionalWindow3Text));
+    snprintf(state.txnAuth.windowTitles[2], sizeof(state.txnAuth.windowTitles[2]), "Recipient");
+    snprintf(state.txnAuth.windowTexts[2], sizeof(state.txnAuth.windowTexts[2]), APP_PREFIX);
+    reedSolomonEncode(state.txnAuth.recipientId,
+                      state.txnAuth.windowTexts[2] + strlen(state.txnAuth.windowTexts[2]));
 
     return R_SUCCESS;
 }
