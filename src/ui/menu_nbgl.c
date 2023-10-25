@@ -54,14 +54,9 @@ static bool settings_nav_callback(uint8_t page, nbgl_pageContent_t* content) {
 
 static void settings_controls_callback(int token, uint8_t index) {
     UNUSED(index);
-    switch (token) {
-        case BLIND_SIGNING_TOKEN:
-            // Write in NVM the opposite of what the current toggle is
-            settings_set_allow_blind_signing(G_switches[BLIND_SIGNING_IDX].initState != ON_STATE);
-            break;
-        default:
-            PRINTF("Unreachable\n");
-            break;
+    if (token == BLIND_SIGNING_TOKEN) {
+        // Write in NVM the opposite of what the current toggle is
+        settings_set_allow_blind_signing(G_switches[BLIND_SIGNING_IDX].initState != ON_STATE);
     }
 }
 
