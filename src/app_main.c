@@ -87,7 +87,7 @@ void app_main(void) {
     PRINTF("app_main, sizeof(state) = %d\n", sizeof(state));
 
     // Length of APDU command received in G_io_apdu_buffer
-    int input_len = 0;
+    volatile int input_len = 0;
 
     // Structured APDU command
     command_t cmd;
@@ -97,7 +97,7 @@ void app_main(void) {
     ui_menu_main();
 
     // this is used to clean state if we change command types
-    uint8_t lastCmdNumber = 0;
+    volatile uint8_t lastCmdNumber = 0;
 
     for (;;) {
         BEGIN_TRY {
