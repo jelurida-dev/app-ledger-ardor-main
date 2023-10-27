@@ -24,16 +24,15 @@ Functional tests are written using the Ragger framework. The tests are located i
 #### Install ragger and dependencies
 
     pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
-    sudo apt-get update && sudo apt-get install qemu-user-static tesseract-ocr libtesseract-dev
+    sudo apt-get update && sudo apt-get install qemu-user-static
 
 #### Run tests
 
-To run all tests just issue the following commands:
+To run all tests just issue the following command:
 
-    pytest --device nanos -v --tb=short tests/
-    pytest --device nanox -v --tb=short tests/
-    pytest --device nanosp -v --tb=short tests/
-    pytest --device stax -v --tb=short tests/
+    pytest --device all -v --tb=short tests/
+
+Please note you need all the different versions compiled. You can compile them all by running the helper script `./make-all` inside the docker build image.
 
 ### End to end tests
 
@@ -91,15 +90,6 @@ The project uses Github Actions to run the Clang static analyzer and the unit te
 
 The CI is configured on the `.github/workflows/ci-workflow.yml` with inspiration from the [`app-boilerplate`](https://github.com/LedgerHQ/app-boilerplate) and the [`app-xrp`](https://github.com/LedgerHQ/app-xrp).
 
-### State Cleaning
-
-Since we use a union data type for command handlers state (`states_t` in `ardor.h`) to save memory, make sure to **clear this state**
-to avoid some attack vectors.
-
-This is done by passing `true` in the `isLastCommandDifferent` parameter of the handler function. In this case the handler has to clear the state before using it.
-
-In addition state must be cleared whenever we get an error in a handler function which manages state.
-
 ### More Code Design
 
 Do not include project header files inside other project header files to prevent complicating the dependencies.
@@ -116,8 +106,8 @@ Changes to the `txtypes.txt` should be picked up by the make process and a new `
 
 ### Code Flow
 
-The code flow starts at ardor_main (`main.c`) which uses a global try/catch to prevent the app from crashing on error.
-The code loops on io_exchange waiting for the next command buffer, then calling the appropriate handler function implemented in the different .c files.
+The code flow starts at `app_main` which uses a global try/catch to prevent the app from crashing on error.
+The code loops on `io_recv_command` waiting for the next command buffer, then calling the appropriate handler function implemented in the different .c files.
 
 ## APDU Protocol
 
