@@ -687,8 +687,14 @@ void curve25519(sec25519 Z, const priv25519 k, const pub25519 P) {
     core25519(Z, NULL, k, P);
 }
 
-/* v = (x - h) s  mod q  */
-// note: this function screws with of the parameters...
+/*
+ * sign25519 - Custom variant of deterministic EC-KCDSA signature algorithm.
+ *
+ * This function implements a custom variant of deterministic EC-KCDSA signature
+ * algorithm, where the formula used is s * (x - h) mod order25519. This differs
+ * from a standard implementation of EC-KCDSA (s * (x - h ⊕ r)). In this custom
+ * variant, h is calculated as H(m || r), where r = [k]G and k = H(m || sk).
+ */
 int sign25519(k25519 v, const k25519 h, const priv25519 x, const spriv25519 s) {
     uint8_t tmp[65];
     unsigned w;

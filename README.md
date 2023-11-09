@@ -155,7 +155,7 @@ All return values for functions should be checked in every function.
 
 ## Key Derivation Algorithm
 
-Ardor signatures are based on the EC-KCDSA over Curve25519 algorithm which is not supported natively by Ledger.
+Ardor signatures are based on a custom variant of the EC-KCDSA over Curve25519 algorithm which is not supported natively by Ledger.
 
 To support standard BIP32 key derivation we implemented curve conversion for Ardor using the protocol [Yaffe-Bender HD key derivation for EC-KCDSA](https://www.jelurida.com/sites/default/files/kcdsa.pdf), it's a derivation scheme that rides on top of the BIP32-Ed25519 HD key derivation scheme.
 
@@ -190,4 +190,6 @@ Extra Notes:
 
 * [This repo](https://github.com/LedgerHQ/orakolo) implements SLIP10 master seed generation and BIP32 HD EdDSA key derivation in python for reference, [this clone](https://github.com/haimbender/orakolo) also implements master public key derivation for BIP32 EdDSA
 
-* Curve25519 and ED25519 curves don't really look like curves, they are just a cloud of points
+* Signing is using the formula `s * (x - h) mod order25519`. This differs from a standard
+implementation of EC-KCDSA (`s * (x - h ⊕ r)`). In this custom variant, `h` is calculated as
+`H(m || r)` , where `r = [k]G and k = H(m || sk)`.
