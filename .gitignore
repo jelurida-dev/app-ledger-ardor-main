@@ -13,3 +13,4 @@ scan-build/
 .history/
 tests/__pycache__/
 tests/snapshots-tmp/
+.venv/
