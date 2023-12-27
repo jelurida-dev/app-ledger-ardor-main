@@ -182,7 +182,7 @@ static int aesEncryptDecryptHandler(const command_t* const cmd) {
     uint8_t* outPtr = state.encryption.buffer + 1;
     state.encryption.buffer[0] = R_SUCCESS;
 
-    uint8_t* cbc = state.encryption.cbc; // Temporary variable
+    uint8_t* cbc = state.encryption.cbc;  // Temporary variable
     while (inPtr < cmd->data + cmd->lc) {
         if (state.encryption.mode == P1_INIT_ENCRYPT) {  // if we are doing encryption
             for (uint8_t j = 0; j < CX_AES_BLOCK_SIZE; j++) {

@@ -91,7 +91,7 @@ void signTokenConfirm() {
                            0,
                            0);
     if (err != CX_OK) {
-        cleanAndReturn(R_CXLIB_ERROR); 
+        cleanAndReturn(R_CXLIB_ERROR);
         return;
     }
 
@@ -107,7 +107,7 @@ void signTokenConfirm() {
                            0,
                            0);
     if (err != CX_OK) {
-        cleanAndReturn(R_CXLIB_ERROR); 
+        cleanAndReturn(R_CXLIB_ERROR);
         return;
     }
 
@@ -123,13 +123,13 @@ void signTokenConfirm() {
                            publicKeyAndFinalHash,
                            sizeof(publicKeyAndFinalHash));
     if (err != CX_OK) {
-        cleanAndReturn(R_CXLIB_ERROR); 
+        cleanAndReturn(R_CXLIB_ERROR);
         return;
     }
 
     err = signMsg(keySeed, publicKeyAndFinalHash, state.tokenSign.token + offset);
     if (err != CX_OK) {
-        cleanAndReturn(R_CXLIB_ERROR); 
+        cleanAndReturn(R_CXLIB_ERROR);
         return;
     }
     explicit_bzero(keySeed, sizeof(keySeed));

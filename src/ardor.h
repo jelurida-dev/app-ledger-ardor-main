@@ -22,7 +22,7 @@
 #include "os.h"
 #include "config.h"
 
-cx_err_t publicKeyToId(const uint8_t *const publicKey, uint64_t *const accountIdOut);
+cx_err_t publicKeyToId(const uint8_t* const publicKey, uint64_t* const accountIdOut);
 
 uint8_t ardorKeys(const uint8_t* const derivationPath,
                   const uint8_t derivationPathLengthInUints32,

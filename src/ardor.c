@@ -287,7 +287,6 @@ uint8_t getSharedEncryptionKey(const uint8_t *const derivationPath,
         return R_CXLIB_ERROR;
     }
 
-
     // clean up buffers
     explicit_bzero(keySeed, sizeof(keySeed));
     explicit_bzero(sharedKey, sizeof(sharedKey));
@@ -307,7 +306,7 @@ cx_err_t publicKeyToId(const uint8_t *const publicKey, uint64_t *const accountId
 
     // Extract the account ID from the first 8 bytes of the hash
     // Assuming little-endian architecture
-    *accountIdOut = *((uint64_t *)hashOut);
+    *accountIdOut = *((uint64_t *) hashOut);
 
     return CX_OK;
 }

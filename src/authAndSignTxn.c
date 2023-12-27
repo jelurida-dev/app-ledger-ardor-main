@@ -259,8 +259,8 @@ uint8_t signTxn(const uint8_t* const derivationPath,
     }
 
     uint8_t txHash[32];
-    cx_err_t err = cx_hash_no_throw(&state.txnAuth.hashstate.header, CX_LAST, 0, 0, txHash, 
-        sizeof(txHash));
+    cx_err_t err =
+        cx_hash_no_throw(&state.txnAuth.hashstate.header, CX_LAST, 0, 0, txHash, sizeof(txHash));
     if (err != CX_OK) {
         return R_CXLIB_ERROR;
     }
