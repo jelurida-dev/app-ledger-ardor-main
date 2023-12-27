@@ -54,5 +54,6 @@ enum returnValues {
     R_AES_ERROR = 31,
     R_NO_SETUP = 32,
     R_NOT_ENOUGH_DERIVATION_INDEXES = 33,
-    R_WRONG_STATE = 34
+    R_WRONG_STATE = 34,
+    R_CXLIB_ERROR = 35
 };

@@ -96,6 +96,11 @@ static void initTxnAuthState() {
     cx_sha256_init(&state.txnAuth.hashstate);
 }
 
+static int cleanAndReturn(uint8_t ret) {
+    cleanState();
+    return io_send_return1(ret);
+}
+
 // Accept click callback
 void signTransactionConfirm() {
     state.txnAuth.state = AUTH_STATE_USER_AUTHORIZED;
@@ -254,10 +259,17 @@ uint8_t signTxn(const uint8_t* const derivationPath,
     }
 
     uint8_t txHash[32];
-    cx_hash_no_throw(&state.txnAuth.hashstate.header, CX_LAST, 0, 0, txHash, sizeof(txHash));
+    cx_err_t err = cx_hash_no_throw(&state.txnAuth.hashstate.header, CX_LAST, 0, 0, txHash, 
+        sizeof(txHash));
+    if (err != CX_OK) {
+        return R_CXLIB_ERROR;
+    }
 
     // sign msg should only use the first 32 bytes of keyseed
-    signMsg(keySeed, txHash, destBuffer);
+    err = signMsg(keySeed, txHash, destBuffer);
+    if (err != CX_OK) {
+        return R_CXLIB_ERROR;
+    }
 
     // clean buffers
     explicit_bzero(txHash, sizeof(txHash));
@@ -274,7 +286,7 @@ static int p1InitContinueCommon(const command_t* const cmd) {
     uint8_t ret = addToReadBuffer(cmd->data, cmd->lc);
 
     if (ret != R_SUCCESS) {
-        return io_send_return1(ret);
+        return cleanAndReturn(ret);
     }
 
     ret = parseTransaction(&setScreenTexts);
@@ -305,13 +317,11 @@ static int p1InitHandler(const command_t* const cmd) {
 
 static int p1ContinueHandler(const command_t* const cmd) {
     if (state.txnAuth.state == AUTH_STATE_USER_AUTHORIZED) {
-        cleanState();
-        return io_send_return1(R_NOT_ALL_BYTES_USED);
+        return cleanAndReturn(R_NOT_ALL_BYTES_USED);
     }
 
     if (state.txnAuth.state == AUTH_STATE_INIT) {
-        cleanState();
-        return io_send_return1(R_ERR_NO_INIT_CANT_CONTINUE);
+        return cleanAndReturn(R_ERR_NO_INIT_CANT_CONTINUE);
     }
 
     return p1InitContinueCommon(cmd);
@@ -319,14 +329,12 @@ static int p1ContinueHandler(const command_t* const cmd) {
 
 static int p1SignHandler(const command_t* const cmd) {
     if (state.txnAuth.state != AUTH_STATE_USER_AUTHORIZED) {
-        cleanState();
-        return io_send_return1(R_TXN_UNAUTHORIZED);
+        return cleanAndReturn(R_TXN_UNAUTHORIZED);
     }
 
     // dataLength is the derivation path length in bytes
     if (!isValidDerivationPathLength(cmd->lc)) {
-        cleanState();
-        return io_send_return1(R_WRONG_SIZE_ERR);
+        return cleanAndReturn(R_WRONG_SIZE_ERR);
     }
 
     uint16_t exception = 0;
@@ -351,8 +359,7 @@ static int p1SignHandler(const command_t* const cmd) {
 // reposibility to call initTxnAuthState Every time we get some sort of an error
 int authAndSignTxnHandler(const command_t* const cmd) {
     if (cmd->lc < 1) {
-        cleanState();
-        return io_send_return1(R_WRONG_SIZE_ERR);
+        return cleanAndReturn(R_WRONG_SIZE_ERR);
     } else if ((cmd->p1 & MODE_P1_MASK) == P1_INIT) {
         return p1InitHandler(cmd);
     } else if ((cmd->p1 & MODE_P1_MASK) == P1_CONTINUE) {

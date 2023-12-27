@@ -22,7 +22,7 @@
 #include "os.h"
 #include "config.h"
 
-uint64_t publicKeyToId(const uint8_t* const publicKey);
+cx_err_t publicKeyToId(const uint8_t *const publicKey, uint64_t *const accountIdOut);
 
 uint8_t ardorKeys(const uint8_t* const derivationPath,
                   const uint8_t derivationPathLengthInUints32,
@@ -36,7 +36,7 @@ bool isValidDerivationPathLength(uint8_t derivationPathLengthInUints32);
 
 char* chainName(const uint8_t chainId);
 
-void signMsg(uint8_t* const keySeedBfr, const uint8_t* const msgSha256, uint8_t* const sig);
+cx_err_t signMsg(uint8_t* const keySeedBfr, const uint8_t* const msgSha256, uint8_t* const sig);
 
 bool check_canary();
 

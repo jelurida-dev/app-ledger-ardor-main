@@ -62,6 +62,11 @@
         returns:    1 bytes status | encrypted / decrypted buffer (same size as input)
 */
 
+static int cleanAndReturn(uint8_t ret) {
+    cleanState();
+    return io_send_return1(ret);
+}
+
 static bool getDerivationLength(const uint8_t p1,
                                 const uint8_t dataLength,
                                 uint8_t* derivationLength) {
@@ -86,19 +91,16 @@ static bool getDerivationLength(const uint8_t p1,
 
 static int initHandler(const command_t* const cmd) {
     if (cmd->lc % sizeof(uint32_t) != 0) {
-        cleanState();
-        return io_send_return1(R_WRONG_SIZE_ERR);
+        return cleanAndReturn(R_WRONG_SIZE_ERR);
     }
 
     if (cmd->lc > MAX_CHUNK_SIZE_ENCRYPT) {
-        cleanState();
-        return io_send_return1(R_NO_SPACE_BUFFER_TOO_SMALL);
+        return cleanAndReturn(R_NO_SPACE_BUFFER_TOO_SMALL);
     }
 
     uint8_t derivationLength = 0;
     if (!getDerivationLength(cmd->p1, cmd->lc, &derivationLength)) {
-        cleanState();
-        return io_send_return1(R_WRONG_SIZE_ERR);
+        return cleanAndReturn(R_WRONG_SIZE_ERR);
     }
 
     uint8_t nonce[NONCE_LENGTH];
@@ -124,15 +126,13 @@ static int initHandler(const command_t* const cmd) {
         explicit_bzero(encryptionKey, sizeof(encryptionKey));  // cleaning the key from memory
         return io_send_return3(ret, exceptionOut >> 8, exceptionOut & 0xFF);
     } else if (ret != R_SUCCESS) {
-        cleanState();
         explicit_bzero(encryptionKey, sizeof(encryptionKey));  // cleaning the key from memory
-        return io_send_return1(ret);
+        return cleanAndReturn(ret);
     }
 
     if (cx_aes_init_key_no_throw(encryptionKey, sizeof(encryptionKey), &state.encryption.aesKey) !=
         CX_OK) {
-        cleanState();
-        return io_send_return1(R_AES_ERROR);
+        return cleanAndReturn(R_AES_ERROR);
     }
     if (cmd->p1 != P1_INIT_ENCRYPT) {
         // Copying the IV into the CBC
@@ -167,40 +167,42 @@ static int aesEncryptDecryptHandler(const command_t* const cmd) {
     if ((state.encryption.mode != P1_INIT_ENCRYPT) &&
         (state.encryption.mode != P1_INIT_DECRYPT_HIDE_SHARED_KEY) &&
         (state.encryption.mode != P1_INIT_DECRYPT_SHOW_SHARED_KEY)) {
-        cleanState();
-        return io_send_return1(R_NO_SETUP);
+        return cleanAndReturn(R_NO_SETUP);
     }
 
     if (cmd->lc % CX_AES_BLOCK_SIZE != 0) {
-        cleanState();
-        return io_send_return1(R_WRONG_SIZE_MODULO_ERR);
+        return cleanAndReturn(R_WRONG_SIZE_MODULO_ERR);
     }
 
     if (cmd->data == 0) {
-        cleanState();
-        return io_send_return1(R_NOT_ALL_BYTES_READ);
+        return cleanAndReturn(R_NOT_ALL_BYTES_READ);
     }
 
     uint8_t* inPtr = cmd->data;
     uint8_t* outPtr = state.encryption.buffer + 1;
     state.encryption.buffer[0] = R_SUCCESS;
 
+    uint8_t* cbc = state.encryption.cbc; // Temporary variable
     while (inPtr < cmd->data + cmd->lc) {
         if (state.encryption.mode == P1_INIT_ENCRYPT) {  // if we are doing encryption
             for (uint8_t j = 0; j < CX_AES_BLOCK_SIZE; j++) {
-                state.encryption.cbc[j] ^= inPtr[j];
+                cbc[j] ^= inPtr[j];
             }
 
-            cx_aes_enc_block(&state.encryption.aesKey, state.encryption.cbc, state.encryption.cbc);
-            memcpy(outPtr, state.encryption.cbc, CX_AES_BLOCK_SIZE);
+            if (cx_aes_enc_block(&state.encryption.aesKey, cbc, cbc) != CX_OK) {
+                return cleanAndReturn(R_CXLIB_ERROR);
+            }
+            memcpy(outPtr, cbc, CX_AES_BLOCK_SIZE);
         } else {
-            cx_aes_dec_block(&state.encryption.aesKey, inPtr, outPtr);
+            if (cx_aes_dec_block(&state.encryption.aesKey, inPtr, outPtr) != CX_OK) {
+                return cleanAndReturn(R_CXLIB_ERROR);
+            }
 
             for (uint8_t j = 0; j < CX_AES_BLOCK_SIZE; j++) {
-                outPtr[j] ^= state.encryption.cbc[j];
+                outPtr[j] ^= cbc[j];
             }
 
-            memcpy(state.encryption.cbc, inPtr, CX_AES_BLOCK_SIZE);
+            memcpy(cbc, inPtr, CX_AES_BLOCK_SIZE);
         }
         inPtr += CX_AES_BLOCK_SIZE;
         outPtr += CX_AES_BLOCK_SIZE;
@@ -217,7 +219,6 @@ int encryptDecryptMessageHandler(const command_t* const cmd) {
     } else if (cmd->p1 == P1_AES_ENCRYPT_DECRYPT) {
         return aesEncryptDecryptHandler(cmd);
     } else {
-        cleanState();
-        return io_send_return1(R_UNKOWN_CMD);
+        return cleanAndReturn(R_UNKOWN_CMD);
     }
 }

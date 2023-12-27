@@ -82,39 +82,56 @@ void signTokenConfirm() {
     state.tokenSign.token[0] = R_SUCCESS;
     size_t offset = 1;
 
+    cx_err_t err;
     // adding the public key to the hash
-    cx_hash_no_throw(&state.tokenSign.sha256.header,
-                     0,
-                     publicKeyAndFinalHash,
-                     sizeof(publicKeyAndFinalHash),
-                     0,
-                     0);
+    err = cx_hash_no_throw(&state.tokenSign.sha256.header,
+                           0,
+                           publicKeyAndFinalHash,
+                           sizeof(publicKeyAndFinalHash),
+                           0,
+                           0);
+    if (err != CX_OK) {
+        cleanAndReturn(R_CXLIB_ERROR); 
+        return;
+    }
 
     // also make a copy to the output buffer, because of how a token is constructed
     memcpy(state.tokenSign.token + offset, publicKeyAndFinalHash, sizeof(publicKeyAndFinalHash));
     offset += sizeof(publicKeyAndFinalHash);
 
     // adding the timestamp to the hash
-    cx_hash_no_throw(&state.tokenSign.sha256.header,
-                     0,
-                     (uint8_t*) &state.tokenSign.timestamp,
-                     sizeof(state.tokenSign.timestamp),
-                     0,
-                     0);
+    err = cx_hash_no_throw(&state.tokenSign.sha256.header,
+                           0,
+                           (uint8_t*) &state.tokenSign.timestamp,
+                           sizeof(state.tokenSign.timestamp),
+                           0,
+                           0);
+    if (err != CX_OK) {
+        cleanAndReturn(R_CXLIB_ERROR); 
+        return;
+    }
 
     memcpy(state.tokenSign.token + offset,
            &state.tokenSign.timestamp,
            sizeof(state.tokenSign.timestamp));
     offset += sizeof(state.tokenSign.timestamp);
 
-    cx_hash_no_throw(&state.tokenSign.sha256.header,
-                     CX_LAST,
-                     0,
-                     0,
-                     publicKeyAndFinalHash,
-                     sizeof(publicKeyAndFinalHash));
+    err = cx_hash_no_throw(&state.tokenSign.sha256.header,
+                           CX_LAST,
+                           0,
+                           0,
+                           publicKeyAndFinalHash,
+                           sizeof(publicKeyAndFinalHash));
+    if (err != CX_OK) {
+        cleanAndReturn(R_CXLIB_ERROR); 
+        return;
+    }
 
-    signMsg(keySeed, publicKeyAndFinalHash, state.tokenSign.token + offset);
+    err = signMsg(keySeed, publicKeyAndFinalHash, state.tokenSign.token + offset);
+    if (err != CX_OK) {
+        cleanAndReturn(R_CXLIB_ERROR); 
+        return;
+    }
     explicit_bzero(keySeed, sizeof(keySeed));
 
     io_send_response_pointer(state.tokenSign.token, sizeof(state.tokenSign.token), SW_OK);
@@ -141,7 +158,9 @@ static int p1TokenMsgBytesHandler(const command_t* const cmd) {
 
     state.tokenSign.state = SIGN_TOKEN_BYTES_RECEIVED;
 
-    cx_hash_no_throw(&state.tokenSign.sha256.header, 0, cmd->data, cmd->lc, 0, 0);
+    if (cx_hash_no_throw(&state.tokenSign.sha256.header, 0, cmd->data, cmd->lc, 0, 0) != CX_OK) {
+        return cleanAndReturn(R_CXLIB_ERROR);
+    }
 
     return io_send_return1(R_SUCCESS);
 }

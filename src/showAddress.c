@@ -53,7 +53,11 @@ int showAddressHandler(const command_t* const cmd) {
     uint8_t ret = ardorKeys(cmd->data, cmd->lc / sizeof(uint32_t), 0, publicKey, 0, 0, &exception);
 
     if (ret == R_SUCCESS) {
-        showAddressScreen(publicKeyToId(publicKey));
+        uint64_t accountId;
+        if (publicKeyToId(publicKey, &accountId) != CX_OK) {
+            return io_send_return1(R_CXLIB_ERROR);
+        }
+        showAddressScreen(accountId);
         return 0;
     } else if (ret == R_KEY_DERIVATION_EX) {
         return io_send_return3(ret, exception >> 8, exception & 0xFF);

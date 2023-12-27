@@ -45,31 +45,42 @@ void cleanState() {
 //@param[in] bufferTohash2 - second buffer to hash
 //@param[in] sizeOfBuffer2 - size of second buffer to hash
 //@param[out] output - 32 byte buffer to hold the hash
-void sha256TwoBuffers(const uint8_t *const bufferTohash1,
-                      const uint16_t sizeOfBuffer1,
-                      const uint8_t *const bufferTohash2,
-                      const uint16_t sizeOfBuffer2,
-                      uint8_t *const output) {
+// return crypto library error code (CX_OK if success)
+static cx_err_t sha256TwoBuffers(const uint8_t *const bufferTohash1,
+                                 const uint16_t sizeOfBuffer1,
+                                 const uint8_t *const bufferTohash2,
+                                 const uint16_t sizeOfBuffer2,
+                                 uint8_t *const output) {
     cx_sha256_t shaContext;
 
     explicit_bzero(output, 32);
-    cx_sha256_init(&shaContext);  // return value has no info
-
-    cx_hash_no_throw(&shaContext.header, 0, bufferTohash1, sizeOfBuffer1, output, 32);
-
-    if (bufferTohash2 != 0) {
-        cx_hash_no_throw(&shaContext.header, 0, bufferTohash2, sizeOfBuffer2, output, 32);
+    cx_err_t rc = cx_sha256_init_no_throw(&shaContext);  // return value has no info
+    if (rc != CX_OK) {
+        return rc;
     }
 
-    cx_hash_no_throw(&shaContext.header, CX_LAST, 0, 0, output, 32);
+    rc = cx_hash_no_throw(&shaContext.header, 0, bufferTohash1, sizeOfBuffer1, output, 32);
+    if (rc != CX_OK) {
+        return rc;
+    }
+
+    if (bufferTohash2 != 0) {
+        rc = cx_hash_no_throw(&shaContext.header, 0, bufferTohash2, sizeOfBuffer2, output, 32);
+        if (rc != CX_OK) {
+            return rc;
+        }
+    }
+
+    return cx_hash_no_throw(&shaContext.header, CX_LAST, 0, 0, output, 32);
 }
 
 // SHA-256 of a single buffer
 //@param[in] in - buffer to hash
 //@param[in] len - length of buffer to hash
 //@param[out] out - 32 byte buffer to hold the hash
-void sha256Buffer(const uint8_t *const in, const uint16_t len, uint8_t *const out) {
-    sha256TwoBuffers(in, len, 0, 0, out);
+// return crypto library error code (CX_OK if success)
+static cx_err_t sha256Buffer(const uint8_t *const in, const uint16_t len, uint8_t *const out) {
+    return sha256TwoBuffers(in, len, 0, 0, out);
 }
 
 // This is the EC-KCDSA siging implementation
@@ -77,7 +88,8 @@ void sha256Buffer(const uint8_t *const in, const uint16_t len, uint8_t *const ou
 //           edit keySeedBfr in the process
 //@param[in] msgSha256 should point to a 32 byte sha256 of the message we are signing
 //@param[out] sig should point to 64 bytes allocated to hold the signiture of the message
-void signMsg(uint8_t *const keySeedBfr, const uint8_t *const msgSha256, uint8_t *const sig) {
+// return crypto library error code (CX_OK if success)
+cx_err_t signMsg(uint8_t *const keySeedBfr, const uint8_t *const msgSha256, uint8_t *const sig) {
     uint8_t publicKeyX[32], privateKey[32];
     explicit_bzero(publicKeyX, sizeof(publicKeyX));
     explicit_bzero(privateKey, sizeof(privateKey));
@@ -87,7 +99,10 @@ void signMsg(uint8_t *const keySeedBfr, const uint8_t *const msgSha256, uint8_t 
     uint8_t x[32];
     explicit_bzero(x, sizeof(x));
 
-    sha256TwoBuffers(msgSha256, 32, privateKey, sizeof(privateKey), x);
+    cx_err_t err = sha256TwoBuffers(msgSha256, 32, privateKey, sizeof(privateKey), x);
+    if (err != CX_OK) {
+        return err;
+    }
 
     uint8_t Y[32];
     explicit_bzero(Y, sizeof(Y));
@@ -97,7 +112,10 @@ void signMsg(uint8_t *const keySeedBfr, const uint8_t *const msgSha256, uint8_t 
     uint8_t h[32];
     explicit_bzero(h, sizeof(h));
 
-    sha256TwoBuffers(msgSha256, 32, Y, sizeof(Y), h);
+    err = sha256TwoBuffers(msgSha256, 32, Y, sizeof(Y), h);
+    if (err != CX_OK) {
+        return err;
+    }
 
     memmove(sig + 32, h, 32);
 
@@ -108,6 +126,8 @@ void signMsg(uint8_t *const keySeedBfr, const uint8_t *const msgSha256, uint8_t 
     explicit_bzero(x, sizeof(x));
     explicit_bzero(Y, sizeof(Y));
     explicit_bzero(h, sizeof(h));
+
+    return CX_OK;
 }
 
 // from curveConversion.C
@@ -263,7 +283,10 @@ uint8_t getSharedEncryptionKey(const uint8_t *const derivationPath,
         sharedKey[i] ^= nonce[i];
     }
 
-    sha256Buffer(sharedKey, sizeof(sharedKey), aesKeyOut);
+    if (sha256Buffer(sharedKey, sizeof(sharedKey), aesKeyOut) != CX_OK) {
+        return R_CXLIB_ERROR;
+    }
+
 
     // clean up buffers
     explicit_bzero(keySeed, sizeof(keySeed));
@@ -274,14 +297,19 @@ uint8_t getSharedEncryptionKey(const uint8_t *const derivationPath,
 
 // Computes the 64bit account id from a given public key
 //@param publicKey - the 32 byte public key
-uint64_t publicKeyToId(const uint8_t *const publicKey) {
-    uint8_t tempSha[32];
-    sha256Buffer(publicKey, 32, tempSha);
+//@param accountIdOut - pointer to store the computed account ID
+cx_err_t publicKeyToId(const uint8_t *const publicKey, uint64_t *const accountIdOut) {
+    uint8_t hashOut[32];
+    cx_err_t err = sha256Buffer(publicKey, 32, hashOut);
+    if (err != CX_OK) {
+        return err;
+    }
 
-    return ((((uint64_t) tempSha[7]) << 56) | (((uint64_t) tempSha[6]) << 48) |
-            (((uint64_t) tempSha[5]) << 40) | (((uint64_t) tempSha[4]) << 32) |
-            (((uint64_t) tempSha[3]) << 24) | (((uint64_t) tempSha[2]) << 16) |
-            (((uint64_t) tempSha[1]) << 8) | (((uint64_t) tempSha[0])));
+    // Extract the account ID from the first 8 bytes of the hash
+    // Assuming little-endian architecture
+    *accountIdOut = *((uint64_t *)hashOut);
+
+    return CX_OK;
 }
 
 /**

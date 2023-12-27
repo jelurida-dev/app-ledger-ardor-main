@@ -397,7 +397,7 @@ static uint8_t parseAssetTransferAttachment() {
 // Addes bytes to the read buffer
 //@param newData: ptr to the data
 //@param numBytes: number of bytes in the data
-// return R_SUCCESS on success, R_NO_SPACE_BUFFER_TOO_SMALL othereize
+// return the return value from returnValues.h (R_SUCCESS on success)
 uint8_t addToReadBuffer(const uint8_t* const newData, const uint8_t numBytes) {
     uint16_t offset = state.txnAuth.readBufferReadOffset;
     for (uint16_t i = 0; i < state.txnAuth.readBufferEndPos - offset; i++) {
@@ -413,7 +413,10 @@ uint8_t addToReadBuffer(const uint8_t* const newData, const uint8_t numBytes) {
         return R_NO_SPACE_BUFFER_TOO_SMALL;
     }
 
-    cx_hash_no_throw(&state.txnAuth.hashstate.header, 0, newData, numBytes, 0, 0);
+    cx_err_t ret = cx_hash_no_throw(&state.txnAuth.hashstate.header, 0, newData, numBytes, 0, 0);
+    if (ret != CX_OK) {
+        return R_CXLIB_ERROR;
+    }
 
     memcpy(state.txnAuth.readBuffer + state.txnAuth.readBufferEndPos, newData, numBytes);
     state.txnAuth.readBufferEndPos += numBytes;
