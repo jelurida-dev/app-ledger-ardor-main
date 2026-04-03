@@ -201,7 +201,7 @@ static void check_reduced(const char *where, const i25519 x) {
 
 #define M(i) ((uint32_t) m[i])
 #define X(i) ((int64_t) x[i])
-#define m64(arg1, arg2) ((int64_t)(arg1) * (arg2))
+#define m64(arg1, arg2) ((int64_t) (arg1) * (arg2))
 
 /* Convert to internal format from little-endian byte format */
 static void unpack25519(i25519 x, const k25519 m) {
@@ -355,7 +355,7 @@ static i25519ptr mul25519small(i25519 xy, const i25519 x, const int32_t y) {
     xy[7] = t & ((1 << 25) - 1);
     t = (t >> 25) + xy[8];
     xy[8] = t & ((1 << 26) - 1);
-    xy[9] += (int32_t)(t >> 26);
+    xy[9] += (int32_t) (t >> 26);
     check_reduced("mul small output", xy);
     return xy;
 }
@@ -409,7 +409,7 @@ static i25519ptr mul25519(i25519 xy, const i25519 x, const i25519 y) {
     xy[7] = t & ((1 << 25) - 1);
     t = (t >> 25) + xy[8];
     xy[8] = t & ((1 << 26) - 1);
-    xy[9] += (int32_t)(t >> 26);
+    xy[9] += (int32_t) (t >> 26);
     check_reduced("mul output", xy);
     return xy;
 }
