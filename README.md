@@ -1,6 +1,6 @@
 # Ledger App for Ardor
 
-This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app for the Ledger Nano S and X devices
+This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app for Ledger devices (Nano S+, Nano X, Stax, and the legacy Nano S)
 
 ## Documentation
 
@@ -10,12 +10,12 @@ This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app f
 
 ### Building using the Ledger Application Builder docker image
 
-The `ledger-app-builder` docker image is not currently published so you will need to [fetch and build it manually](https://github.com/LedgerHQ/ledger-app-builder#standard-build). You only need to do this once and the image will be cached on your system.
+The official docker images are published on ghcr.io ([LedgerHQ/ledger-app-builder](https://github.com/LedgerHQ/ledger-app-builder)). The `ledger-app-dev-tools` variant also bundles the Speculos emulator and the Ragger test framework, so it covers building, testing and loading:
 
-Then you can switch to this repository and launch the `ledger-app-builder` docker image to build the Ardor app. Just follow the [standard instructions](https://github.com/LedgerHQ/ledger-app-builder#compile-your-app-in-the-container). In a nutshell:
+    $ docker run --rm -ti --user "$(id -u):$(id -g)" -v "$(pwd -P):/app" ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
+    bash-5.1$ make
 
-    $ docker run --rm -ti -v "$(realpath .):/app" ledger-app-builder:latest
-    root@656be163fe84:/app# make
+Alternatively, the "Ledger Dev Tools" VS Code extension (`LedgerHQ.ledger-dev-tools`) wraps the same container and provides per-device build/test/load from its sidebar.
 
 ### Functional tests
 
@@ -23,8 +23,9 @@ Functional tests are written using the Ragger framework. The tests are located i
 
 #### Install ragger and dependencies
 
-    pip install --extra-index-url https://test.pypi.org/simple/ -r requirements.txt
-    sudo apt-get update && sudo apt-get install qemu-user-static
+Ragger and Speculos are published on regular PyPI (no extra index needed). They are also preinstalled in the `ledger-app-dev-tools` docker image.
+
+    pip install -r tests/requirements.txt
 
 #### Run tests
 
@@ -43,9 +44,9 @@ These tests require Docker (or a local Speculos installation) and Java 8 or newe
 To run the tests you need to build the app, load it into the Speculos emulator and run the tests from the Ardor node.
 
 1. Build the Ledger app.
-2. Run the app on the Speculos emulator using Docker. As an alternative you can use a locally installed Speculos emulator. In this case you will need to run the emulator on port 9999 and the API server on port 5000. The following command will run the emulator on Docker:
+2. Run the app on the Speculos emulator using Docker. As an alternative you can use a locally installed Speculos emulator. In this case you will need to run the emulator on port 9999 and the API server on port 5000. The following command will run the emulator on Docker (note: the suite targets the Nano S build, which Speculos releases since Oct 2025 no longer emulate — pin an older `ghcr.io/ledgerhq/speculos` tag or migrate the suite to another device):
 
-    docker run --rm -it -v $(pwd):/speculos/apps -p 9999:9999 -p 5000:5000 ghcr.io/ledgerhq/speculos --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" --model nanos apps/bin/app.elf
+    docker run --rm -it -v $(pwd):/speculos/apps -p 9999:9999 -p 5000:5000 ghcr.io/ledgerhq/speculos --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" --model nanos apps/build/nanos/bin/app.elf
 
 3. Clone the Ardor node repository with the Ledger unit tests: `git clone https://sargue@bitbucket.org/sargue/ardor-ledger-test.git`
 4. Run tests: `./run-unit-tests.sh com.jelurida.ardor.integration.wallet.ledger.application.LedgerSpeculosSuite`
@@ -54,17 +55,17 @@ To run the tests you need to build the app, load it into the Speculos emulator a
 
 To turn on logging on the Ledger app
 
-1. Install the [debug firmware](https://developers.ledger.com/docs/nano-app/debug/)
-2. Enable debugging in the makefile (DEVEL = 1) - make sure not to commit this change
-3. Execute `make clean` and then `make load` to generate the source code for all the PRINTF statements
+1. Install the debug firmware (see the [Ledger Developer Portal](https://developers.ledger.com/))
+2. Build with `DEBUG=1` (`make DEBUG=1`) - make sure not to commit builds or CI configs with it enabled; the guidelines-enforcer CI rejects it
+3. Execute `make clean` and then `make DEBUG=1 load` to generate the source code for all the PRINTF statements
 
 ### Switch Between Target Builds
 
-In order to build the Nano S or Nano X version you just need to make sure the `BOLOS_SDK` environment variable points to the corresponding SDK.
+In order to build for a specific device you just need to make sure the `BOLOS_SDK` environment variable points to the corresponding SDK. Inside the docker images the per-device SDKs are preinstalled and exposed as `$NANOSP_SDK`, `$NANOX_SDK`, `$STAX_SDK`, `$FLEX_SDK` and (legacy, frozen) `$NANOS_SDK` — all checkouts of the unified [ledger-secure-sdk](https://github.com/LedgerHQ/ledger-secure-sdk).
 
 Make sure you rebuild the whole project when switching SDKs by executing `make clean` and then `make load`.
 
-For example to build for the Nano X the compile command would be `BOLOS_SDK=$NANOX_SDK make`
+For example to build for the Nano X the compile command would be `BOLOS_SDK=$NANOX_SDK make`. The `./make-all` helper script cleans and builds all supported targets in one go.
 
 ### Avoid Numeric Underflow
 
@@ -86,9 +87,12 @@ It's also required to pass the Clang static analyzer. The analyzer is included o
 
 ### CI using Github Actions
 
-The project uses Github Actions to run the Clang static analyzer and the unit tests on each commit and pull request.
+The project uses Github Actions, mostly calling Ledger's reusable workflows from [ledger-app-workflows](https://github.com/LedgerHQ/ledger-app-workflows) (as does the reference [`app-boilerplate`](https://github.com/LedgerHQ/app-boilerplate)):
 
-The CI is configured on the `.github/workflows/ci-workflow.yml` with inspiration from the [`app-boilerplate`](https://github.com/LedgerHQ/app-boilerplate) and the [`app-xrp`](https://github.com/LedgerHQ/app-xrp).
+- `guidelines_enforcer.yml` — mandatory for the app to be deployable on the Ledger app store (icons, Makefile compliance, app-load-params, static analyzer, ...)
+- `build_and_functional_tests.yml` — builds all devices and runs the Ragger functional tests (plus the E2E suite)
+- `coding_style_checks.yml` — clang-format check (uses the clang-format version shipped in the current builder image)
+- `codeql_checks.yml` — CodeQL security analysis
 
 ### More Code Design
 
@@ -135,7 +139,7 @@ To compile and upload to the ledger device
 
 To get the amount of memory used in the app call the following command
 
-    readelf -s bin/app.elf | grep app_stack_canary 
+    readelf -s build/<target>/bin/app.elf | grep app_stack_canary
 
 This will output the canary (which is at the end of the memory space) location then subtract `0x20001800` (Nano S) or
 `0xda7a0000` (Nano X) to get the actual used up space for the app.
