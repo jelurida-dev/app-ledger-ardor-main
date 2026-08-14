@@ -43,7 +43,6 @@ DEFINES += "PATH_PREFIX={44|0x80000000,16754|0x80000000}"
 PATH_PREFIX = "44'/16754'"
 DEFINES += APP_PREFIX=\"ARDOR-\"
 
-ICON_NANOS = icons/ArdorIconNanoS.gif
 ICON_NANOX = icons/ArdorIconNanoX.gif
 ICON_NANOSP = icons/ArdorIconNanoX.gif
 ICON_STAX = icons/ArdorIcon32px.gif

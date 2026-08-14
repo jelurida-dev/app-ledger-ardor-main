@@ -42,59 +42,7 @@ jobs:
       regenerate_snapshots: ${{ github.event_name == 'workflow_dispatch' && inputs.golden_run == 'Open a PR' }}
       run_for_devices: '["nanox", "nanosp", "stax"]'
 
-  job_e2e_tests:
-    name: E2E tests
-    needs: build_application
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    container:
-      image: ghcr.io/ledgerhq/speculos:latest
-      options: --entrypoint /bin/bash
-    
-    steps:
-      - name: Install dependencies
-        run: apt update && apt install -qy default-jdk git
-
-      - name: Download app binary
-        uses: actions/download-artifact@v7
-        with:
-          name: "compiled_app_binaries"
-          path: /tmp/app/build/
-
-      - name: Run speculos in the background
-        run: |
-          /speculos/speculos.py --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" /tmp/app/build/nanos/bin/app.elf 2>/tmp/speculos.log &
-          echo $! >/tmp/speculos.pid
-          # Wait for Speculos to be ready
-          for i in {1..30}; do
-            if nc -z localhost 40000 2>/dev/null; then
-              echo "Speculos is ready"
-              break
-            fi
-            echo "Waiting for Speculos... ($i/30)"
-            sleep 1
-          done
-
-      - name: Run tests with Ardor node
-        run: |
-          git clone --branch ledger-tests https://sargue@bitbucket.org/sargue/ardor-ledger-test.git /ardor
-          cd /ardor
-          ./run-unit-tests.sh com.jelurida.ardor.integration.wallet.ledger.application.LedgerSpeculosSuite
-
-      - name: Kill speculos
-        run: kill -9 $(cat /tmp/speculos.pid)
-
-      - name: Upload Speculos log
-        uses: actions/upload-artifact@v6
-        if: failure()
-        with:
-          name: speculos-log
-          path: /tmp/speculos.log
-
-      - name: Upload Ardor log
-        uses: actions/upload-artifact@v6
-        if: failure()
-        with:
-          name: ardor-log
-          path: /ardor/logs/ardor.0.log
+  # The former E2E job (Ardor node test suite from bitbucket.org/sargue/ardor-ledger-test
+  # against the Nano S build) was removed when Nano S support was dropped: current Speculos
+  # images cannot emulate Nano S. It will be replaced by an in-repo tests-e2e/ module running
+  # against the Nano S+ build.

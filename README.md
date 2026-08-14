@@ -1,6 +1,6 @@
 # Ledger App for Ardor
 
-This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app for Ledger devices (Nano S+, Nano X, Stax, and the legacy Nano S)
+This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app for Ledger devices (Nano S+, Nano X and Stax)
 
 ## Documentation
 
@@ -44,7 +44,9 @@ These tests require Docker (or a local Speculos installation) and Java 8 or newe
 To run the tests you need to build the app, load it into the Speculos emulator and run the tests from the Ardor node.
 
 1. Build the Ledger app.
-2. Run the app on the Speculos emulator using Docker. As an alternative you can use a locally installed Speculos emulator. In this case you will need to run the emulator on port 9999 and the API server on port 5000. The following command will run the emulator on Docker (note: the suite targets the Nano S build, which Speculos releases since Oct 2025 no longer emulate — pin an older `ghcr.io/ledgerhq/speculos` tag or migrate the suite to another device):
+Note: the E2E suite targets the Nano S build, which this repo no longer produces (and which Speculos releases since Oct 2025 cannot emulate); its CI job has been removed. The suite is pending migration to an in-repo test module running against the Nano S+ build. The instructions below are kept for reference and require an older `ghcr.io/ledgerhq/speculos` image tag and a Nano S ELF built from an older revision.
+
+2. Run the app on the Speculos emulator using Docker. As an alternative you can use a locally installed Speculos emulator. In this case you will need to run the emulator on port 9999 and the API server on port 5000. The following command will run the emulator on Docker:
 
     docker run --rm -it -v $(pwd):/speculos/apps -p 9999:9999 -p 5000:5000 ghcr.io/ledgerhq/speculos --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" --model nanos apps/build/nanos/bin/app.elf
 
@@ -61,7 +63,7 @@ To turn on logging on the Ledger app
 
 ### Switch Between Target Builds
 
-In order to build for a specific device you just need to make sure the `BOLOS_SDK` environment variable points to the corresponding SDK. Inside the docker images the per-device SDKs are preinstalled and exposed as `$NANOSP_SDK`, `$NANOX_SDK`, `$STAX_SDK`, `$FLEX_SDK` and (legacy, frozen) `$NANOS_SDK` — all checkouts of the unified [ledger-secure-sdk](https://github.com/LedgerHQ/ledger-secure-sdk).
+In order to build for a specific device you just need to make sure the `BOLOS_SDK` environment variable points to the corresponding SDK. Inside the docker images the per-device SDKs are preinstalled and exposed as `$NANOSP_SDK`, `$NANOX_SDK`, `$STAX_SDK` and `$FLEX_SDK` — all checkouts of the unified [ledger-secure-sdk](https://github.com/LedgerHQ/ledger-secure-sdk).
 
 Make sure you rebuild the whole project when switching SDKs by executing `make clean` and then `make load`.
 
