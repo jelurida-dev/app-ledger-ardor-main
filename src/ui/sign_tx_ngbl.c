@@ -7,38 +7,20 @@
 #include "menu.h"
 #include "blind_sign_nbgl.h"
 
-static void signTxConfirmation() {
-    signTransactionConfirm();
-    nbgl_useCaseStatus("TRANSACTION\nSIGNED", true, ui_menu_main);
-}
+static nbgl_contentTagValue_t pairs[6];
+static nbgl_contentTagValueList_t pairList;
 
-static void signTxCancellation() {
-    signTransactionCancel();
-    nbgl_useCaseStatus("Transaction\nrejected", false, ui_menu_main);
-}
-
-static void askTransactionRejectionConfirmation(void) {
-    // display a choice to confirm/cancel rejection
-    nbgl_useCaseConfirm("Reject transaction?",
-                        NULL,
-                        "Yes, Reject",
-                        "Go back to transaction",
-                        signTxCancellation);
-}
-
-// called when long press button on 3rd page is long-touched or when reject footer is touched
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        signTxConfirmation();
+        signTransactionConfirm();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_SIGNED, ui_menu_main);
     } else {
-        askTransactionRejectionConfirmation();
+        signTransactionCancel();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_menu_main);
     }
 }
 
-static nbgl_layoutTagValue_t pairs[6];
-static nbgl_layoutTagValueList_t pairList;
-
-static void reviewContinue() {
+static void preparePairList(void) {
     int i = 0;
     pairs[i].item = "Chain&TxnType";
     pairs[i++].value = state.txnAuth.chainAndTxnTypeText;
@@ -58,23 +40,38 @@ static void reviewContinue() {
     pairList.nbMaxLinesForValue = 0;
     pairList.nbPairs = i;
     pairList.pairs = pairs;
-
-    nbgl_pageInfoLongPress_t infoLongPress = {.icon = &C_ArdorIcon64px,
-                                              .text = "Sign transaction?",
-                                              .longPressText = "Hold to sign"};
-    PRINTF("nbgl_useCaseStaticReview\n");
-    nbgl_useCaseStaticReview(&pairList, &infoLongPress, "Reject transaction", reviewChoice);
 }
 
-void signTransactionScreen() {
-    nbgl_useCaseReview_t useCaseReview =
-        state.txnAuth.requiresBlindSigning ? nbgl_useCaseReviewBlindSign : nbgl_useCaseReviewStart;
-    useCaseReview(&C_ArdorIcon64px,
-                  "Review transaction",
-                  NULL,
-                  "Reject transaction",
-                  reviewContinue,
-                  askTransactionRejectionConfirmation);
+static void startBlindReview(void) {
+    preparePairList();
+    nbgl_useCaseReviewBlindSigning(TYPE_TRANSACTION,
+                                   &pairList,
+                                   &C_ArdorIcon64px,
+                                   "Review transaction",
+                                   NULL,
+                                   "Sign transaction?",
+                                   NULL,
+                                   reviewChoice);
+}
+
+static void rejectBeforeReview(void) {
+    signTransactionCancel();
+    nbgl_useCaseReviewStatus(STATUS_TYPE_TRANSACTION_REJECTED, ui_menu_main);
+}
+
+void signTransactionScreen(void) {
+    if (state.txnAuth.requiresBlindSigning) {
+        blindSigningEnsureEnabled(startBlindReview, rejectBeforeReview);
+    } else {
+        preparePairList();
+        nbgl_useCaseReview(TYPE_TRANSACTION,
+                           &pairList,
+                           &C_ArdorIcon64px,
+                           "Review transaction",
+                           NULL,
+                           "Sign transaction?",
+                           reviewChoice);
+    }
 }
 
 #endif

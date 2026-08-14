@@ -2,50 +2,52 @@
 
 #include "display.h"
 #include "nbgl_use_case.h"
+#include "ardor.h"
 #include "glyphs.h"
 #include "menu.h"
 #include "blind_sign_nbgl.h"
 
-static void signTokenConfirmation() {
-    signTokenConfirm();
-    nbgl_useCaseStatus("TOKEN SIGNED", true, ui_menu_main);
-}
-
-static void signTokenCancellation() {
-    signTokenCancel();
-    nbgl_useCaseStatus("Token signature\ncancelled", false, ui_menu_main);
-}
+// The token content itself cannot be decoded, so the review shows the only
+// meaningful field, the token timestamp (also, a review needs at least one
+// tag-value pair to be navigable)
+static char timestampText[11];
+static nbgl_contentTagValue_t pair;
+static nbgl_contentTagValueList_t pairList;
 
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        signTokenConfirmation();
+        signTokenConfirm();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_OPERATION_SIGNED, ui_menu_main);
     } else {
-        signTokenCancellation();
+        signTokenCancel();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_OPERATION_REJECTED, ui_menu_main);
     }
 }
 
-static void reviewContinue() {
-    nbgl_layoutTagValueList_t pairList = {.nbMaxLinesForValue = 0, .nbPairs = 0, .pairs = NULL};
-
-    nbgl_pageInfoLongPress_t infoLongPress = {.icon = &C_ArdorIcon64px,
-                                              .text = "Sign token",
-                                              .longPressText = "Hold to sign"};
-
-    nbgl_useCaseStaticReview(&pairList, &infoLongPress, "Cancel", reviewChoice);
+static void startBlindReview(void) {
+    snprintf(timestampText, sizeof(timestampText), "%u", state.tokenSign.timestamp);
+    pair.item = "Timestamp";
+    pair.value = timestampText;
+    pairList.nbMaxLinesForValue = 0;
+    pairList.nbPairs = 1;
+    pairList.pairs = &pair;
+    nbgl_useCaseReviewBlindSigning(TYPE_OPERATION,
+                                   &pairList,
+                                   &C_ArdorIcon64px,
+                                   "Token signature",
+                                   NULL,
+                                   "Sign token?",
+                                   NULL,
+                                   reviewChoice);
 }
 
-static void askSignatureRejectionConfirmation(void) {
-    // display a choice to confirm/cancel rejection
-    nbgl_useCaseConfirm("Reject signature?", NULL, "Yes, Reject", "Go back", signTokenCancellation);
+static void rejectBeforeReview(void) {
+    signTokenCancel();
+    nbgl_useCaseReviewStatus(STATUS_TYPE_OPERATION_REJECTED, ui_menu_main);
 }
 
-void signTokenScreen() {
-    nbgl_useCaseReviewBlindSign(&C_ArdorIcon64px,
-                                "Token signature",
-                                NULL,
-                                "Reject",
-                                reviewContinue,
-                                askSignatureRejectionConfirmation);
+void signTokenScreen(void) {
+    blindSigningEnsureEnabled(startBlindReview, rejectBeforeReview);
 }
 
 #endif

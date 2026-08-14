@@ -28,12 +28,12 @@ def test_sign_token(backend, navigator, firmware):
     client = _send_token_for_signing(backend)
 
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
-                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack token signing operation
-                        NavInsID.USE_CASE_REVIEW_CONFIRM, # confirm token signing operation
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM,  # enable blind signing
+                        NavInsID.USE_CASE_CHOICE_REJECT,   # "Continue anyway" on the blind signing warning
+                        NavInsID.USE_CASE_REVIEW_TAP,      # review intro
+                        NavInsID.USE_CASE_REVIEW_TAP,      # timestamp pair
+                        NavInsID.USE_CASE_REVIEW_CONFIRM,  # hold to sign
+                        NavInsID.USE_CASE_STATUS_DISMISS]  # dismiss status screen
     else:
         enable_blind_signing(navigator)
         instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
@@ -54,9 +54,8 @@ def test_sign_token_reject_blind(backend, navigator, firmware):
     client = _send_token_for_signing(backend)
 
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_CHOICE_REJECT,  # reject blind signing
-                        NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm operation rejection
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+        instructions = [NavInsID.USE_CASE_CHOICE_REJECT,  # reject enabling blind signing
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss status screen
     elif firmware.device == 'nanos':
         instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
     else:
@@ -78,12 +77,12 @@ def test_sign_token_reject_tx(backend, navigator, firmware):
     client = _send_token_for_signing(backend)
 
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
-                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack token signing operation
-                        NavInsID.USE_CASE_CHOICE_REJECT,  # reject token signing operation
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM,  # enable blind signing
+                        NavInsID.USE_CASE_CHOICE_REJECT,   # "Continue anyway" on the blind signing warning
+                        NavInsID.USE_CASE_REVIEW_TAP,      # review intro
+                        NavInsID.USE_CASE_REVIEW_REJECT,   # reject token signing operation
+                        NavInsID.USE_CASE_CHOICE_CONFIRM,  # ack rejection
+                        NavInsID.USE_CASE_STATUS_DISMISS]  # dismiss status screen
     else:
         enable_blind_signing(navigator)
         instructions = [NavInsID.RIGHT_CLICK, NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]

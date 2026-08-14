@@ -10,24 +10,13 @@
 
 static char rsAddress[27];
 
-static void confirm_address_approval(void) {
-    nbgl_useCaseStatus("ADDRESS\nVERIFIED", true, showAddressConfirm);
-}
-
-static void confirm_address_rejection(void) {
-    nbgl_useCaseStatus("Address verification\ncancelled", false, showAddressCancel);
-}
-
 static void reviewChoice(bool confirm) {
     if (confirm) {
-        confirm_address_approval();
+        // showAddressConfirm sends the APDU response and returns to the main menu
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_VERIFIED, showAddressConfirm);
     } else {
-        confirm_address_rejection();
+        nbgl_useCaseReviewStatus(STATUS_TYPE_ADDRESS_REJECTED, showAddressCancel);
     }
-}
-
-static void continueReview(void) {
-    nbgl_useCaseAddressConfirmation(rsAddress, reviewChoice);
 }
 
 void showAddressScreen(const uint64_t accountId) {
@@ -35,12 +24,12 @@ void showAddressScreen(const uint64_t accountId) {
     snprintf(rsAddress, sizeof(rsAddress), APP_PREFIX);
     reedSolomonEncode(accountId, rsAddress + strlen(rsAddress));
 
-    nbgl_useCaseReviewStart(&C_ArdorIcon64px,
-                            "Verify Ardor address",
-                            NULL,
-                            "Cancel",
-                            continueReview,
-                            confirm_address_rejection);
+    nbgl_useCaseAddressReview(rsAddress,
+                              NULL,
+                              &C_ArdorIcon64px,
+                              "Verify Ardor address",
+                              NULL,
+                              reviewChoice);
 }
 
 #endif

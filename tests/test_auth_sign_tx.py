@@ -58,7 +58,7 @@ def test_send_ignis_tx(backend, navigator, firmware):
     tx_bytes = "020000000000011d98fe090f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20eb6d36651b82d0eb00c2eb0b0000000000e1f505000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000191ee15a5fb74d1200000000000000000000000000000000000000000000000000000000000000000000000000000000"
     expected_signature = "ad92efeb45e2d0866b22a20ad3bbc75b3fbcd63a32b451665857815598d13800404feca2d6f33730fae127ce89a2213e06afb9e8dbb44e06c7514cb56475e642"
     if firmware.device == 'stax':
-        instructions = get_stax_instructions(3)
+        instructions = get_stax_instructions(2)
     else:
         instructions = get_nano_instructions(firmware, 7, 5)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_tx", instructions)
@@ -66,7 +66,7 @@ def test_send_ignis_tx(backend, navigator, firmware):
 def test_send_ignis_tx_reject(backend, navigator, firmware):
     tx_bytes = "020000000000011d98fe090f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20eb6d36651b82d0eb00c2eb0b0000000000e1f505000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000191ee15a5fb74d1200000000000000000000000000000000000000000000000000000000000000000000000000000000"
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_REVIEW_TAP] * 3 + [NavInsID.USE_CASE_REVIEW_REJECT, NavInsID.USE_CASE_CHOICE_CONFIRM, NavInsID.USE_CASE_STATUS_DISMISS]
+        instructions = [NavInsID.USE_CASE_REVIEW_TAP] * 2 + [NavInsID.USE_CASE_REVIEW_REJECT, NavInsID.USE_CASE_CHOICE_CONFIRM, NavInsID.USE_CASE_STATUS_DISMISS]
     else:
         instructions = get_nano_instructions(firmware, 8, 6)
     _sign_tx_reject(backend, navigator, tx_bytes, "test_send_ignis_tx_reject", instructions)
@@ -75,7 +75,7 @@ def test_send_ardr(backend, navigator, firmware):
     tx_bytes = "01000000fe0001f944910a0f00a45834eef72000e08093cb1e23d9c873a9acea0a893bb02738bf8328ba1d076533ece497d15c7f343090b7000000000000e1f5050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc95800000000"
     expected_signature = "65ee18432849dc797092287436cfb849f1ddf0f288c79f3cb99cb4dc754bac0c1e7dc2f5b6e1cc6542750954d2a5f0572a7fe721bd0bbf9d60f9336a85818ca4"
     if firmware.device == 'stax':
-        instructions = get_stax_instructions(3)
+        instructions = get_stax_instructions(2)
     else:
         instructions = get_nano_instructions(firmware, 7, 5)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ardr", instructions, PATH_STR_1)
@@ -84,26 +84,23 @@ def test_send_ignis_blind_accept(backend, navigator, firmware):
     tx_bytes = "02000000000001887b9a0a0f00a45834eef72000e08093cb1e23d9c873a9acea0a893bb02738bf8328ba1d0765d33f5982ba1e78e080bf76080000000080f0fa020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc958080000000100d66f3134953b76b64b9ceae03fd2a2d858c7b73b7a50eeb901fb489ec387442c000000000000000000000000000000000000000000000000000000000000000000000000"
     expected_signature = "c7c184571ab5515a20d2cff3d25ce58968ca37e6c63ef1b9817f9a7a4caca403071b9e7493aaea299a692d230efa5f367976d886f9c48e1abd091fd148b095c3"
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
-                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack tx signing operation
-                        NavInsID.USE_CASE_REVIEW_TAP,     # chain, amount, recipient
-                        NavInsID.USE_CASE_REVIEW_TAP,     # fees
-                        NavInsID.USE_CASE_REVIEW_CONFIRM, # confirm tx signing operation
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # enable blind signing
+                        NavInsID.USE_CASE_CHOICE_REJECT,  # "Continue anyway" on the blind signing warning
+                        NavInsID.USE_CASE_REVIEW_TAP,     # review intro
+                        NavInsID.USE_CASE_REVIEW_TAP,     # tag/value pairs
+                        NavInsID.USE_CASE_REVIEW_CONFIRM, # hold to sign
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss status screen
     else:
         enable_blind_signing(navigator)
         instructions = get_nano_instructions(firmware, 9, 7)
-    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_blind_accept", 
+    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_blind_accept",
                   instructions, PATH_STR_1)
 
 def test_send_ignis_blind_reject(backend, navigator, firmware):
     tx_bytes = "02000000000001887b9a0a0f00a45834eef72000e08093cb1e23d9c873a9acea0a893bb02738bf8328ba1d0765d33f5982ba1e78e080bf76080000000080f0fa020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc958080000000100d66f3134953b76b64b9ceae03fd2a2d858c7b73b7a50eeb901fb489ec387442c000000000000000000000000000000000000000000000000000000000000000000000000"
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_CHOICE_REJECT,  # reject blind signing
-                        NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm operation rejection
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+        instructions = [NavInsID.USE_CASE_CHOICE_REJECT,  # reject enabling blind signing
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss status screen
     elif firmware.device == 'nanos':
         instructions = [NavInsID.RIGHT_CLICK, NavInsID.BOTH_CLICK]
     else:
@@ -113,15 +110,13 @@ def test_send_ignis_blind_reject(backend, navigator, firmware):
 def test_send_ignis_blind_reject_tx(backend, navigator, firmware):
     tx_bytes = "02000000000001887b9a0a0f00a45834eef72000e08093cb1e23d9c873a9acea0a893bb02738bf8328ba1d0765d33f5982ba1e78e080bf76080000000080f0fa020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc958080000000100d66f3134953b76b64b9ceae03fd2a2d858c7b73b7a50eeb901fb489ec387442c000000000000000000000000000000000000000000000000000000000000000000000000"
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
-                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack tx signing operation
-                        NavInsID.USE_CASE_REVIEW_TAP,     # chain, amount, recipient
-                        NavInsID.USE_CASE_REVIEW_TAP,     # fees
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # enable blind signing
+                        NavInsID.USE_CASE_CHOICE_REJECT,  # "Continue anyway" on the blind signing warning
+                        NavInsID.USE_CASE_REVIEW_TAP,     # review intro
+                        NavInsID.USE_CASE_REVIEW_TAP,     # tag/value pairs
                         NavInsID.USE_CASE_REVIEW_REJECT,  # reject tx signing operation
                         NavInsID.USE_CASE_CHOICE_CONFIRM, # ack rejection
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss status screen
     else:
         enable_blind_signing(navigator)
         instructions = get_nano_instructions(firmware, 10, 8)
@@ -158,45 +153,42 @@ def test_send_ignis_4_attachments(backend, navigator, firmware):
     tx_bytes = "020000000000018b07ef0a0f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20627a6c6937f5eaca00b108190000000000f8590d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc9586c0000000103300089e13a97c49b577a2e602d6ee422eebb37426af6f636fea77ef9968d0b6d890ef6744230f7c030975dc2b45cbdef080c8915cea2345e8cf14822ce90f6c994fe83e0ed79c1f7c0c88f5c694fac0e9d8d0100e7c3eb4eab23682b7e07aa780f63fe3986b326013c49c978cdc4e2b5d8b4e06301e288f39fdad8a465c30c8d9839e707718f4fde871c265cca5b6fea5938a4f91e012b2dd800000100000000000000000000000000000002d33f5982ba1e78e033ece497d15c7f34000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
     expected_signature = "3552aaa5cdbf592f21eeee08480c06bb4f634f2b65f9947118623ea2c871bf074316566b2b7a27d8ed3e9f1b61aa6143ff4a2dbe3d16518d9056f0a97a64c053"
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
-                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack tx signing operation
-                        NavInsID.USE_CASE_REVIEW_TAP,     # chain, amount, recipient
-                        NavInsID.USE_CASE_REVIEW_TAP,     # fees
-                        NavInsID.USE_CASE_REVIEW_CONFIRM, # confirm tx signing operation
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # enable blind signing
+                        NavInsID.USE_CASE_CHOICE_REJECT,  # "Continue anyway" on the blind signing warning
+                        NavInsID.USE_CASE_REVIEW_TAP,     # review intro
+                        NavInsID.USE_CASE_REVIEW_TAP,     # tag/value pairs (1/2)
+                        NavInsID.USE_CASE_REVIEW_TAP,     # tag/value pairs (2/2)
+                        NavInsID.USE_CASE_REVIEW_CONFIRM, # hold to sign
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss status screen
     else:
         enable_blind_signing(navigator)
         instructions = get_nano_instructions(firmware, 12, 8)
-    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_4_attachments", 
+    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_4_attachments",
                   instructions, PATH_STR_0)
 
 def test_send_ignis_referenced_tx(backend, navigator, firmware):
     tx_bytes = "020000000000018d82f50a0f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20d33f5982ba1e78e000e1f50500000000a0bb0d000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc95800000000020000008ab143bb8f366c938034bfeda9504625a0e5196eed5f2f19ef7388b2c28b0970"
     expected_signature = "150f88bcb590b76a181bd8a0b02551e47a6c6b48445270ad1717353c87bafb07e5058a49212d0c66c89766f089e7af1fa6a4f6d66704ffccd65eeb1bac135fd0"
     if firmware.device == 'stax':
-        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # confirm enable blind signing
-                        NavInsID.USE_CASE_STATUS_DISMISS, # dismiss confirmation screen
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack blind signing operation
-                        NavInsID.USE_CASE_REVIEW_TAP,     # ack tx signing operation
-                        NavInsID.USE_CASE_REVIEW_TAP,     # chain, amount, recipient
-                        NavInsID.USE_CASE_REVIEW_TAP,     # fees
-                        NavInsID.USE_CASE_REVIEW_CONFIRM, # confirm tx signing operation
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss confirmation screen
+        instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # enable blind signing
+                        NavInsID.USE_CASE_CHOICE_REJECT,  # "Continue anyway" on the blind signing warning
+                        NavInsID.USE_CASE_REVIEW_TAP,     # review intro
+                        NavInsID.USE_CASE_REVIEW_TAP,     # tag/value pairs
+                        NavInsID.USE_CASE_REVIEW_CONFIRM, # hold to sign
+                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss status screen
     else:
         enable_blind_signing(navigator)
         instructions = get_nano_instructions(firmware, 8, 6)
-    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_referenced_tx", 
+    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_referenced_tx",
                   instructions, PATH_STR_0)
 
 def test_place_asset_exchange_order(backend, navigator, firmware):
     tx_bytes = "02000000020201169bf50a0f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a200000000000000000000000000000000080841e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc9580000000001813b83eafc58a13a030000000000000080de800200000000000000000000000000000000000000000000000000000000000000000000000000000000"
     expected_signature = "2d0fcf25e6afb2015bde4f0d90d75cfeb718dbd80ef35d1adfca95d0b5e69c030349eb41a877bb0ca005ef2e67221d4592b3bc87c22cd3ee35c9c7092eed5055"
     if firmware.device == 'stax':
-        instructions = get_stax_instructions(3)
+        instructions = get_stax_instructions(2)
     else:
         enable_blind_signing(navigator)
         instructions = get_nano_instructions(firmware, 8, 6)
-    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_place_asset_exchange_order", 
+    _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_place_asset_exchange_order",
                   instructions, PATH_STR_0)
