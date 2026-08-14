@@ -25,13 +25,13 @@
 #define TX_TIMESTAMP_DEADLINE 2
 
 // returns the txn type at the given index
-static txnType* txnTypeAtIndex(const uint8_t index) {
-    return (txnType*) PIC(&TXN_TYPES[index]);
+static txnType *txnTypeAtIndex(const uint8_t index) {
+    return (txnType *) PIC(&TXN_TYPES[index]);
 }
 
 // returns the txn type name at the given index
-static char* txnTypeNameAtIndex(const uint8_t index) {
-    return (char*) PIC(((txnType*) PIC(&TXN_TYPES[index]))->name);
+static char *txnTypeNameAtIndex(const uint8_t index) {
+    return (char *) PIC(((txnType *) PIC(&TXN_TYPES[index]))->name);
 }
 
 /**
@@ -61,8 +61,8 @@ static bool isPaymentTxType(uint16_t txTypeAndSub) {
     return txTypeAndSub == TX_TYPE_ORDINARY_PAYMENT || txTypeAndSub == TX_TYPE_FXT_PAYMENT;
 }
 
-static char* appendageTypeName(const uint8_t index) {
-    return (char*) PIC(((appendageType*) PIC(&APPENDAGE_TYPES[index]))->name);
+static char *appendageTypeName(const uint8_t index) {
+    return (char *) PIC(((appendageType *) PIC(&APPENDAGE_TYPES[index]))->name);
 }
 
 // note: ardor chain index starts with index 1
@@ -82,12 +82,12 @@ static uint8_t addToFunctionStack(const uint8_t functionNum) {
 }
 
 // Takes bytes away from the buffer, returns 0 if there aren't enough bytes
-static uint8_t* readFromBuffer(const uint8_t size) {
+static uint8_t *readFromBuffer(const uint8_t size) {
     if (size > state.txnAuth.readBufferEndPos - state.txnAuth.readBufferReadOffset) {
         return 0;
     }
 
-    uint8_t* ret = state.txnAuth.readBuffer + state.txnAuth.readBufferReadOffset;
+    uint8_t *ret = state.txnAuth.readBuffer + state.txnAuth.readBufferReadOffset;
     state.txnAuth.readBufferReadOffset += size;
     state.txnAuth.numBytesRead += size;
 
@@ -147,7 +147,7 @@ static bool printFeeText(uint64_t fee) {
 // This is the main parse function, it parses the main tx body and adds more functions to the parse
 // stack if needed
 static uint8_t parseMainTxnData() {
-    uint8_t* ptr = readFromBuffer(BASE_TRANSACTION_SIZE);
+    uint8_t *ptr = readFromBuffer(BASE_TRANSACTION_SIZE);
 
     if (ptr == 0) {
         return R_SEND_MORE_BYTES;
@@ -166,7 +166,7 @@ static uint8_t parseMainTxnData() {
     ptr += sizeof(state.txnAuth.txnTypeAndSubType);
 
     state.txnAuth.txnTypeIndex = getTransactionTypeIndex(state.txnAuth.txnTypeAndSubType);
-    txnType* txType =
+    txnType *txType =
         state.txnAuth.txnTypeIndex < LEN_TXN_TYPES ? txnTypeAtIndex(state.txnAuth.txnTypeIndex) : 0;
 
     if (state.txnAuth.txnTypeIndex < LEN_TXN_TYPES &&
@@ -184,7 +184,7 @@ static uint8_t parseMainTxnData() {
 
     printTxnTypeText();
 
-    if (*((uint8_t*) ptr) != SUPPORTED_TXN_VERSION) {
+    if (*((uint8_t *) ptr) != SUPPORTED_TXN_VERSION) {
         return R_WRONG_VERSION_ERR;
     }
     ptr += sizeof(uint8_t);  // version
@@ -225,7 +225,7 @@ static uint8_t parseMainTxnData() {
  *      PhasingAppendix = 64
  */
 static uint8_t parseAppendagesFlags() {
-    uint8_t* buffPtr = readFromBuffer(sizeof(uint32_t));
+    uint8_t *buffPtr = readFromBuffer(sizeof(uint32_t));
 
     if (buffPtr == 0) {
         return R_SEND_MORE_BYTES;
@@ -245,7 +245,7 @@ static uint8_t parseAppendagesFlags() {
                      "0x%08X",
                      appendages);
         } else {
-            char* ptr = state.txnAuth.appendagesText;
+            char *ptr = state.txnAuth.appendagesText;
             size_t free = sizeof(state.txnAuth.appendagesText);
             for (uint8_t j = 0; j < NUM_APPENDAGE_TYPES; j++) {
                 if ((appendages & 1 << j) != 0) {
@@ -285,7 +285,7 @@ static uint8_t parseFxtCoinExchangeOrderIssueOrCoinExchangeOrderIssueAttachment(
     uint64_t quantityQNT = 0;      // quantity
     uint64_t priceNQT = 0;         // price
 
-    uint8_t* ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachment.coinExchange));
+    uint8_t *ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachment.coinExchange));
     if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
@@ -329,7 +329,7 @@ static uint8_t parseAssetOrderPlacementAttachment() {
     uint64_t quantityQNT = 0;  // quantityQNT
     uint64_t priceNQT = 0;     // priceNQT
 
-    uint8_t* ptr =
+    uint8_t *ptr =
         readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachment.assetOrderPlacement));
     if (ptr == 0) {
         return R_SEND_MORE_BYTES;
@@ -356,7 +356,7 @@ static uint8_t parseAssetOrderPlacementAttachment() {
 // types, sometimes this is needed
 static uint8_t parseIgnoreBytesUntilTheEnd() {
     while (state.txnAuth.numBytesRead != state.txnAuth.txnSizeBytes) {
-        uint8_t* ptr = readFromBuffer(1);
+        uint8_t *ptr = readFromBuffer(1);
         if (ptr == 0) {
             return R_SEND_MORE_BYTES;
         }
@@ -373,7 +373,7 @@ static uint8_t parseAssetTransferAttachment() {
     uint64_t assetId;      // asset id
     uint64_t quantityQNT;  // quantity
 
-    uint8_t* ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachment.assetTransfer));
+    uint8_t *ptr = readFromBuffer(sizeof(uint8_t) + sizeof(state.txnAuth.attachment.assetTransfer));
     if (ptr == 0) {
         return R_SEND_MORE_BYTES;
     }
@@ -398,7 +398,7 @@ static uint8_t parseAssetTransferAttachment() {
 //@param newData: ptr to the data
 //@param numBytes: number of bytes in the data
 // return the return value from returnValues.h (R_SUCCESS on success)
-uint8_t addToReadBuffer(const uint8_t* const newData, const uint8_t numBytes) {
+uint8_t addToReadBuffer(const uint8_t *const newData, const uint8_t numBytes) {
     uint16_t offset = state.txnAuth.readBufferReadOffset;
     for (uint16_t i = 0; i < state.txnAuth.readBufferEndPos - offset; i++) {
         state.txnAuth.readBuffer[i] = state.txnAuth.readBuffer[i + offset];

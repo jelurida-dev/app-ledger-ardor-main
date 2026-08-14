@@ -54,7 +54,7 @@
 #define BUFFER_SIZE 97  // 1 R_SUCCESS + 32 publicKeyCurve + 32 publicKeyEd25519YLE + 32 chainCode
 #define REDUCED_RESPONSE_SIZE 33  // 1 R_SUCCESS + 32 publicKeyCurve
 
-int getPublicKeyAndChainCodeHandler(const command_t* const cmd) {
+int getPublicKeyAndChainCodeHandler(const command_t *const cmd) {
     if ((cmd->p1 != P1_GET_PUBLIC_KEY) &&
         (cmd->p1 != P1_GET_PUBLIC_KEY_CHAIN_CODE_AND_ED_PUBLIC_KEY)) {
         return io_send_return1(R_UNKNOWN_CMD_PARAM_ERR);

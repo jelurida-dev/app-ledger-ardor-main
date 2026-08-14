@@ -69,7 +69,7 @@ static int cleanAndReturn(uint8_t ret) {
 
 static bool getDerivationLength(const uint8_t p1,
                                 const uint8_t dataLength,
-                                uint8_t* derivationLength) {
+                                uint8_t *derivationLength) {
     int16_t derivationLengthSigned = 0;
 
     if (p1 == P1_INIT_ENCRYPT) {
@@ -89,7 +89,7 @@ static bool getDerivationLength(const uint8_t p1,
     return true;
 }
 
-static int initHandler(const command_t* const cmd) {
+static int initHandler(const command_t *const cmd) {
     if (cmd->lc % sizeof(uint32_t) != 0) {
         return cleanAndReturn(R_WRONG_SIZE_ERR);
     }
@@ -104,7 +104,7 @@ static int initHandler(const command_t* const cmd) {
     }
 
     uint8_t nonce[NONCE_LENGTH];
-    const uint8_t* noncePtr = cmd->data + derivationLength * sizeof(uint32_t) + PUBLIC_KEY_SIZE;
+    const uint8_t *noncePtr = cmd->data + derivationLength * sizeof(uint32_t) + PUBLIC_KEY_SIZE;
 
     if (cmd->p1 == P1_INIT_ENCRYPT) {
         cx_trng_get_random_data(nonce, sizeof(nonce));
@@ -163,7 +163,7 @@ static int initHandler(const command_t* const cmd) {
     return io_send_response_pointer(state.encryption.buffer, bufferSize, SW_OK);
 }
 
-static int aesEncryptDecryptHandler(const command_t* const cmd) {
+static int aesEncryptDecryptHandler(const command_t *const cmd) {
     if ((state.encryption.mode != P1_INIT_ENCRYPT) &&
         (state.encryption.mode != P1_INIT_DECRYPT_HIDE_SHARED_KEY) &&
         (state.encryption.mode != P1_INIT_DECRYPT_SHOW_SHARED_KEY)) {
@@ -178,11 +178,11 @@ static int aesEncryptDecryptHandler(const command_t* const cmd) {
         return cleanAndReturn(R_NOT_ALL_BYTES_READ);
     }
 
-    uint8_t* inPtr = cmd->data;
-    uint8_t* outPtr = state.encryption.buffer + 1;
+    uint8_t *inPtr = cmd->data;
+    uint8_t *outPtr = state.encryption.buffer + 1;
     state.encryption.buffer[0] = R_SUCCESS;
 
-    uint8_t* cbc = state.encryption.cbc;  // Temporary variable
+    uint8_t *cbc = state.encryption.cbc;  // Temporary variable
     while (inPtr < cmd->data + cmd->lc) {
         if (state.encryption.mode == P1_INIT_ENCRYPT) {  // if we are doing encryption
             for (uint8_t j = 0; j < CX_AES_BLOCK_SIZE; j++) {
@@ -212,7 +212,7 @@ static int aesEncryptDecryptHandler(const command_t* const cmd) {
 
 // Since this is a callback function, and the handler manages state, it's this function's
 // reposibility to clean the state Every time we get some sort of an error
-int encryptDecryptMessageHandler(const command_t* const cmd) {
+int encryptDecryptMessageHandler(const command_t *const cmd) {
     if ((cmd->p1 == P1_INIT_ENCRYPT) || (cmd->p1 == P1_INIT_DECRYPT_HIDE_SHARED_KEY) ||
         (cmd->p1 == P1_INIT_DECRYPT_SHOW_SHARED_KEY)) {
         return initHandler(cmd);

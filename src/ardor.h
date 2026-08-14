@@ -22,40 +22,40 @@
 #include "os.h"
 #include "config.h"
 
-cx_err_t publicKeyToId(const uint8_t* const publicKey, uint64_t* const accountIdOut);
+cx_err_t publicKeyToId(const uint8_t *const publicKey, uint64_t *const accountIdOut);
 
-uint8_t ardorKeys(const uint8_t* const derivationPath,
+uint8_t ardorKeys(const uint8_t *const derivationPath,
                   const uint8_t derivationPathLengthInUints32,
-                  uint8_t* const keySeedBfrOut,
-                  uint8_t* const publicKeyCurveXout,
-                  uint8_t* const publicKeyEd25519YLEWithXParityOut,
-                  uint8_t* const chainCodeOut,
-                  uint16_t* const exceptionOut);
+                  uint8_t *const keySeedBfrOut,
+                  uint8_t *const publicKeyCurveXout,
+                  uint8_t *const publicKeyEd25519YLEWithXParityOut,
+                  uint8_t *const chainCodeOut,
+                  uint16_t *const exceptionOut);
 
 bool isValidDerivationPathLength(uint8_t derivationPathLengthInUints32);
 
-char* chainName(const uint8_t chainId);
+char *chainName(const uint8_t chainId);
 
-cx_err_t signMsg(uint8_t* const keySeedBfr, const uint8_t* const msgSha256, uint8_t* const sig);
+cx_err_t signMsg(uint8_t *const keySeedBfr, const uint8_t *const msgSha256, uint8_t *const sig);
 
 bool check_canary();
 
-uint8_t getSharedEncryptionKey(const uint8_t* const derivationPath,
+uint8_t getSharedEncryptionKey(const uint8_t *const derivationPath,
                                const uint8_t derivationPathLengthInUints32,
-                               const uint8_t* const targetPublicKey,
-                               const uint8_t* const nonce,
-                               uint16_t* const exceptionOut,
-                               uint8_t* const aesKeyOut);
+                               const uint8_t *const targetPublicKey,
+                               const uint8_t *const nonce,
+                               uint16_t *const exceptionOut,
+                               uint8_t *const aesKeyOut);
 
 // the amount of digits on the right of the decimal dot for each chain
 uint8_t chainNumDecimalsBeforePoint(const uint8_t chainId);
 
-uint8_t formatAmount(char* const outputString,
+uint8_t formatAmount(char *const outputString,
                      const uint16_t maxOutputLength,
                      uint64_t numberToFormat,
                      const uint8_t numDigitsBeforeDecimal);
 
-uint8_t formatChainAmount(char* const out,
+uint8_t formatChainAmount(char *const out,
                           const uint16_t maxLength,
                           uint64_t amount,
                           const uint8_t chainId);
@@ -153,7 +153,7 @@ typedef struct {
     cx_sha256_t sha256;                     // The state of the token hash
     uint32_t timestamp;                     // The timestamp of the token
     uint8_t derivationPathLengthInUints32;  // The length of the derivation path
-    uint8_t* ptrDerivationPath;             // The derivation path
+    uint8_t *ptrDerivationPath;             // The derivation path
     uint8_t token[TOKEN_SIZE];              // The 1 byte response code + token
 } signTokenState_t;
 
@@ -178,12 +178,12 @@ typedef struct internalStorage_t {
 } internalStorage_t;
 
 extern const internalStorage_t N_storage_real;
-#define N_storage (*(volatile internalStorage_t*) PIC(&N_storage_real))
+#define N_storage (*(volatile internalStorage_t *) PIC(&N_storage_real))
 
 // used to list txn types
 typedef struct {
     uint16_t id;
-    const char* name;
+    const char *name;
     uint8_t attachmentParsingFunctionNumber;
 } txnType;
 

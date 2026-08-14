@@ -42,7 +42,7 @@
 #define INS_SIGN_TOKEN 0x07
 
 // This is the function signature for a command handler
-typedef int handler_fn_t(const command_t* const cmd);
+typedef int handler_fn_t(const command_t *const cmd);
 
 handler_fn_t getVersionHandler;
 handler_fn_t authAndSignTxnHandler;
@@ -52,7 +52,7 @@ handler_fn_t getPublicKeyAndChainCodeHandler;
 handler_fn_t signTokenMessageHandler;
 
 // function translate command ID to function PTR
-static handler_fn_t* lookupHandler(uint8_t ins) {
+static handler_fn_t *lookupHandler(uint8_t ins) {
     switch (ins) {
         case INS_GET_VERSION:
             return getVersionHandler;
@@ -76,7 +76,7 @@ static void nv_storage_init() {
         internalStorage_t storage;
         storage.settings.allowBlindSigning = false;
         storage.initialized = true;
-        nvm_write((void*) &N_storage, (void*) &storage, sizeof(internalStorage_t));
+        nvm_write((void *) &N_storage, (void *) &storage, sizeof(internalStorage_t));
     }
 }
 
@@ -138,7 +138,7 @@ void app_main(void) {
                 }
 
                 // Lookup and call the requested command handler.
-                handler_fn_t* handlerFn = lookupHandler(cmd.ins);
+                handler_fn_t *handlerFn = lookupHandler(cmd.ins);
                 if (!handlerFn) {
                     lastCmdNumber = 0;  // forces the next handler call to clean the state
                     io_send_return1(R_UNKOWN_CMD);

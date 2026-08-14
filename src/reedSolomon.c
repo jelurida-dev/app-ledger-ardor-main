@@ -35,13 +35,13 @@ uint8_t gmult(const uint8_t a, const uint8_t b) {
         return 0;
     }
 
-    uint8_t idx = ((*(uint8_t*) PIC(&glog[a])) + (*(uint8_t*) PIC(&glog[b]))) % 31;
-    return (*(uint8_t*) PIC(&gexp[idx]));
+    uint8_t idx = ((*(uint8_t *) PIC(&glog[a])) + (*(uint8_t *) PIC(&glog[b]))) % 31;
+    return (*(uint8_t *) PIC(&gexp[idx]));
 }
 
 //@inp in - the buffer to encode, it's not const, cuz it's edited while converting
 //@output out - output should be of length 21;
-void reedSolomonEncode(uint64_t inp, char* const output) {
+void reedSolomonEncode(uint64_t inp, char *const output) {
     uint8_t plain_string_32[CODEWORD_LENGTH];
     explicit_bzero(plain_string_32, CODEWORD_LENGTH);
 
@@ -68,9 +68,9 @@ void reedSolomonEncode(uint64_t inp, char* const output) {
     uint8_t stringIndex = 0;
 
     for (uint8_t i = 0; i < 17; i++) {
-        uint8_t codework_index = (*(uint8_t*) PIC(&codeword_map[i]));
+        uint8_t codework_index = (*(uint8_t *) PIC(&codeword_map[i]));
         uint8_t alphabet_index = plain_string_32[codework_index];
-        output[stringIndex++] = (*(uint8_t*) PIC(&alphabet[alphabet_index]));
+        output[stringIndex++] = (*(uint8_t *) PIC(&alphabet[alphabet_index]));
 
         if ((i & 3) == 3 && i < 13) {
             output[stringIndex++] = '-';

@@ -6,7 +6,7 @@
 #include "ardor.h"
 
 //////////////////////////////////////////////////////////////////////
-static const char* allow_blind_sign_data_getter(unsigned int idx);
+static const char *allow_blind_sign_data_getter(unsigned int idx);
 static void allow_blind_sign_data_selector(unsigned int idx);
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -26,12 +26,12 @@ static unsigned int settings_submenu_option_index(enum SettingsMenuOption settin
     }
 }
 
-const char* const settings_submenu_getter_values[] = {
+const char *const settings_submenu_getter_values[] = {
     "Allow blind signing",
     "Back",
 };
 
-static const char* settings_submenu_getter(unsigned int idx) {
+static const char *settings_submenu_getter(unsigned int idx) {
     if (idx < ARRAYLEN(settings_submenu_getter_values)) {
         return settings_submenu_getter_values[idx];
     }
@@ -53,12 +53,12 @@ static void settings_submenu_selector(unsigned int idx) {
 // Allow blind signing submenu
 
 static void allow_blind_sign_data_change(bool blind_sign) {
-    nvm_write((void*) &N_storage.settings.allowBlindSigning, &blind_sign, sizeof(blind_sign));
+    nvm_write((void *) &N_storage.settings.allowBlindSigning, &blind_sign, sizeof(blind_sign));
 }
 
-const char* const no_yes_data_getter_values[] = {"No", "Yes", "Back"};
+const char *const no_yes_data_getter_values[] = {"No", "Yes", "Back"};
 
-static const char* allow_blind_sign_data_getter(unsigned int idx) {
+static const char *allow_blind_sign_data_getter(unsigned int idx) {
     if (idx < ARRAYLEN(no_yes_data_getter_values)) {
         return no_yes_data_getter_values[idx];
     }

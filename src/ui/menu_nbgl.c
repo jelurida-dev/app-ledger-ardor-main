@@ -15,8 +15,8 @@ void app_quit(void) {
 ///////////////////////////////////////////////////////////////////////////
 // Settings menu:
 
-static const char* const INFO_TYPES[] = {"Version", "Developer"};
-static const char* const INFO_CONTENTS[] = {APPVERSION, "Jelurida"};
+static const char *const INFO_TYPES[] = {"Version", "Developer"};
+static const char *const INFO_CONTENTS[] = {APPVERSION, "Jelurida"};
 
 enum {
     BLIND_SIGNING_IDX = 0,
@@ -29,7 +29,7 @@ enum {
 };
 
 #define SETTINGS_PAGE_NUMBER 2
-static bool settings_nav_callback(uint8_t page, nbgl_pageContent_t* content) {
+static bool settings_nav_callback(uint8_t page, nbgl_pageContent_t *content) {
     if (page == 0) {
         content->type = INFOS_LIST;
         content->infosList.nbInfos = ARRAY_COUNT(INFO_TYPES);

@@ -102,7 +102,7 @@ void signTokenConfirm() {
     // adding the timestamp to the hash
     err = cx_hash_no_throw(&state.tokenSign.sha256.header,
                            0,
-                           (uint8_t*) &state.tokenSign.timestamp,
+                           (uint8_t *) &state.tokenSign.timestamp,
                            sizeof(state.tokenSign.timestamp),
                            0,
                            0);
@@ -151,7 +151,7 @@ static int p1TokenInitHandler() {
     return io_send_return1(R_SUCCESS);
 }
 
-static int p1TokenMsgBytesHandler(const command_t* const cmd) {
+static int p1TokenMsgBytesHandler(const command_t *const cmd) {
     if (state.tokenSign.state == SIGN_TOKEN_UNINIT) {
         return cleanAndReturn(R_WRONG_STATE);
     }
@@ -165,7 +165,7 @@ static int p1TokenMsgBytesHandler(const command_t* const cmd) {
     return io_send_return1(R_SUCCESS);
 }
 
-static int p1TokenSignHandler(const command_t* const cmd) {
+static int p1TokenSignHandler(const command_t *const cmd) {
     if (state.tokenSign.state != SIGN_TOKEN_BYTES_RECEIVED) {
         return cleanAndReturn(R_WRONG_STATE);
     }
@@ -195,7 +195,7 @@ static int p1TokenSignHandler(const command_t* const cmd) {
 
 // Since this is a callback function, and this handler manages state, it's this function's
 // reposibility to clear the state Every time we get some sort of an error
-int signTokenMessageHandler(const command_t* const cmd) {
+int signTokenMessageHandler(const command_t *const cmd) {
     if (cmd->p1 == P1_INIT) {
         return p1TokenInitHandler();
     } else if (cmd->p1 == P1_MSG_BYTES) {

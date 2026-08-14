@@ -31,7 +31,7 @@
 //@param newData: ptr to the data
 //@param numBytes: number of bytes in the data
 // return R_SUCCESS on success, R_NO_SPACE_BUFFER_TOO_SMALL othereize
-uint8_t addToReadBuffer(const uint8_t* const newData, const uint8_t numBytes);
+uint8_t addToReadBuffer(const uint8_t *const newData, const uint8_t numBytes);
 
 // Parses the tx from the read buffer using the parse functions from state.txnAuth.functionStack
 // If there aren't enough bytes in the read buffer it returns R_SEND_MORE_BYTES

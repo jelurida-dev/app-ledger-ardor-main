@@ -121,7 +121,7 @@ void signTransactionCancel() {
  * @param title The title to display for the window.
  * @param amount The amount to display in the window text.
  */
-static void printWindowAmount(uint8_t windowIndex, const char* title, uint64_t amount) {
+static void printWindowAmount(uint8_t windowIndex, const char *title, uint64_t amount) {
     snprintf(state.txnAuth.windowTitles[windowIndex],
              sizeof(state.txnAuth.windowTitles[windowIndex]),
              "%s",
@@ -244,10 +244,10 @@ uint8_t setScreenTexts() {
 //@param outException out -              ptr to where to write the exception if it happends
 //@returns R_SUCCESS iff success else the appropriate error code is returned
 
-uint8_t signTxn(const uint8_t* const derivationPath,
+uint8_t signTxn(const uint8_t *const derivationPath,
                 const uint8_t derivationPathLengthInUints32,
-                uint8_t* const destBuffer,
-                uint16_t* const outException) {
+                uint8_t *const destBuffer,
+                uint16_t *const outException) {
     uint8_t keySeed[32];
     explicit_bzero(keySeed, sizeof(keySeed));
     uint8_t ret = 0;
@@ -280,7 +280,7 @@ uint8_t signTxn(const uint8_t* const derivationPath,
 
 //// HANDLER MAIN FUNCTIONS
 
-static int p1InitContinueCommon(const command_t* const cmd) {
+static int p1InitContinueCommon(const command_t *const cmd) {
     state.txnAuth.state = AUTH_STATE_PARSING;
 
     uint8_t ret = addToReadBuffer(cmd->data, cmd->lc);
@@ -303,19 +303,19 @@ static int p1InitContinueCommon(const command_t* const cmd) {
     return io_send_return2(R_SUCCESS, ret);
 }
 
-static int p1InitHandler(const command_t* const cmd) {
+static int p1InitHandler(const command_t *const cmd) {
     initTxnAuthState();
 
     state.txnAuth.txnSizeBytes = ((cmd->p1 & TX_SIZE_P1_MASK) << TX_SIZE_P1_SHIFT) + cmd->p2;
 
     if (state.txnAuth.txnSizeBytes < BASE_TRANSACTION_SIZE) {
-        return io_send_response_pointer(&(const uint8_t){R_TXN_SIZE_TOO_SMALL}, 1, SW_OK);
+        return io_send_response_pointer(&(const uint8_t) {R_TXN_SIZE_TOO_SMALL}, 1, SW_OK);
     }
 
     return p1InitContinueCommon(cmd);
 }
 
-static int p1ContinueHandler(const command_t* const cmd) {
+static int p1ContinueHandler(const command_t *const cmd) {
     if (state.txnAuth.state == AUTH_STATE_USER_AUTHORIZED) {
         return cleanAndReturn(R_NOT_ALL_BYTES_USED);
     }
@@ -327,7 +327,7 @@ static int p1ContinueHandler(const command_t* const cmd) {
     return p1InitContinueCommon(cmd);
 }
 
-static int p1SignHandler(const command_t* const cmd) {
+static int p1SignHandler(const command_t *const cmd) {
     if (state.txnAuth.state != AUTH_STATE_USER_AUTHORIZED) {
         return cleanAndReturn(R_TXN_UNAUTHORIZED);
     }
@@ -357,7 +357,7 @@ static int p1SignHandler(const command_t* const cmd) {
 // and manages calls to initTxnAuthState(), signTxn(), addToReadBuffer(), parseTransaction()
 // Since this is a callback function, and this handler manages state, it's this function's
 // reposibility to call initTxnAuthState Every time we get some sort of an error
-int authAndSignTxnHandler(const command_t* const cmd) {
+int authAndSignTxnHandler(const command_t *const cmd) {
     if (cmd->lc < 1) {
         return cleanAndReturn(R_WRONG_SIZE_ERR);
     } else if ((cmd->p1 & MODE_P1_MASK) == P1_INIT) {

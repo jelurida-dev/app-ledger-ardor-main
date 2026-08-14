@@ -40,7 +40,7 @@ void showAddressCancel(void) {
     ui_menu_main();
 }
 
-int showAddressHandler(const command_t* const cmd) {
+int showAddressHandler(const command_t *const cmd) {
     if (!isValidDerivationPathLength(cmd->lc)) {
         return io_send_return1(R_WRONG_SIZE_ERR);
     }

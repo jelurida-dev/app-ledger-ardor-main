@@ -22,4 +22,4 @@
 
 //@inp in - the buffer to encode, it's not const, cuz it's edited while converting
 //@output out - output should be of length 21;
-void reedSolomonEncode(uint64_t inp, char* const output);
+void reedSolomonEncode(uint64_t inp, char *const output);

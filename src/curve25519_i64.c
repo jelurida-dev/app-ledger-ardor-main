@@ -124,8 +124,7 @@ static void divmod(dstptr q, dstptr r, int n, srcptr d, int t) {
 }
 
 static inline unsigned numsize(srcptr x, unsigned n) {
-    while (n-- && !x[n])
-        ;
+    while (n-- && !x[n]);
     return n + 1;
 }
 
