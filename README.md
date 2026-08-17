@@ -21,11 +21,13 @@ All building and testing happens inside Ledger's official docker image — nothi
 
 Functional tests are written using the Ragger framework and are located in the `tests` folder. They run against the compiled binaries of all supported devices, so build everything first with `./make-all`.
 
-Run them inside the same `ledger-app-dev-tools` container used for building. The container preinstalls Speculos but not Ragger, so install the test dependencies first — inside the container, where they disappear with it, never on the host (Speculos runs only on Linux anyway; on macOS or Windows the container is required, not just convenient):
+Run them inside the same `ledger-app-dev-tools` container used for building. The container preinstalls Speculos but not Ragger, so install the test dependencies first — inside the container, where they disappear with it, never on the host (Speculos runs only on Linux anyway; on macOS or Windows the container is required, not just convenient). The image ships a Python venv at `/opt/venv`, auto-activated in interactive shells (the system Python is PEP 668 externally-managed and not meant for installs), so the plain commands just work:
 
     bash-5.1$ pip install -r tests/requirements.txt
     bash-5.1$ ./make-all
     bash-5.1$ pytest --device all -v --tb=short tests/
+
+Non-interactive invocations (`docker run ... bash -c "..."`, scripts) don't source `/etc/bash.bashrc` and therefore land on the locked-down system Python — run `source /opt/venv/bin/activate` first in that case.
 
 Devices not in `ledger_app.toml` are reported as skipped. To run a single device or test file: `pytest --device nanosp -v tests/test_get_version.py`. If a device's tests fail en masse at startup, the usual cause is a missing or stale binary for that device — re-run `./make-all`.
 
