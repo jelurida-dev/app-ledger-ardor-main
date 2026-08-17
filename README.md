@@ -10,30 +10,30 @@ This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app f
 
 ### Building using the Ledger Application Builder docker image
 
-The official docker images are published on ghcr.io ([LedgerHQ/ledger-app-builder](https://github.com/LedgerHQ/ledger-app-builder)). The `ledger-app-dev-tools` variant also bundles the Speculos emulator and the Ragger test framework, so it covers building, testing and loading:
+All building and testing happens inside Ledger's official docker image — nothing needs to be installed on the host besides Docker itself. The images are published on ghcr.io ([LedgerHQ/ledger-app-builder](https://github.com/LedgerHQ/ledger-app-builder)); use the `ledger-app-dev-tools` variant, which also bundles the Speculos emulator, so it covers building, testing and loading:
 
     $ docker run --rm -ti --user "$(id -u):$(id -g)" -v "$(pwd -P):/app" ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
-    bash-5.1$ make
+    bash-5.1$ ./make-all
 
-Alternatively, the "Ledger Dev Tools" VS Code extension (`LedgerHQ.ledger-dev-tools`) wraps the same container and provides per-device build/test/load from its sidebar.
+`./make-all` cleans and builds all supported device targets (Nano S+, Nano X, Stax), leaving each binary in `build/<target>/bin/app.elf`, where the functional tests expect it. A plain `make` builds only the single target selected by `$BOLOS_SDK` (the Nano S+ by default), so prefer `./make-all` unless you are iterating on one device (see "Switch Between Target Builds" below).
 
 ### Functional tests
 
-Functional tests are written using the Ragger framework. The tests are located in the `tests` folder.
+Functional tests are written using the Ragger framework and are located in the `tests` folder. They run against the compiled binaries of all supported devices, so build everything first with `./make-all`.
 
-#### Install ragger and dependencies
+Run them inside the same `ledger-app-dev-tools` container used for building. The container preinstalls Speculos but not Ragger, so install the test dependencies first — inside the container, where they disappear with it, never on the host (Speculos runs only on Linux anyway; on macOS or Windows the container is required, not just convenient):
 
-Ragger and Speculos are published on regular PyPI (no extra index needed). They are also preinstalled in the `ledger-app-dev-tools` docker image.
+    bash-5.1$ pip install -r tests/requirements.txt
+    bash-5.1$ ./make-all
+    bash-5.1$ for d in nanosp nanox stax; do pytest --device $d -v --tb=short tests/; done
 
-    pip install -r tests/requirements.txt
+Run one device per pytest invocation, as CI does. Do not use `--device all`: the tests still use Ragger's legacy `firmware` fixture, which current Ragger parametrizes independently of its newer `device` fixture, so `all` collects the full device × firmware cross product and hundreds of mismatched combinations fail. With a single device both fixtures collapse to the same value and the suite behaves.
 
-#### Run tests
+To run a single device or test file: `pytest --device nanosp -v tests/test_get_version.py`. If a device's tests fail en masse at startup, the usual cause is a missing or stale binary for that device — re-run `./make-all`.
 
-To run all tests just issue the following command:
+After a UI change, regenerate the screen snapshots (stored per device in `tests/snapshots/`) with the `--golden_run` flag, review the resulting image diffs, then re-run the normal comparison:
 
-    pytest --device all -v --tb=short tests/
-
-Please note you need all the different versions compiled. You can compile them all by running the helper script `./make-all` inside the docker build image.
+    pytest --device nanosp -v --golden_run tests/
 
 ### End to end tests
 
@@ -129,11 +129,9 @@ returnValues.h lists all the return statuses
 
 ## Compilation
 
-To compile call
+Compilation happens inside the builder docker image — see "Building using the Ledger Application Builder docker image" above. `./make-all` builds every device target; a plain `make` builds only the target selected by `$BOLOS_SDK`.
 
-    make
-
-To compile and upload to the ledger device
+To compile and upload to a physical ledger device
 
     make load
 
