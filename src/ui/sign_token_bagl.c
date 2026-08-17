@@ -24,11 +24,12 @@ UX_STEP_NOCB(stBlindSignWarning,
                  "Signing",
              });
 UX_STEP_CB(stFlowPage1,
-           pb,
+           pbb,
            signTokenConfirmation(),
            {
                &C_icon_validate_14,
-               "Sign token",
+               "Sign",
+               "token",
            });
 UX_STEP_CB(stFlowPage2,
            pb,

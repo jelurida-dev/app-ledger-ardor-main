@@ -15,7 +15,7 @@ UX_STEP_CB(saFlowPage1,
                .title = "Your Address",
                .text = screenContent,
            });
-UX_STEP_CB(saFlowPage2, pb, showAddressConfirm(), {&C_icon_validate_14, "Done"});
+UX_STEP_CB(saFlowPage2, pb, showAddressConfirm(), {&C_icon_validate_14, "Confirm"});
 UX_FLOW(saFlow, &saFlowPage1, &saFlowPage2);
 
 void showAddressScreen(const uint64_t accountId) {

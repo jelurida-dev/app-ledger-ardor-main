@@ -26,8 +26,7 @@ def test_sign_token(backend, navigator, scenario_navigator, device, test_name):
 
     client = _send_token_for_signing(backend)
 
-    navigate = blind_review(navigator, scenario_navigator, device, test_name,
-                            nano_screen_text="^Sign token$")
+    navigate = blind_review(navigator, scenario_navigator, device, test_name)
 
     with client.sign_token_sign(PATH_STR_0, TOKEN_TIMESTAMP):
         navigate()

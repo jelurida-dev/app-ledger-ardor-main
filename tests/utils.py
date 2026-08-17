@@ -28,7 +28,7 @@ def _touch_blind_review(navigator, test_name, validation_instructions):
                                               screen_change_before_first_instruction=False,
                                               snap_start_idx=2)
 
-def blind_review(navigator, scenario_navigator, device, test_name, approve = True, nano_screen_text = None):
+def blind_review(navigator, scenario_navigator, device, test_name, approve = True):
     # Returns the navigation callable for reviewing a signing operation that
     # requires blind signing. On nano the setting is enabled from the settings menu
     # up front (before the review is started); on touch devices the review itself
@@ -36,7 +36,7 @@ def blind_review(navigator, scenario_navigator, device, test_name, approve = Tru
     if device.is_nano:
         _enable_blind_signing(navigator)
         if approve:
-            return lambda: scenario_navigator.review_approve(custom_screen_text=nano_screen_text)
+            return scenario_navigator.review_approve
         return scenario_navigator.review_reject
     return lambda: _touch_blind_review(navigator, test_name,
                                        _TOUCH_APPROVE if approve else _TOUCH_REJECT)
