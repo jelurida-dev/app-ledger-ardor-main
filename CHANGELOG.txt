@@ -1,3 +1,25 @@
+YYYY-MM-DD v1.?.0
+- Dropped Nano S support (device reached end-of-life)
+- Migrated the Stax/NBGL UI to the SDK v26
+- Adopted clang-format 21 and reformatted the codebase
+
+2023-08-18 v1.1.0
+- Added Nano S+ support
+- Added Stax support, including QR-code address verification
+- Added blind signing (with a device settings toggle) for transaction types without
+  specific parsing/UI, and for entirely unknown transaction types
+- Show the chain ticker (ARDR/IGNIS/...) next to amounts and fees, not just raw numbers
+- Migrated to Ledger's standard_app SDK
+- Security-hardening fixes
+- Fixed asset exchange order (ask/bid) transactions showing an incorrect Asset ID,
+  quantity and price on the confirmation screen; added explicit bid-order support
+
+2021-09-14 v1.0.4
+- Compatibility updates for newer Ledger SDK/firmware (migrated off deprecated os_mem*
+  memory APIs)
+- Added the "pending security review" disclaimer required by Ledger at the time
+- Added CI: static analyzer integration and first automated unit/functional tests
+
 2021-01-06 v1.0.3
 Support for latest Ledger devices firmware.
 
