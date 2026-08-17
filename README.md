@@ -1,6 +1,6 @@
 # Ledger App for Ardor
 
-This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app for Ledger devices (Nano S+, Nano X and Stax)
+This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app for Ledger devices (Nano S+, Nano X, Stax and Flex)
 
 ## Documentation
 
@@ -15,7 +15,7 @@ All building and testing happens inside Ledger's official docker image — nothi
     $ docker run --rm -ti --user "$(id -u):$(id -g)" -v "$(pwd -P):/app" ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
     bash-5.1$ ./make-all
 
-`./make-all` cleans and builds all supported device targets (Nano S+, Nano X, Stax), leaving each binary in `build/<target>/bin/app.elf`, where the functional tests expect it. A plain `make` builds only the single target selected by `$BOLOS_SDK` (the Nano S+ by default), so prefer `./make-all` unless you are iterating on one device (see "Switch Between Target Builds" below).
+`./make-all` cleans and builds all supported device targets (Nano S+, Nano X, Stax, Flex), leaving each binary in `build/<target>/bin/app.elf`, where the functional tests expect it. A plain `make` builds only the single target selected by `$BOLOS_SDK` (the Nano S+ by default), so prefer `./make-all` unless you are iterating on one device (see "Switch Between Target Builds" below).
 
 ### Functional tests
 

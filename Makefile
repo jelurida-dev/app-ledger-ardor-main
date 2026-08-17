@@ -46,6 +46,7 @@ DEFINES += APP_PREFIX=\"ARDOR-\"
 ICON_NANOX = icons/ArdorIconNanoX.gif
 ICON_NANOSP = icons/ArdorIconNanoX.gif
 ICON_STAX = icons/ArdorIcon32px.gif
+ICON_FLEX = icons/ArdorIcon40px.gif
 
 ENABLE_NBGL_QRCODE = 1
 

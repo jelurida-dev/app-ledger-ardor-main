@@ -1,7 +1,7 @@
 from constants import RESPONSE_SUFFIX, R_SUCCESS, ROOT_SCREENSHOT_PATH, PATH_STR_0, PATH_STR_1
 from ragger.navigator import NavInsID
 from ardor_command_sender import ArdorCommandSender
-from utils import enable_blind_signing, get_accept_instructions, get_nano_instructions, get_stax_instructions
+from utils import enable_blind_signing, get_accept_instructions, get_nano_instructions, get_touch_instructions
 
 RET_VAL_TRANSACTION_ACCEPTED = 8 # R_FINISHED
 RET_VAL_TRANSACTION_REJECTED = 1 # R_REJECT
@@ -46,7 +46,7 @@ def _sign_tx_reject(backend, navigator, unsigned_bytes_hex: str, test_name: str,
 def test_send_ignis_tx(backend, navigator, device):
     tx_bytes = "020000000000011d98fe090f006e0983e578fab84ab29c209182a8eff30a186fa84211da55a6a29fcc2b7e4a20eb6d36651b82d0eb00c2eb0b0000000000e1f505000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000191ee15a5fb74d1200000000000000000000000000000000000000000000000000000000000000000000000000000000"
     expected_signature = "ad92efeb45e2d0866b22a20ad3bbc75b3fbcd63a32b451665857815598d13800404feca2d6f33730fae127ce89a2213e06afb9e8dbb44e06c7514cb56475e642"
-    instructions = get_accept_instructions(device, num_taps=2, num_screens=5)
+    instructions = get_accept_instructions(device, num_taps=2, num_screens=5, num_taps_flex=3)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_tx", instructions)
 
 def test_send_ignis_tx_reject(backend, navigator, device):
@@ -60,7 +60,7 @@ def test_send_ignis_tx_reject(backend, navigator, device):
 def test_send_ardr(backend, navigator, device):
     tx_bytes = "01000000fe0001f944910a0f00a45834eef72000e08093cb1e23d9c873a9acea0a893bb02738bf8328ba1d076533ece497d15c7f343090b7000000000000e1f5050000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0149e00d5eabea116ebc95800000000"
     expected_signature = "65ee18432849dc797092287436cfb849f1ddf0f288c79f3cb99cb4dc754bac0c1e7dc2f5b6e1cc6542750954d2a5f0572a7fe721bd0bbf9d60f9336a85818ca4"
-    instructions = get_accept_instructions(device, num_taps=2, num_screens=5)
+    instructions = get_accept_instructions(device, num_taps=2, num_screens=5, num_taps_flex=3)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ardr", instructions, PATH_STR_1)
 
 def test_send_ignis_blind_accept(backend, navigator, device):
@@ -71,11 +71,8 @@ def test_send_ignis_blind_accept(backend, navigator, device):
         instructions = get_nano_instructions(7)
     else:
         instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # enable blind signing
-                        NavInsID.USE_CASE_CHOICE_REJECT,  # "Continue anyway" on the blind signing warning
-                        NavInsID.USE_CASE_REVIEW_TAP,     # review intro
-                        NavInsID.USE_CASE_REVIEW_TAP,     # tag/value pairs
-                        NavInsID.USE_CASE_REVIEW_CONFIRM, # hold to sign
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss status screen
+                        NavInsID.USE_CASE_CHOICE_REJECT   # "Continue anyway" on the blind signing warning
+                        ] + get_touch_instructions(device, 2, num_taps_flex=3)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_blind_accept",
                   instructions, PATH_STR_1)
 
@@ -129,12 +126,8 @@ def test_send_ignis_4_attachments(backend, navigator, device):
         instructions = get_nano_instructions(8)
     else:
         instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # enable blind signing
-                        NavInsID.USE_CASE_CHOICE_REJECT,  # "Continue anyway" on the blind signing warning
-                        NavInsID.USE_CASE_REVIEW_TAP,     # review intro
-                        NavInsID.USE_CASE_REVIEW_TAP,     # tag/value pairs (1/2)
-                        NavInsID.USE_CASE_REVIEW_TAP,     # tag/value pairs (2/2)
-                        NavInsID.USE_CASE_REVIEW_CONFIRM, # hold to sign
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss status screen
+                        NavInsID.USE_CASE_CHOICE_REJECT   # "Continue anyway" on the blind signing warning
+                        ] + get_touch_instructions(device, 3)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_4_attachments",
                   instructions, PATH_STR_0)
 
@@ -146,11 +139,8 @@ def test_send_ignis_referenced_tx(backend, navigator, device):
         instructions = get_nano_instructions(6)
     else:
         instructions = [NavInsID.USE_CASE_CHOICE_CONFIRM, # enable blind signing
-                        NavInsID.USE_CASE_CHOICE_REJECT,  # "Continue anyway" on the blind signing warning
-                        NavInsID.USE_CASE_REVIEW_TAP,     # review intro
-                        NavInsID.USE_CASE_REVIEW_TAP,     # tag/value pairs
-                        NavInsID.USE_CASE_REVIEW_CONFIRM, # hold to sign
-                        NavInsID.USE_CASE_STATUS_DISMISS] # dismiss status screen
+                        NavInsID.USE_CASE_CHOICE_REJECT   # "Continue anyway" on the blind signing warning
+                        ] + get_touch_instructions(device, 2, num_taps_flex=3)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_send_ignis_referenced_tx",
                   instructions, PATH_STR_0)
 
@@ -159,8 +149,6 @@ def test_place_asset_exchange_order(backend, navigator, device):
     expected_signature = "2d0fcf25e6afb2015bde4f0d90d75cfeb718dbd80ef35d1adfca95d0b5e69c030349eb41a877bb0ca005ef2e67221d4592b3bc87c22cd3ee35c9c7092eed5055"
     if device.is_nano:
         enable_blind_signing(navigator)
-        instructions = get_nano_instructions(6)
-    else:
-        instructions = get_stax_instructions(2)
+    instructions = get_accept_instructions(device, num_taps=2, num_screens=6, num_taps_flex=3)
     _sign_tx_test(backend, navigator, tx_bytes, expected_signature, "test_place_asset_exchange_order",
                   instructions, PATH_STR_0)
