@@ -25,15 +25,13 @@ Run them inside the same `ledger-app-dev-tools` container used for building. The
 
     bash-5.1$ pip install -r tests/requirements.txt
     bash-5.1$ ./make-all
-    bash-5.1$ for d in nanosp nanox stax; do pytest --device $d -v --tb=short tests/; done
+    bash-5.1$ pytest --device all -v --tb=short tests/
 
-Run one device per pytest invocation, as CI does. Do not use `--device all`: the tests still use Ragger's legacy `firmware` fixture, which current Ragger parametrizes independently of its newer `device` fixture, so `all` collects the full device × firmware cross product and hundreds of mismatched combinations fail. With a single device both fixtures collapse to the same value and the suite behaves.
-
-To run a single device or test file: `pytest --device nanosp -v tests/test_get_version.py`. If a device's tests fail en masse at startup, the usual cause is a missing or stale binary for that device — re-run `./make-all`.
+Devices not in `ledger_app.toml` are reported as skipped. To run a single device or test file: `pytest --device nanosp -v tests/test_get_version.py`. If a device's tests fail en masse at startup, the usual cause is a missing or stale binary for that device — re-run `./make-all`.
 
 After a UI change, regenerate the screen snapshots (stored per device in `tests/snapshots/`) with the `--golden_run` flag, review the resulting image diffs, then re-run the normal comparison:
 
-    pytest --device nanosp -v --golden_run tests/
+    pytest --device all -v --golden_run tests/
 
 ### End to end tests
 
