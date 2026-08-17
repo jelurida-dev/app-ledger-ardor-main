@@ -1,5 +1,5 @@
 make clean
-make BOLOS_SDK=$NANOX_SDK
-make BOLOS_SDK=$NANOSP_SDK
-make BOLOS_SDK=$STAX_SDK
-make BOLOS_SDK=$FLEX_SDK
+make -j"$(nproc)" BOLOS_SDK=$NANOX_SDK
+make -j"$(nproc)" BOLOS_SDK=$NANOSP_SDK
+make -j"$(nproc)" BOLOS_SDK=$STAX_SDK
+make -j"$(nproc)" BOLOS_SDK=$FLEX_SDK
