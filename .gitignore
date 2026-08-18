@@ -14,3 +14,5 @@ scan-build/
 tests/__pycache__/
 tests/snapshots-tmp/
 .venv/
+tests-e2e/.gradle/
+tests-e2e/nxt_unit_test_db/

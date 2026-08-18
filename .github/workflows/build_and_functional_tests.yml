@@ -40,9 +40,11 @@ jobs:
     with:
       download_app_binaries_artifact: "compiled_app_binaries"
       regenerate_snapshots: ${{ github.event_name == 'workflow_dispatch' && inputs.golden_run == 'Open a PR' }}
-      run_for_devices: '["nanox", "nanosp", "stax"]'
+      run_for_devices: '["nanox", "nanosp", "stax", "flex"]'
 
-  # The former E2E job (Ardor node test suite from bitbucket.org/sargue/ardor-ledger-test
-  # against the Nano S build) was removed when Nano S support was dropped: current Speculos
-  # images cannot emulate Nano S. It will be replaced by an in-repo tests-e2e/ module running
-  # against the Nano S+ build.
+  e2e_tests:
+    name: E2E tests
+    needs: build_application
+    uses: ./.github/workflows/e2e_tests.yml
+    with:
+      download_app_binaries_artifact: "compiled_app_binaries"

@@ -37,21 +37,43 @@ After a UI change, regenerate the screen snapshots (stored per device in `tests/
 
 ### End to end tests
 
-End to end tests are run from an Ardor node and the Speculos emulator. The Ardor node has some unit tests that use the Speculos emulator to test the Ledger app. Those tests also use the Speculos API to assert screen texts and send button press commands.
+The end to end tests live in `tests-e2e/`. They run a full Ardor node in-process and drive
+its Ledger bridge against the app running on the Speculos emulator: real transactions are
+built on the node, parsed, displayed and signed by the app, then verified and broadcast.
+They complement the Ragger tests, which check the screens pixel by pixel but never leave
+the device.
 
-These tests require Docker (or a local Speculos installation) and Java 8 or newer.
+The module is a self-contained Gradle project. It needs Docker (for Speculos) and a JDK 17
+or newer; Gradle itself comes from the committed wrapper. The Ardor jars it builds against
+live in `tests-e2e/repo/`, a file-based Maven repository copied from the internal
+`ardor-library` project — everything else resolves from Maven Central. The node boots from
+the Ardor testnet genesis, committed as `tests-e2e/ardor-testnet-genesis.tar.bz2` and
+unpacked by the build.
 
-To run the tests you need to build the app, load it into the Speculos emulator and run the tests from the Ardor node.
+1. Build the Nano S+ app: `make BOLOS_SDK=$NANOSP_SDK` in the dev-tools container, or
+   `./make-all` for every device.
 
-1. Build the Ledger app.
-Note: the E2E suite targets the Nano S build, which this repo no longer produces (and which Speculos releases since Oct 2025 cannot emulate); its CI job has been removed. The suite is pending migration to an in-repo test module running against the Nano S+ build. The instructions below are kept for reference and require an older `ghcr.io/ledgerhq/speculos` image tag and a Nano S ELF built from an older revision.
+2. Run that binary on the Speculos emulator, exposing the APDU port (9999) and the REST API
+   port (5000). The seed is fixed: the tests derive the expected keys and addresses from it.
 
-2. Run the app on the Speculos emulator using Docker. As an alternative you can use a locally installed Speculos emulator. In this case you will need to run the emulator on port 9999 and the API server on port 5000. The following command will run the emulator on Docker:
+    docker run --rm -d --name speculos -p 9999:9999 -p 5000:5000 -v "$(pwd -P)/build:/build" ghcr.io/ledgerhq/speculos:latest --display headless --model nanosp --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" /build/nanos2/bin/app.elf
 
-    docker run --rm -it -v $(pwd):/speculos/apps -p 9999:9999 -p 5000:5000 ghcr.io/ledgerhq/speculos --display headless --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" --model nanos apps/build/nanos/bin/app.elf
+3. Run the tests:
 
-3. Clone the Ardor node repository with the Ledger unit tests: `git clone https://sargue@bitbucket.org/sargue/ardor-ledger-test.git`
-4. Run tests: `./run-unit-tests.sh com.jelurida.ardor.integration.wallet.ledger.application.LedgerSpeculosSuite`
+    cd tests-e2e && ./gradlew test
+
+On macOS, AirPlay Receiver holds port 5000, so publish the API on another port and tell the
+tests about it: `-p 5001:5000` above, then
+`./gradlew test -Dspeculos.apiUrl=http://localhost:5001`. Add `-De2e.showOutput=true` to see
+the node and Speculos logs while the tests run.
+
+The suite starts from a device with blind signing disabled and turns the setting on through
+the app's own settings menu when a transaction needs it, so a freshly started emulator is
+the expected state. Navigation is content driven — reviews are walked until their
+confirmation screen shows up — so it needs no per-device screen counts.
+
+To move to a newer Ardor release, copy the new version directories from `ardor-library/repo/`
+into `tests-e2e/repo/` and bump the version in `tests-e2e/build.gradle`.
 
 ### Enable Log Messages
 
@@ -92,7 +114,8 @@ It's also required to pass the Clang static analyzer. The analyzer is included o
 The project uses Github Actions, mostly calling Ledger's reusable workflows from [ledger-app-workflows](https://github.com/LedgerHQ/ledger-app-workflows) (as does the reference [`app-boilerplate`](https://github.com/LedgerHQ/app-boilerplate)):
 
 - `guidelines_enforcer.yml` — mandatory for the app to be deployable on the Ledger app store (icons, Makefile compliance, app-load-params, static analyzer, ...)
-- `build_and_functional_tests.yml` — builds all devices and runs the Ragger functional tests (plus the E2E suite)
+- `build_and_functional_tests.yml` — builds all devices and runs the Ragger functional tests
+- `e2e_tests.yml` — the end to end suite against Speculos; called by the workflow above once the app is built, so it is built once. It lives in its own file because Ledger maintains `build_and_functional_tests.yml` in their fork and realigns it
 - `coding_style_checks.yml` — clang-format check (uses the clang-format version shipped in the current builder image)
 - `codeql_checks.yml` — CodeQL security analysis
 

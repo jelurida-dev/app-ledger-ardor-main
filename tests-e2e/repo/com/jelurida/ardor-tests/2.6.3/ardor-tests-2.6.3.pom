@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.jelurida</groupId>
+  <artifactId>ardor-tests</artifactId>
+  <version>2.6.3</version>
+  <name>ArdorLib</name>
+  <description>A jar with the Ardor test framework</description>
+  <url>https://www.jelurida.com/ardor</url>
+  <dependencies>
+    <dependency>
+      <groupId>com.jelurida</groupId>
+      <artifactId>ardorlib</artifactId>
+      <version>2.6.3</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
+</project>

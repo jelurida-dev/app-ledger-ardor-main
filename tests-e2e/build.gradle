@@ -1,0 +1,56 @@
+// End to end tests: they drive the Ardor node's Ledger bridge against the app running
+// on the Speculos emulator. See the "End to end tests" section of the repository README.
+
+plugins {
+    id 'java'
+}
+
+repositories {
+    // Ardor jars, copied from the internal ardor-library project (Ardor 2.6.3). See repo/README.md.
+    maven { url = uri("${projectDir}/repo") }
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'com.jelurida:ardor-tests:2.6.3'
+    testImplementation 'junit:junit:4.13.2'
+}
+
+// The node boots from the Ardor testnet genesis, which it reads as data/*.json off the
+// classpath. Those files are 35MB of JSON, so they are committed as one archive.
+def genesisData = layout.buildDirectory.dir('genesis-data')
+
+def unpackGenesisData = tasks.register('unpackGenesisData', Copy) {
+    description = 'Unpacks the Ardor testnet genesis data the node boots from.'
+    from tarTree(resources.bzip2('ardor-testnet-genesis.tar.bz2'))
+    into genesisData
+}
+
+tasks.named('test') {
+    dependsOn unpackGenesisData
+
+    // What these tests exercise — the app binary and the emulator running it — is invisible
+    // to Gradle, so never report them as up to date.
+    outputs.upToDateWhen { false }
+
+    // nxt.BlockchainTest reads conf/unit-tests-nxt.properties relative to the working
+    // directory and expects conf/ on the classpath.
+    workingDir = projectDir
+    classpath += files('conf', genesisData)
+
+    // The test JVM is forked, so -Dspeculos.apiUrl has to be passed on explicitly. Override it
+    // when the emulator's port 5000 had to be remapped, as on macOS, where AirPlay holds it.
+    if (System.getProperty('speculos.apiUrl')) {
+        systemProperty 'speculos.apiUrl', System.getProperty('speculos.apiUrl')
+    }
+
+    // LedgerSpeculosSuite is the entry point: it boots the node once for every test class
+    // it aggregates, so the classes must not also run on their own.
+    include '**/LedgerSpeculosSuite.class'
+
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat = 'full'
+        showStandardStreams = Boolean.getBoolean('e2e.showOutput')
+    }
+}

@@ -1,0 +1,67 @@
+name: End to end tests
+
+# Runs the tests-e2e module: a real Ardor node, in-process, driving its Ledger bridge against
+# the app on the Speculos emulator. See the "End to end tests" section of the README.
+
+on:
+  workflow_call:
+    inputs:
+      download_app_binaries_artifact:
+        description: "The name of the artifact containing the built application binary file(s) to test"
+        required: true
+        type: string
+
+jobs:
+  e2e_tests:
+    name: Speculos
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v7
+
+      # 17 is the floor tests-e2e supports, and pinning CI to it keeps that floor honest:
+      # the Gradle build pins no toolchain, so nothing else stops a newer idiom creeping in.
+      # It is also why this runs on the runner rather than in the Speculos container, which
+      # ships Debian trixie and offers no JDK 17.
+      - name: Set up the JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Download app binary
+        uses: actions/download-artifact@v7
+        with:
+          name: ${{ inputs.download_app_binaries_artifact }}
+          path: build/
+
+      - name: Start Speculos
+        # The command the README gives for a local run, minus --rm so the log step below
+        # still has a container to read when Speculos dies. The seed must match MNEMONIC in
+        # tests-e2e AbstractSpeculosTest, which the tests derive keys and addresses from.
+        run: |
+          docker run -d --name speculos -p 9999:9999 -p 5000:5000 -v "$PWD/build:/build" \
+            ghcr.io/ledgerhq/speculos:latest --display headless --model nanosp \
+            --seed "opinion change copy struggle town cigar input kit school patient execute bird bundle option canvas defense hover poverty skill donkey pottery infant sense orchard" \
+            /build/nanos2/bin/app.elf
+          curl -fsS --retry 30 --retry-delay 1 --retry-connrefused --retry-all-errors \
+            -o /dev/null "http://localhost:5000/events?currentscreenonly=true"
+
+      - name: Run the end to end tests
+        run: cd tests-e2e && ./gradlew test
+
+      # Also on cancelled(), which is how a hung suite ends: it has no test report to
+      # upload, and the emulator log is then the only evidence of what it was stuck on.
+      - name: Show the Speculos log
+        if: failure() || cancelled()
+        run: docker logs speculos || true
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: e2e-test-report
+          path: tests-e2e/build/reports/tests/test/
