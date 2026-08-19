@@ -59,11 +59,21 @@ APP_SOURCE_PATH += src
 
 GEN_TX_TYPE_LIST_SRC := src/txnTypeLists.c
 
-$(GEN_TX_TYPE_LIST_SRC): createTxnTypes.py txtypes.txt
-	python3 ./createTxnTypes.py > $@
+# The SDK collects the app sources with a find(1) while it is parsed, so the generated
+# list has to already exist by then. It is committed and therefore normally does; this
+# covers the fresh-checkout and post-realclean cases, where a target rule comes too late.
+ifeq ($(wildcard $(GEN_TX_TYPE_LIST_SRC)),)
+$(shell python3 ./createTxnTypes.py > $(GEN_TX_TYPE_LIST_SRC))
+endif
 
 .PHONY: realclean
 realclean: clean
 	rm -f $(GEN_TX_TYPE_LIST_SRC)
 
 include $(BOLOS_SDK)/Makefile.standard_app
+
+# Keeping the list in sync with txtypes.txt is a plain rule, but it has to name its target
+# by the same absolute path the SDK refers to the app sources by ($(APP_DIR), defined by
+# the include above) - declared relatively, the rule is a different target and never fires.
+$(APP_DIR)/$(GEN_TX_TYPE_LIST_SRC): createTxnTypes.py txtypes.txt
+	python3 ./createTxnTypes.py > $@

@@ -1,5 +1,7 @@
 YYYY-MM-DD v1.?.0
 - Added support for the NXT child chain
+- Fixed src/txnTypeLists.c not being regenerated when txtypes.txt changes, which
+  silently built the app with a stale transaction type table
 - Added Flex support
 - Dropped Nano S support (device reached end-of-life)
 - Migrated the Stax/NBGL UI to the SDK v26
