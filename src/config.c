@@ -33,7 +33,8 @@ const chainType CHAINS[] = {{0x00000001, "ARDR", 8},
                             {0x00000003, "AEUR", 4},  // no longer used
                             {0x00000004, "BITS", 8},
                             {0x00000005, "MPG", 8},  // no longer used
-                            {0x00000006, "GPS", 4}};
+                            {0x00000006, "GPS", 4},
+                            {0x00000007, "NXT", 8}};
 const uint8_t NUM_CHAINS = sizeof(CHAINS) / sizeof(CHAINS[0]);
 
 const uint8_t SUPPORTED_TXN_VERSION = 1;

@@ -1,4 +1,5 @@
 YYYY-MM-DD v1.?.0
+- Added support for the NXT child chain
 - Added Flex support
 - Dropped Nano S support (device reached end-of-life)
 - Migrated the Stax/NBGL UI to the SDK v26
