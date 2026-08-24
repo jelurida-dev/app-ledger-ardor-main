@@ -10,12 +10,53 @@ This is the official [Ardor](https://www.jelurida.com/ardor) ledger wallet app f
 
 ### Building using the Ledger Application Builder docker image
 
-All building and testing happens inside Ledger's official docker image — nothing needs to be installed on the host besides Docker itself. The images are published on ghcr.io ([LedgerHQ/ledger-app-builder](https://github.com/LedgerHQ/ledger-app-builder)); use the `ledger-app-dev-tools` variant, which also bundles the Speculos emulator, so it covers building, testing and loading:
+All building and testing happens inside Ledger's official docker image — nothing needs to be installed on the host besides Docker itself. The images are published on ghcr.io ([LedgerHQ/ledger-app-builder](https://github.com/LedgerHQ/ledger-app-builder)); use the `ledger-app-dev-tools` variant, which also bundles the Speculos emulator, so it covers building and testing (loading a physical device needs one extra host-side step on macOS and Windows — see below):
 
     $ docker run --rm -ti --user "$(id -u):$(id -g)" -v "$(pwd -P):/app" ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
     bash-5.1$ ./make-all
 
 `./make-all` cleans and builds all supported device targets (Nano S+, Nano X, Stax, Flex), leaving each binary in `build/<target>/bin/app.elf`, where the functional tests expect it. A plain `make` builds only the single target selected by `$BOLOS_SDK` (the Nano S+ by default), so prefer `./make-all` unless you are iterating on one device (see "Switch Between Target Builds" below).
+
+### Loading onto a physical device
+
+Side-loading is only possible on Nano S, Nano S+, Stax and Flex. **The Nano X does not accept side-loaded applications**, so it can only be exercised on Speculos and through the builds Ledger signs from their fork.
+
+On Linux the container can reach the device directly and the SDK's own target does everything:
+
+    $ docker run --rm -ti -v "$(pwd -P):/app" --privileged -v "/dev/bus/usb:/dev/bus/usb" --user "$(id -u):$(id -g)" ghcr.io/ledgerhq/ledger-app-builder/ledger-app-dev-tools:latest
+    bash-5.1$ make clean && make BOLOS_SDK=$NANOSP_SDK load
+
+On macOS and Windows that does not work: the Docker daemon runs inside a Linux VM with no USB passthrough, so `make load` never sees the device (the Ledger VS Code extension is Docker-based and hits the same wall). The build still happens in the container; only the USB half has to run on the host, and the single thing needed there is `ledgerblue`, the tool `make load` itself invokes. With [uv](https://docs.astral.sh/uv/) it runs from a cached, ephemeral environment, so nothing is installed system wide (`uv cache clean` removes it); `hidapi` ships prebuilt wheels for Apple silicon, so no compiler or Homebrew package is involved, and macOS needs no equivalent of the Linux udev rules.
+
+1. Build the target in the container — a clean single-target build, *not* `./make-all` (see the warning below):
+
+        bash-5.1$ make clean && make BOLOS_SDK=$NANOSP_SDK
+
+2. Plug the device in, unlock it, leave it on the dashboard (not inside an app) and quit Ledger Live, which otherwise holds the connection.
+
+3. From the repository root on the host, replay the offline load script the build has just produced. It carries the whole sequence — delete the previous version, install the new one — with that target's parameters already baked in:
+
+        $ uv run --python 3.12 --with ledgerblue python -m ledgerblue.runScript --scp --elfFile build/nanos2/bin/app.elf --fileName build/nanos2/bin/app.apdu
+
+   `--scp` is mandatory: the script holds the load commands unwrapped, and the secure channel that must carry them is established at run time rather than stored in the file. Without it the loader rejects the very first command with status `6615`. `--elfFile` reads the target id from the binary, so the two paths cannot disagree about which device is being flashed.
+
+   The device then asks "Allow unknown manager?" and, once approved, shows the app name and hash to confirm.
+
+   The script starts by deleting the previously installed version. On a device that has none — a fresh one, or one that has just been through a firmware update — drop that first command:
+
+        $ tail -n +2 build/nanos2/bin/app.apdu | uv run --python 3.12 --with ledgerblue python -m ledgerblue.runScript --scp --elfFile build/nanos2/bin/app.elf
+
+   (`--delete` contributes exactly that one line and nothing else, so removing it needs no rebuild.)
+
+The equivalent is to run the real `make load` command line on the host: print it with `make BOLOS_SDK=$NANOSP_SDK -n load` inside the container, then replace its leading `python3` with `uv run --python 3.12 --with ledgerblue python`. The printed command already carries the target id matching `$BOLOS_SDK`.
+
+> **Mind the root `bin/` and `debug/` directories.** The build fills them for whichever target it built last, and `make load` reads `bin/app.hex` and `debug/app.map` from there — after `./make-all` that is the Flex binary. Rebuild the intended target first, or use the `build/<target>/bin/app.apdu` route above, which names the target explicitly.
+
+A few more things worth knowing:
+
+- Update the device to the OS version Ledger last released the app against — the release tags spell it out, e.g. `nanos+_1.6.0_1.1.0_sdk_v26.0.2` for the Nano S+ — otherwise you are testing an OS/API level pair that never ships. A firmware update also wipes side-loaded apps, so update first and load second.
+- A side-loaded build is not signed by Ledger, so the device warns that the app is not genuine when it is opened. That is expected.
+- To remove the app from a Nano S+: `uv run --python 3.12 --with ledgerblue python -m ledgerblue.deleteApp --targetId 0x33100004 --appName Ardor`. This one talks to the device directly and sets up its own secure channel, so it needs no `--scp`.
 
 ### Functional tests
 
@@ -81,7 +122,7 @@ To turn on logging on the Ledger app
 
 1. Install the debug firmware (see the [Ledger Developer Portal](https://developers.ledger.com/))
 2. Build with `DEBUG=1` (`make DEBUG=1`) - make sure not to commit builds or CI configs with it enabled; the guidelines-enforcer CI rejects it
-3. Execute `make clean` and then `make DEBUG=1 load` to generate the source code for all the PRINTF statements
+3. Execute `make clean` and then build and load with `DEBUG=1` (see "Loading onto a physical device") to generate the source code for all the PRINTF statements
 
 ### Switch Between Target Builds
 
@@ -154,9 +195,7 @@ returnValues.h lists all the return statuses
 
 Compilation happens inside the builder docker image — see "Building using the Ledger Application Builder docker image" above. `./make-all` builds every device target; a plain `make` builds only the target selected by `$BOLOS_SDK`.
 
-To compile and upload to a physical ledger device
-
-    make load
+To upload the result onto a physical device see "Loading onto a physical device" above — on macOS and Windows `make load` cannot be used from inside the container.
 
 ### Stack Overflow Canary
 
